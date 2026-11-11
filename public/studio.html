@@ -21,6 +21,8 @@
 <section id="login" class="login">
   <form id="loginForm" class="card">
     <h1>دخول الاستوديو</h1>
+    <label for="lg">اسم الدخول</label>
+    <input id="lg" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="خليه خاوي إلا كنتي المدير">
     <label for="pw">كلمة السر</label>
     <input id="pw" type="password" autocomplete="current-password" required>
     <p id="loginErr" class="err" hidden></p>
@@ -30,6 +32,14 @@
 
 <main id="app" class="layout" hidden>
   <section class="stage">
+    <div class="roombar" id="roomBar">
+      <select id="roomSel" aria-label="القاعة" hidden></select>
+      <strong id="roomName"></strong>
+      <a id="roomLink" class="room-url" target="_blank" rel="noopener" dir="ltr"></a>
+      <button id="copyLink" class="btn" type="button">نسخ الرابط</button>
+      <a id="adminLink" class="btn" href="/admin" hidden>الإدارة</a>
+      <button id="logoutBtn" class="btn" type="button">خروج</button>
+    </div>
     <div class="player">
       <video id="preview" playsinline muted autoplay></video>
       <canvas id="board" class="board" hidden></canvas>

@@ -27,7 +27,7 @@ function myUid() {
 
 // ---------------------------------------------------------------- socket --
 // One WebSocket with automatic reconnect. on(type, fn) to listen.
-function createLink({ name = '', token = '' } = {}) {
+function createLink({ name = '', token = '', room = '' } = {}) {
   const handlers = {};
   const link = {
     uid: myUid(), name, token, ws: null, ready: false,
@@ -40,7 +40,7 @@ function createLink({ name = '', token = '' } = {}) {
   function connect() {
     const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
     link.ws = ws;
-    ws.onopen = () => { delay = 1000; ws.send(JSON.stringify({ t: 'hello', uid: link.uid, name: link.name, token: link.token })); };
+    ws.onopen = () => { delay = 1000; ws.send(JSON.stringify({ t: 'hello', uid: link.uid, name: link.name, token: link.token, room })); };
     ws.onmessage = (e) => {
       let d; try { d = JSON.parse(e.data); } catch { return; }
       if (d.t === 'batch') d.ev.forEach(emit);
@@ -139,7 +139,7 @@ function iceGathered(pc, timeout = 2500) {
 async function rtcNegotiate(pc, kind, path, token) {
   await pc.setLocalDescription(await pc.createOffer());
   await iceGathered(pc);
-  const r = await fetch(`/api/rtc/${kind}/${path}`, {
+  const r = await fetch(`/api/rtc/${kind}/${path}?room=${encodeURIComponent(window.REGAM_ROOM || '')}`, {
     method: 'POST', headers: { 'Content-Type': 'application/sdp', Authorization: 'Bearer ' + token }, body: pc.localDescription.sdp,
   });
   if (r.status !== 201) { const e = new Error(`rtc ${kind}/${path} -> ${r.status}`); e.status = r.status; throw e; }
@@ -147,7 +147,7 @@ async function rtcNegotiate(pc, kind, path, token) {
 }
 function rtcClose(pc, kind, path, token) {
   if (pc) pc.close();
-  fetch(`/api/rtc/${kind}/${path}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token }, keepalive: true }).catch(() => {});
+  fetch(`/api/rtc/${kind}/${path}?room=${encodeURIComponent(window.REGAM_ROOM || '')}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token }, keepalive: true }).catch(() => {});
 }
 // Put H.264 first when the browser offers it (plays everywhere, cheap to relay).
 function preferH264(transceiver) {

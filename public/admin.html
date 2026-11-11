@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0c0f14">
+<title>الإدارة · REGAM Live</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body class="admin">
+<header class="top">
+  <a class="brand" href="/">REGAM<b>Live</b><span class="brand-sub">الإدارة</span></a>
+  <div class="meta"><a class="btn" href="/studio">الاستوديو</a></div>
+</header>
+<main class="admin-main">
+  <p id="adminMsg" class="status" role="status"></p>
+
+  <section class="panel">
+    <h2>الأساتذة</h2>
+    <p class="muted">كل أستاذ كيدخل للاستوديو باسم الدخول وكلمة السر ديالو، وكيدير اللايف غير فالقاعات ديالو.</p>
+    <form id="userForm" class="admin-form">
+      <label>الاسم<input name="name" type="text" maxlength="40" required></label>
+      <label>اسم الدخول<input name="login" type="text" maxlength="30" pattern="[A-Za-z0-9._\-]{3,30}" autocapitalize="off" spellcheck="false" required dir="ltr"></label>
+      <label>كلمة السر<input name="password" type="text" minlength="8" autocomplete="off" required dir="ltr"></label>
+      <button class="btn primary" type="submit">زيد أستاذ</button>
+    </form>
+    <p id="noUsers" class="muted">ما كاين حتى أستاذ.</p>
+    <ul id="users" class="admin-list"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>القاعات</h2>
+    <form id="roomForm" class="admin-form">
+      <label>اسم القاعة<input name="title" type="text" maxlength="60" required></label>
+      <label>الموضوع<input name="topic" type="text" maxlength="40" list="topics"></label>
+      <label>الأستاذ<select name="ownerId" required></select></label>
+      <button class="btn primary" type="submit">زيد قاعة</button>
+    </form>
+    <datalist id="topics"></datalist>
+    <ul id="roomList" class="admin-list"></ul>
+  </section>
+</main>
+<script src="/i18n.js"></script>
+<script src="/common.js"></script>
+<script src="/admin.js"></script>
+</body>
+</html>

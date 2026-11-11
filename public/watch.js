@@ -122,11 +122,13 @@
   let stage = null;   // { token, slot, cam, pub, watch, voice }
 
   async function goOnStage(token, slot) {
-    const cam = await navigator.mediaDevices.getUserMedia({
+    let cam;
+    try { cam = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 20 }, facingMode: 'user' },
-    });
+    }); } catch (e) { if (e) e.step = `camera ${e.name || ''}`.trim(); throw e; }
     stage = { token, slot, cam };
+    let step = 'publish';                       // which part failed, shown to the person so it can be reported
     try {
       const pub = new RTCPeerConnection();
       stage.pub = pub;
@@ -136,9 +138,11 @@
 
       // Picture: the mixed broadcast. Sound: a mix made for this guest (the host and
       // the other guests), so nobody hears their own voice coming back.
+      step = 'picture';
       stage.watch = await rtcWatch('studio', token);
-      stage.voice = await rtcWatch('backstage' + slot, token, { video: false });
-    } catch (e) { leaveStage(false); throw e; }
+      step = 'sound';
+      stage.voice = await rtcWatch('backstage' + slot, token, { video: false, tries: 20 });
+    } catch (e) { leaveStage(false); if (e) e.step = `${step}${slot} ${e.status || e.name || ''}`.trim(); throw e; }
 
     onStage = true;
     stopHls();
@@ -207,7 +211,7 @@
           inviteErr.hidden = false;
           inviteErr.textContent = e && e.name === 'NotAllowedError'
             ? T('خاصك تسمح للمتصفح باستعمال الكاميرا والميكرو، ومن بعد عاود.')
-            : T('ما قدرناش نطلعوك للمنصة. تأكد من الكاميرا والأنترنيت وعاود.');
+            : T('ما قدرناش نطلعوك للمنصة. تأكد من الكاميرا والأنترنيت وعاود.') + (e && e.step ? ` [${e.step}]` : '');
         }
       };
       $('#inviteNo').onclick = () => { inviteDlg.close(); link.send({ t: 'leave' }); };

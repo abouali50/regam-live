@@ -260,45 +260,59 @@
       if (st.rx) rtcClose(st.rx.pc, 'whep', 'guest' + slot, token);
       if (st.back) rtcClose(st.back, 'whip', 'backstage' + slot, token);
     }
+    // Bring our side in line with who is on stage. Several changes can arrive while one
+    // is being handled (a guest is accepted, then becomes ready a second later), so a
+    // run that is asked for during another one is done right after it, on fresh data.
+    let syncing = false, syncAgain = false;
     async function syncGuests() {
+      if (syncing) { syncAgain = true; return; }
+      syncing = true;
+      try { do { syncAgain = false; await syncOnce(); } while (syncAgain); } finally { syncing = false; }
+    }
+    async function syncOnce() {
       for (const slot of [...onStage.keys()]) {                       // left, or replaced by someone else
         const g = guests.find((x) => x.slot === slot);
         if (!g || g.uid !== onStage.get(slot).uid) dropGuest(slot);
       }
       if (!liveOn) return;
-      for (const g of guests) {
-        let st = onStage.get(g.slot);
-        if (!st) { st = { uid: g.uid, rx: null, node: null, sink: null, back: null, busy: false }; onStage.set(g.slot, st); }
-        if (st.busy) continue;
-        st.busy = true;
+      for (const slot of guests.map((x) => x.slot)) {
+        const now = () => guests.find((x) => x.slot === slot);        // the guest as the server sees them at this moment
+        let g = now();
+        if (!g) continue;
+        let st = onStage.get(slot);
+        if (!st) { st = { uid: g.uid, rx: null, node: null, sink: null, back: null }; onStage.set(slot, st); }
         try {
           if (!st.back) {
             const bpc = new RTCPeerConnection();
             st.back = bpc;
-            bpc.addTransceiver(busFor(g.slot).dest.stream.getAudioTracks()[0], { direction: 'sendonly' });
-            await rtcNegotiate(bpc, 'whip', 'backstage' + g.slot, token);
+            bpc.addTransceiver(busFor(slot).dest.stream.getAudioTracks()[0], { direction: 'sendonly' });
+            await rtcNegotiate(bpc, 'whip', 'backstage' + slot, token);
           }
-          if (g.ready && !st.rx) {
-            const rx = await rtcWatch('guest' + g.slot, token);
-            if (onStage.get(g.slot) !== st || !liveOn) { rtcClose(rx.pc, 'whep', 'guest' + g.slot, token); continue; }
+          g = now();
+          if (g && g.uid === st.uid && g.ready && !st.rx && onStage.get(slot) === st) {
+            const rx = await rtcWatch('guest' + slot, token);
+            if (onStage.get(slot) !== st || !liveOn) { rtcClose(rx.pc, 'whep', 'guest' + slot, token); continue; }
             st.rx = rx;
             const attach = () => {
               const v = rx.stream.getVideoTracks()[0], a = rx.stream.getAudioTracks()[0];
-              if (v) setInput('guest' + g.slot, v);
+              if (v) setInput('guest' + slot, v);
               if (a && !st.node) {
                 st.sink = new Audio(); st.sink.autoplay = true;          // so we hear the guest
                 st.sink.srcObject = new MediaStream([a]); st.sink.play().catch(() => {});
                 st.node = audioCtx.createMediaStreamSource(new MediaStream([a]));
                 st.node.connect(mixOut);                                  // the audience hears the guest
-                for (const [other, bus] of Object.entries(buses)) if (Number(other) !== g.slot) st.node.connect(bus.gain);   // and so do the other guests
+                for (const [other, bus] of Object.entries(buses)) if (Number(other) !== slot) st.node.connect(bus.gain);   // and so do the other guests
               }
             };
             attach();
             rx.pc.addEventListener('track', () => setTimeout(attach, 0));
             status(T('{name} طلع معاك للمنصة. استعمل السماعات باش ما يكونش الصدى.', { name: g.name }));
           }
-        } catch { status(T('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.')); }
-        st.busy = false;
+        } catch (e) {
+          // leave this guest's set-up clean so the next change (or the next try) starts again
+          if (st.back && st.back.connectionState !== 'connected') { rtcClose(st.back, 'whip', 'backstage' + slot, token); st.back = null; }
+          status(T('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.') + ` (${slot}: ${(e && (e.status || e.message)) || '?'})`);
+        }
       }
     }
     function showGuests(list) {

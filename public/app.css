@@ -296,6 +296,7 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .acc-link { background: none; border: 0; padding: 0; color: var(--gold); cursor: pointer; text-decoration: underline; font: inherit; font-size: 14px; }
 .acc-box { display: inline-flex; align-items: center; gap: 6px; }
 .acc-name { font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn.rec-on { background: var(--live); border-color: var(--live); color: #fff; }
 .btn.small { padding: 5px 11px; font-size: 14px; }
 .sign-btns { display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .ok-text { color: var(--ok); }

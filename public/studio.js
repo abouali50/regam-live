@@ -433,6 +433,7 @@
       maxGuests = d.maxGuests || 12;
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
       showWaiting(!!d.gate, d.waiting || []);
+      recOn = !!d.rec; showRec();
     })
       .on('waiting', (d) => showWaiting(d.gate, d.list))
       .on('live', (d) => setBadge(d.on))
@@ -471,9 +472,27 @@
     loadRecs();
     link.on('live', () => setTimeout(loadRecs, 3000));
 
+    // ---- recording: only when the host asks for it, and only while live
+    let recOn = false, airOn = false;
+    function showRec() {
+      const b = $('#recBtn');
+      b.disabled = !airOn;
+      press(b, recOn);
+      b.classList.toggle('rec-on', recOn);
+      b.textContent = T(recOn ? '⏹ وقف التسجيل' : '⏺ سجل اللايف');
+    }
+    $('#recBtn').onclick = () => link.send({ t: 'rec', on: !recOn });
+    link.on('rec', (d) => {
+      const was = recOn; recOn = !!d.on; showRec();
+      if (d.err) status(T(d.err === 'offline' ? 'بدا اللايف أولا، عاد سجل.' : 'ما قدرناش نبداو التسجيل. عاود جرب.'));
+      else if (recOn !== was) status(T(recOn ? 'التسجيل بدا. غادي تلقاه فالتسجيلات ملي توقفو.' : 'وقف التسجيل. راه فالتسجيلات.'));
+      if (was && !recOn && typeof loadRecs === 'function') setTimeout(loadRecs, 1500);
+    });
     function setBadge(on) {
       $('#liveBadge').textContent = T(on ? 'مباشر' : 'غير مباشر');
       $('#liveBadge').className = 'badge ' + (on ? 'on' : 'off');
+      airOn = on; if (!on) recOn = false;
+      showRec();
     }
 
     addEventListener('pagehide', () => { if (liveOn) stopLive(); });

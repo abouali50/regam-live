@@ -59,7 +59,7 @@ async function until(fn, ms = 15000, step = 250) {
       if (s.pub) { delete window.paths[s.name]; const v = document.getElementById('v_' + s.name); if (v) v.remove(); } };
   });
 
-  const seen = { unauth: 0, posts: [] };
+  const seen = { unauth: 0, posts: [], recConf: {}, recCalls: [] };
   let sid = 0;
   const rtc = http.createServer(async (req, res) => {
     const m = req.url.match(/^\/([a-z0-9_-]+)\/(whip|whep)(?:\/(\w+))?$/);
@@ -76,6 +76,16 @@ async function until(fn, ms = 15000, step = 250) {
   }).listen(18889);
   const api = http.createServer(async (req, res) => {
     // like MediaMTX: every room being published to has its "air_<room>" path available
+    if (req.url.startsWith('/v3/config/paths/')) {           // recording switched on or off for one room
+      let body = ''; for await (const c of req) body += c;
+      const [, verb, name] = req.url.match(/paths\/(\w+)\/(.+)$/) || [];
+      const known = !!seen.recConf[name], okAuth = req.headers.authorization === AUTH;
+      const good = okAuth && (verb === 'add' ? !known : known);
+      if (good) seen.recConf[name] = JSON.parse(body).record;
+      seen.recCalls.push(`${verb}:${name}:${good}`);
+      res.writeHead(good ? 200 : verb === 'patch' ? 404 : 400, { 'Content-Type': 'application/json' });
+      return res.end('{}');
+    }
     const ok = req.headers.authorization === AUTH && req.url.startsWith('/v3/paths/list');
     const names = ok ? await sfu.evaluate(() => Object.keys(window.paths).filter((k) => k.startsWith('studio_')).map((k) => 'air_' + k.slice(7))) : [];
     res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
@@ -325,6 +335,14 @@ async function until(fn, ms = 15000, step = 250) {
       await adminSet({ access: 'open', mail: { host: '', port: 465, user: '', from: '' } });       // the rest of the run is without accounts, as on a fresh install
       await anon.context().close(); await actx.close();
     }
+    // ---- recording: nothing is recorded unless the host asks
+    check('a live is not recorded by itself', seen.recCalls.length === 0 && await studio.evaluate(() => { const b = document.querySelector('#recBtn'); return !b.disabled && b.getAttribute('aria-pressed') === 'false'; }));
+    await studio.click('#recBtn');
+    check('the host starts recording with one button', (await until(() => seen.recConf.air_main === true, 6000)) !== null && (await until(() => studio.locator('#recBtn.rec-on').isVisible(), 6000)) !== null, seen.recCalls.join(' '));
+    await studio.click('#recBtn');
+    check('and stops it with the same button', (await until(() => seen.recConf.air_main === false, 6000)) !== null && (await until(async () => !(await studio.locator('#recBtn.rec-on').count()), 6000)) !== null);
+    await studio.click('#recBtn');
+    await until(() => seen.recConf.air_main === true, 6000);
     // ---- waiting room: people give a name, the host lets them in or not
     await studio.check('#gateChk');
     await sleep(500);
@@ -592,6 +610,7 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- end of live -------------------------------------------------------------------
     await studio.click('#goBtn');
     check('viewers go back to "offline" when the live stops', (await until(() => viewer.locator('#offline').isVisible())) !== null);
+    check('recording stops by itself when the live ends, and the next live starts without it', (await until(() => seen.recConf.air_main === false, 8000)) !== null && await studio.evaluate(() => document.querySelector('#recBtn').disabled));
     // ---- sound for the time before the live
     {
       const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));

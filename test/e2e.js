@@ -182,8 +182,9 @@ async function until(fn, ms = 15000, step = 250) {
     check('the dictation button appears only where the browser can do speech to text', (await viewer.evaluate(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition))) === (await viewer.locator('.mic-btn').isVisible()));
 
     // ---- hearts ------------------------------------------------------------------
-    for (const k of [0, 3, 6]) { await viewer.locator('#reactions button').nth(k).click(); await sleep(260); }
+    for (const k of [0, 3, 6]) { await viewer.click('.react-open'); await viewer.locator('#reactions button').nth(k).click(); await sleep(260); }
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'spammerbbbbbbbbb', name: 'x' })); for (let i = 0; i < 200; i++) w.send(JSON.stringify({ t: 'like' })); }; });
+    check('the reactions are folded into one button; the box closes once one is picked', await viewer.locator('#reactions').isHidden() && (await viewer.click('.react-open'), await viewer.locator('#reactions').isVisible()) && (await viewer.screenshot({ path: path.join(OUT, 'reactions-open.png') }), await viewer.keyboard.press('Escape'), await viewer.locator('#reactions').isHidden()));
     check('all seven reactions are offered', (await viewer.locator('#reactions button').count()) === 7);
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'badreactccccccc1', name: 'x' })); for (const k of [7, -1, 'a', 2.5, null]) w.send(JSON.stringify({ t: 'react', k })); }; });
     const perKind = (page) => page.evaluate(() => [...document.querySelectorAll('#reactions .react-n')].map((n) => n.textContent).join(','));
@@ -191,7 +192,7 @@ async function until(fn, ms = 15000, step = 250) {
     const floated = [];
     await studio.exposeFunction('sawFloat', (e) => floated.push(e));
     await studio.evaluate(() => new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => window.sawFloat(n.textContent)))).observe(document.querySelector('#hearts'), { childList: true }));
-    await viewer.locator('#reactions button').nth(3).click(); await sleep(300); await viewer.locator('#reactions button').nth(0).click();
+    await viewer.click('.react-open'); await viewer.locator('#reactions button').nth(3).click(); await sleep(300); await viewer.click('.react-open'); await viewer.locator('#reactions button').nth(0).click();
     check('the studio sees the same emoji float, not only hearts', (await until(() => floated.includes('😂') && floated.includes('👍'), 6000)) !== null, floated.join(' '));
     check('reactions are counted for everyone, and flooding is limited', (await until(async () => Number(await studio.textContent('#likes')) === 6, 6000)) !== null, 'studio shows ' + await studio.textContent('#likes'));
 
@@ -201,7 +202,7 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.click('#hands li button');
     check('viewer receives the invitation', (await until(() => viewer.locator('#inviteDlg[open]').isVisible())) !== null);
     await viewer.click('#inviteYes');
-    check('guest is on stage (camera published, sees the host in real time)', (await until(() => viewer.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.videoWidth > 0 && v.srcObject.getAudioTracks().length === 1; }), 20000)) !== null);
+    check('guest is on stage (camera published, sees the host in real time)', (await until(() => viewer.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.videoWidth > 0 && v.srcObject.getAudioTracks().length === 1; }), 20000)) !== null, 'studio: ' + await studio.textContent('#status') + ' | posts: ' + seen.posts.join(' ') + ' | paths: ' + await sfu.evaluate(() => Object.keys(window.paths).join(' ')));
     check('studio mixes the guest picture + voice', (await until(() => studio.locator('#onStage li', { hasText: 'على المنصة' }).isVisible(), 20000)) !== null && (await until(() => studio.evaluate(() => { const st = window.__studio.stage.get(1); return !!(st && st.node && st.sink && st.sink.srcObject); }), 8000)) !== null);
     await sleep(1500);
     check('media sessions opened: ' + seen.posts.join(' '), ['whip:studio_main', 'whip:backstage1_main', 'whip:guest1_main', 'whep:studio_main', 'whep:backstage1_main', 'whep:guest1_main'].every((k) => seen.posts.includes(k)));
@@ -531,7 +532,7 @@ async function until(fn, ms = 15000, step = 250) {
     await pupil.goto(BASE + '/r/programmation-python');
     check("a viewer of the teacher's room sees it live, with its own title and host", (await until(() => pupil.locator('#liveBadge.on').isVisible())) !== null && (await pupil.textContent('#title')) === 'Programmation Python' && (await pupil.textContent('#roomHost')) === 'Prof Salma');
     await teacher.fill('.composer input', 'bonjour la classe'); await teacher.click('.composer button[type=submit]');
-    await pupil.locator('#reactions button').nth(1).click();
+    await pupil.click('.react-open'); await pupil.locator('#reactions button').nth(1).click();
     check('chat and reactions stay inside their room', (await until(() => pupil.locator('.msg.host', { hasText: 'bonjour la classe' }).isVisible())) !== null
       && (await until(async () => (await teacher.textContent('#likes')) === '1', 5000)) !== null
       && (await viewer.locator('.msg', { hasText: 'bonjour la classe' }).count()) === 0 && (await studio.textContent('#likes')) !== '1');

@@ -340,7 +340,10 @@
         } catch (e) {
           // leave this guest's set-up clean so the next change (or the next try) starts again
           if (st.back && st.back.connectionState !== 'connected') { rtcClose(st.back, 'whip', 'backstage' + slot, token); st.back = null; }
-          status(T('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.') + ` (${slot}: ${(e && (e.status || e.message)) || '?'})`);
+          // a connection that fails once is tried again by itself a few times before the host is told
+          st.fails = (st.fails || 0) + 1;
+          if (st.fails <= 8) setTimeout(syncGuests, 1500);
+          else status(T('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.') + ` (${slot}: ${(e && (e.status || e.message)) || '?'})`);
         }
       }
     }

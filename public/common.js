@@ -348,9 +348,23 @@ function mountReactions(row, floatBox, link, { canSend = false, totalEl = null }
   const nums = [];
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const short = (n) => (n >= 10000 ? Math.round(n / 1000) + 'k' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n));
+  // The reactions are folded into one button; a tap opens the box to pick one (or, in the
+  // studio, to see how many of each).
+  const openNum = el('span', { class: 'react-n' }, '0');
+  const opener = el('button', { class: 'react-open', type: 'button', 'aria-expanded': 'false', 'aria-label': T('التفاعلات'), title: T('التفاعلات') },
+    el('span', { class: 'react-e', 'aria-hidden': 'true' }, '👍'), el('span', { class: 'react-e react-e2', 'aria-hidden': 'true' }, '❤️'), openNum);
+  const wrap = el('div', { class: 'react-wrap' });
+  row.replaceWith(wrap);
+  row.classList.add('react-box'); row.hidden = true;
+  wrap.append(opener, row);
+  const setOpen = (on) => { row.hidden = !on; opener.setAttribute('aria-expanded', on ? 'true' : 'false'); };
+  opener.onclick = () => setOpen(row.hidden);
+  document.addEventListener('pointerdown', (e) => { if (!row.hidden && !wrap.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
   function paint() {
     let total = 0;
     nums.forEach((node, k) => { const v = counts[k] + sent[k]; total += v; node.textContent = short(v); });
+    openNum.textContent = short(total);
     if (totalEl) totalEl.textContent = short(total);
   }
   function float(k) {
@@ -372,6 +386,7 @@ function mountReactions(row, floatBox, link, { canSend = false, totalEl = null }
         link.send({ t: 'react', k });
         sent[k]++;
         paint(); float(k);
+        setOpen(false);
       };
     }
     row.append(el(canSend ? 'button' : 'span', props, el('span', { class: 'react-e', 'aria-hidden': 'true' }, emoji), num));

@@ -109,6 +109,7 @@
     addEventListener('pointerdown', (e) => { if (e.target !== soundBtn && soundWanted && !live && !onStage) waitSound.play().catch(() => {}); }, { once: true });
   }
 
+  const sea = createSea($('#sea'));             // the scene under the sea shown while nothing is live
   function setLive(on) {
     live = on;
     badge.textContent = T(on ? 'مباشر' : 'غير مباشر');
@@ -117,6 +118,7 @@
     if (!on) unmute.hidden = true;
     handBtn.hidden = !on || onStage;
     if (on) startHls(); else stopHls();
+    if (on) sea.stop(); else sea.start();
     syncSound();
   }
   function showGuests(list) {

@@ -385,3 +385,6 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
   .watch .offline .offline-hint { font-size: 12.5px; }
   .watch .offline .btn { padding: 7px 14px; }
 }
+
+.wait-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wait-group + .wait-group { border-inline-start: 1px solid rgba(255,231,168,.4); padding-inline-start: 12px; }

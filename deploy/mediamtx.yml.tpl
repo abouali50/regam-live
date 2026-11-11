@@ -48,6 +48,15 @@ webrtcLocalTCPAddress: :8189
 webrtcIPsFromInterfaces: false
 webrtcAdditionalHosts: [__PUBLIC_IP__]
 
+# Recording is off unless the host switches it on during a live (the app then sets
+# "record" on that room's air path through the API). Where and how files are written:
+pathDefaults:
+  record: false
+  recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordFormat: fmp4
+  recordSegmentDuration: 6h
+  recordDeleteAfter: 0s
+
 paths:
   # One set of paths per room; the room's short name is the last part.
   "~^studio_([a-z0-9-]+)$":
@@ -61,10 +70,4 @@ paths:
       -f rtsp -rtsp_transport tcp rtsp://__MTX_USER__:__MTX_PASS__@127.0.0.1:8554/air_$G1
     runOnAvailableRestart: true
   "~^air_[a-z0-9-]+$":
-    # every live is kept as a video file (one file per live, cut every 6 hours)
-    record: true
-    recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
-    recordFormat: fmp4
-    recordSegmentDuration: 6h
-    recordDeleteAfter: 0s
   "~^(guest|backstage)([1-9]|1[0-2])_[a-z0-9-]+$":

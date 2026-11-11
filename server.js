@@ -667,7 +667,7 @@ wss.on('connection', (ws, req) => {
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
-        needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod ? waitingList(room) : undefined,
+        rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod ? waitingList(room) : undefined,
       });
     }
     if (ws.waitRoom) {                      // at the door: the only thing to say is one's name
@@ -782,6 +782,10 @@ wss.on('connection', (ws, req) => {
         broadcast(room, { t: 'guests', guests: guestsPublic(room) });
         return toMods(room, { t: 'hands', list: handsList(room) });
       }
+      case 'rec':                          // record this live, or stop recording it
+        if (d.on && !room.live) return tx(ws, { t: 'rec', on: false, err: 'offline' });
+        setRecording(room, !!d.on).then((ok) => { if (!ok) tx(ws, { t: 'rec', on: !!room.rec, err: 'failed' }); });
+        return;
       case 'gate':                         // waiting room on or off
         cfg.gate = !!d.on; save();
         if (cfg.gate) { for (const c of room.clients) room.admitted.add(c.uid); }   // people already inside stay
@@ -850,6 +854,21 @@ setInterval(() => {
   }
 }, 60e3);
 
+// Recording is the host's choice, live by live. The media server writes the file; we only
+// switch "record" on that room's air path (a change it applies without cutting the live).
+async function setRecording(room, on) {
+  const name = `air_${room.cfg.slug}`, head = { Authorization: MTX_AUTH, 'Content-Type': 'application/json' }, body = JSON.stringify({ record: on });
+  const call = (method, verb) => fetch(`${MTX_API}/v3/config/paths/${verb}/${name}`, { method, headers: head, body, signal: AbortSignal.timeout(4000) });
+  try {
+    let r = await call('PATCH', 'patch');
+    if (!r.ok && on) r = await call('POST', 'add');          // first recording of this room since the media server started
+    if (!r.ok && on) return false;
+  } catch { if (on) return false; }
+  room.rec = on;
+  toMods(room, { t: 'rec', on });
+  return true;
+}
+
 // Ask the media server which rooms are on air.
 async function pollLive() {
   const onAir = new Set();
@@ -864,6 +883,7 @@ async function pollLive() {
     if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; }      // a new live starts its reactions from zero
     broadcast(room, { t: 'live', on });
     if (!on) endStage(room, 'ended');
+    if (!on && room.rec) setRecording(room, false);                                 // the next live starts without recording
   }
 }
 setInterval(pollLive, 2000);

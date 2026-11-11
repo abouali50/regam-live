@@ -111,3 +111,15 @@ input[type="text"], input[type="password"], select { background: var(--bg); bord
   .badge.on { animation: pulse 2s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .72; } }
 }
+
+/* whiteboard (studio) */
+.board { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; cursor: crosshair; touch-action: none; }
+.board-typer { position: absolute; inset-inline-start: 0; top: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; resize: none; pointer-events: none; }
+.onair { z-index: 2; }
+.boardbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.seg { display: flex; gap: 6px; align-items: center; }
+.boardbar .btn { padding: 7px 13px; }
+.dot-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); background: var(--c); cursor: pointer; padding: 0; outline: 2px solid #fff; outline-offset: -5px; }
+.dot-btn[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+/* where the camera tile sits in the broadcast, so the host does not write under it */
+.board-cam { position: absolute; right: 1.2%; bottom: 2.1%; width: 19%; aspect-ratio: 4 / 3; border: 2px dashed #b9c0cc; border-radius: 10px; display: grid; place-items: center; color: #9aa3b1; font-size: 13px; pointer-events: none; }

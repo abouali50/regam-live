@@ -31,7 +31,29 @@
   <section class="stage">
     <div class="player">
       <video id="preview" playsinline muted autoplay></video>
+      <canvas id="board" class="board" hidden></canvas>
+      <div id="boardCam" class="board-cam" hidden>الكاميرا</div>
+      <textarea id="boardTyper" class="board-typer" aria-label="الكتابة على السبورة" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
       <div class="onair" id="onAir" hidden>على الهواء</div>
+    </div>
+    <div class="boardbar" id="boardBar" hidden>
+      <div class="seg" role="group" aria-label="الأداة">
+        <button type="button" class="btn" data-tool="pen" aria-pressed="true">قلم</button>
+        <button type="button" class="btn" data-tool="text" aria-pressed="false">كتابة</button>
+        <button type="button" class="btn" data-tool="marker" aria-pressed="false">تظليل</button>
+        <button type="button" class="btn" data-tool="eraser" aria-pressed="false">ممحاة</button>
+      </div>
+      <div class="seg" role="group" aria-label="اللون">
+        <button type="button" class="dot-btn" data-color="#14181f" style="--c:#14181f" aria-pressed="true" aria-label="أسود"></button>
+        <button type="button" class="dot-btn" data-color="#d92d2d" style="--c:#d92d2d" aria-pressed="false" aria-label="أحمر"></button>
+        <button type="button" class="dot-btn" data-color="#1f5fd1" style="--c:#1f5fd1" aria-pressed="false" aria-label="أزرق"></button>
+        <button type="button" class="dot-btn" data-color="#12833f" style="--c:#12833f" aria-pressed="false" aria-label="أخضر"></button>
+      </div>
+      <select id="boardSize" aria-label="الحجم">
+        <option value="1">صغير</option><option value="2" selected>متوسط</option><option value="3">كبير</option>
+      </select>
+      <button type="button" class="btn" id="boardUndo">تراجع</button>
+      <button type="button" class="btn" id="boardClear">مسح الكل</button>
     </div>
     <p id="status" class="status" role="status">جاهز. اختار المصدر وبدا اللايف.</p>
 
@@ -39,6 +61,7 @@
       <button id="goBtn" class="btn primary big" type="button">ابدأ اللايف</button>
       <button id="camBtn" class="btn" type="button" aria-pressed="true">الكاميرا</button>
       <button id="screenBtn" class="btn" type="button" aria-pressed="false">شارك الشاشة</button>
+      <button id="boardBtn" class="btn" type="button" aria-pressed="false">السبورة</button>
       <button id="micBtn" class="btn" type="button" aria-pressed="true">الميكرو</button>
     </div>
 
@@ -78,6 +101,7 @@
 <audio id="guestAudio" autoplay></audio>
 
 <script src="/common.js"></script>
+<script src="/board.js"></script>
 <script src="/studio.js"></script>
 </body>
 </html>

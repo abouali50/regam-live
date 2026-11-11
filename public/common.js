@@ -229,3 +229,25 @@ function mountReactions(row, floatBox, link, { canSend = false, totalEl = null }
       paint();
     });
 }
+
+// ------------------------------------------------------- password fields --
+// An eye button in every password field: show what was typed, or hide it again.
+const EYE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="eye-off" d="M4 4l16 16"/></svg>';
+function addPasswordEyes(root = document) {
+  for (const input of root.querySelectorAll('input[type="password"]')) {
+    const wrap = el('span', { class: 'pw-wrap' });
+    input.replaceWith(wrap);
+    const btn = el('button', { type: 'button', class: 'pw-eye', 'aria-label': T('بين كلمة السر'), title: T('بين كلمة السر'), 'aria-pressed': 'false' });
+    btn.innerHTML = EYE;
+    btn.onclick = () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+      const label = T(show ? 'خبي كلمة السر' : 'بين كلمة السر');
+      btn.setAttribute('aria-label', label); btn.title = label;
+      input.focus();
+    };
+    wrap.append(input, btn);
+  }
+}
+addPasswordEyes();

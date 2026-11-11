@@ -89,9 +89,16 @@
   const waitSound = cfg.sound ? new Audio(cfg.sound) : null;
   let soundWanted = true;                       // the person has not paused it
   if (waitSound) { waitSound.loop = true; waitSound.preload = 'none'; }
+  const ending = $('#liveEnding');
+  const endingAudio = $('#endingAudio');
+  const endingTitle = $('#endingTitle');
+  const endingLabels = { ar: 'انتهى البث المباشر', fr: 'Le direct est terminé', en: 'The live has ended' };
+  endingTitle.textContent = endingLabels[LANG] || endingLabels.ar;
+  const recitationUrl = 'https://server7.mp3quran.net/basit/055.mp3';
+
   function syncSound() {
     if (!waitSound) return;
-    const idle = !live && !onStage;
+    const idle = !live && !onStage && ending.hidden;
     soundBtn.hidden = !idle;
     if (idle && soundWanted) waitSound.play().catch(() => {});      // browsers start it only after a first tap
     else waitSound.pause();
@@ -102,14 +109,24 @@
     waitSound.onplay = waitSound.onpause = paintSound;
     soundBtn.onclick = () => { soundWanted = waitSound.paused; if (soundWanted) waitSound.play().catch(() => {}); else waitSound.pause(); };
     // the first tap anywhere on the page lets the sound start
-    addEventListener('pointerdown', (e) => { if (e.target !== soundBtn && soundWanted && !live && !onStage) waitSound.play().catch(() => {}); }, { once: true });
+    addEventListener('pointerdown', (e) => { if (e.target !== soundBtn && soundWanted && !live && !onStage && ending.hidden) waitSound.play().catch(() => {}); }, { once: true });
   }
 
-  function setLive(on) {
+  function setLive(on, ended = false) {
     live = on;
+    ending.hidden = !ended;
+    if (ended) {
+      if (!endingAudio.getAttribute('src')) endingAudio.src = recitationUrl;
+    } else {
+      endingAudio.pause();
+      if (endingAudio.getAttribute('src')) {
+        endingAudio.removeAttribute('src');
+        endingAudio.load();
+      }
+    }
     badge.textContent = T(on ? 'مباشر' : 'غير مباشر');
     badge.className = 'badge ' + (on ? 'on' : 'off');
-    offline.hidden = on;
+    offline.hidden = on || ended;
     if (!on) unmute.hidden = true;
     handBtn.hidden = !on || onStage;
     if (on) startHls(); else stopHls();
@@ -301,7 +318,7 @@
     showGuests(d.guests); setHand(!!d.hand);
     if (onStage && !(d.guests || []).some((g) => g.uid === link.uid)) leaveStage(false);
   })
-    .on('live', (d) => setLive(d.on))
+    .on('live', (d) => setLive(d.on, !d.on && (live || !ending.hidden)))
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guests', (d) => showGuests(d.guests))

@@ -169,6 +169,9 @@ function serveFile(res, file, cache = 'no-cache') {
   });
 }
 const clean = (s, max) => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+const acct = require('./accounts')({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle: SITE_TITLE, env });
+// the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
+const passNeeded = (room) => !!room.cfg.gate || acct.access() === 'watch';
 const cookieOf = (req, name) => {
   for (const part of String(req.headers.cookie || '').split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim(); }
   return '';
@@ -280,7 +283,7 @@ function proxyHls(req, res, sub) {
   const m = sub.match(/^\/air_([a-z0-9-]+)\//);
   if (sub.includes('..') || !m || !rooms.has(m[1])) return send(res, 404, 'Not found');
   // a room with a waiting room only streams to the people its host let in
-  if (rooms.get(m[1]).cfg.gate && verify(cookieOf(req, `rlp_${m[1]}`), 'pass') !== m[1]) return send(res, 403, 'Forbidden');
+  if (passNeeded(rooms.get(m[1])) && verify(cookieOf(req, `rlp_${m[1]}`), 'pass') !== m[1]) return send(res, 403, 'Forbidden');
   const up = http.get(MTX_HLS + sub, { headers: { 'User-Agent': 'regam-live', Authorization: `Bearer ${HLS_SECRET}` } }, (r) => {
     const h = {
       'Content-Type': r.headers['content-type'] || 'application/octet-stream',
@@ -352,7 +355,7 @@ async function handleAdmin(req, res, url, what) {
   if (!what && req.method === 'GET') {
     return send(res, 200, {
       users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
-      plans: db.plans, payInfo: db.payInfo,
+      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(),
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
     });
   }
@@ -431,6 +434,8 @@ async function handleAdmin(req, res, url, what) {
   }
   if (what === 'settings' && req.method === 'POST') {       // payment instructions and the plans on offer
     const b = await readJson(req);
+    const bad = acct.adminSet(b);                              // who must have an account, and the mailbox that sends the codes
+    if (bad) return send(res, 400, { error: bad });
     if (typeof b.payInfo === 'string') db.payInfo = b.payInfo.replace(/[\u0000-\u0008\u000b-\u001f]/g, '').slice(0, 1500);
     if (Array.isArray(b.plans)) {
       const plans = [];
@@ -444,6 +449,11 @@ async function handleAdmin(req, res, url, what) {
     save();
     return send(res, 200, { ok: true });
   }
+  if (what === 'mailtest' && req.method === 'POST') {
+    const bad = await acct.adminTest((await readJson(req)).to);
+    return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true });
+  }
+  if (what === 'member' && req.method === 'DELETE') return acct.adminRemove(url.searchParams.get('id')) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no such member' });
   if (what === 'room' && req.method === 'DELETE') {
     const room = rooms.get(url.searchParams.get('slug'));
     if (!room) return send(res, 404, { error: 'no such room' });
@@ -471,14 +481,18 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
         rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, sound: soundUrl(room),
+        access: acct.access(), accounts: acct.mailReady(),
       });
     }
+    if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady() });
+    if (p.startsWith('/api/member/')) return await acct.handle(req, res, p.slice(12));
     if (p === '/api/sound') return handleSound(req, res, url);
     if (p.startsWith('/media/sound/')) return serveSound(req, res, p.slice(13));
     if (p === '/api/pass') {                      // the pass that lets an admitted person's player fetch the stream
       const room = roomOf(url);
       if (!room) return send(res, 404, { error: 'no such room' });
       if (room.cfg.gate && !room.admitted.has(String(url.searchParams.get('uid') || ''))) return send(res, 403, { error: 'not admitted' });
+      if (acct.access() === 'watch' && !acct.memberOf(bearer(req))) return send(res, 401, { error: 'sign in' });
       return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 12 * 3600e3)}; Path=/hls/; Max-Age=43200; HttpOnly; SameSite=Lax` });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
@@ -530,7 +544,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method');
     // with a single room, the front page is that room; otherwise it lists the rooms
-    if (p === '/') return serveFile(res, path.join(PUBLIC_DIR, rooms.size === 1 ? 'index.html' : 'home.html'));
+    if (p === '/') return serveFile(res, path.join(PUBLIC_DIR, rooms.size === 1 && !acct.mailReady() ? 'index.html' : 'home.html'));    // one room and no accounts: straight to the room; otherwise the site's front page
     if (p === '/rooms') return serveFile(res, path.join(PUBLIC_DIR, 'home.html'));
     if (/^\/r\/[a-z0-9-]+$/.test(p)) return serveFile(res, path.join(PUBLIC_DIR, 'index.html'));
     if (p === '/studio') return serveFile(res, path.join(PUBLIC_DIR, 'studio.html'));
@@ -623,6 +637,8 @@ wss.on('connection', (ws, req) => {
       if (!room) return ws.close();
       const user = whoIs(d.token);
       const host = canHost(user, room);
+      const member = host ? null : acct.memberOf(d.mt);
+      if (!host && !member && acct.access() === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full
         return ws.close();
@@ -631,7 +647,7 @@ wss.on('connection', (ws, req) => {
         ws.uid = String(d.uid);
         if (room.refused.has(ws.uid)) return tx(ws, { t: 'refused' });
         if (room.waiters.size >= 2000) { tx(ws, { t: 'full', capacity: 0 }); return ws.close(); }
-        ws.waitRoom = room; ws.wname = clean(d.name, MAX_NAME);
+        ws.waitRoom = room; ws.wname = member ? member.name : clean(d.name, MAX_NAME);
         room.waiters.add(ws);
         tx(ws, { t: 'wait', named: !!ws.wname });
         if (ws.wname) tellWaiting(room);
@@ -640,7 +656,8 @@ wss.on('connection', (ws, req) => {
       ws.room = room; ws.uid = d.uid;
       ws.mod = host;
       ws.userId = ws.mod ? user.id : null;
-      ws.name = ws.mod ? user.name : clean(d.name, MAX_NAME);
+      ws.member = member ? member.id : null;
+      ws.name = ws.mod ? user.name : member ? member.name : clean(d.name, MAX_NAME);
       ws.color = colorOf(d.color);
       room.clients.add(ws);
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
@@ -650,7 +667,7 @@ wss.on('connection', (ws, req) => {
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
-        gate: !!room.cfg.gate, waiting: ws.mod ? waitingList(room) : undefined,
+        needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod ? waitingList(room) : undefined,
       });
     }
     if (ws.waitRoom) {                      // at the door: the only thing to say is one's name
@@ -666,11 +683,12 @@ wss.on('connection', (ws, req) => {
     const cfg = room.cfg;
 
     switch (d.t) {
-      case 'name': if (!ws.mod) ws.name = clean(d.name, MAX_NAME); return;
+      case 'name': if (!ws.mod && !ws.member) ws.name = clean(d.name, MAX_NAME); return;
       case 'color': ws.color = colorOf(d.c); return;          // the colour of this person's comments
 
       case 'msg': {
         const text = clean(d.text, MAX_TEXT);
+        if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });   // comments are for signed-in people
         if (!text || !ws.name) return;
         if (cfg.banned[ws.uid]) return tx(ws, { t: 'err', code: 'banned' });
         const now = Date.now();
@@ -687,6 +705,7 @@ wss.on('connection', (ws, req) => {
 
       // ---- stage requests (viewer side)
       case 'hand':
+        if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });
         if (!ws.name || cfg.banned[ws.uid] || slotOf(room, ws.uid)) return;
         if (d.on === false) room.hands.delete(ws.uid);
         else if (room.hands.size < 200) room.hands.set(ws.uid, { name: ws.name, ts: Date.now() });

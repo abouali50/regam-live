@@ -43,6 +43,36 @@
   </section>
 
   <section class="panel">
+    <h2>حسابات المتابعين</h2>
+    <p class="muted">الناس كيسجلو بالإيميل وكلمة السر، وكيوصلهم كود فالإيميل باش يفعلو الحساب.</p>
+    <form id="accessForm" class="pay-form">
+      <label for="accessSel">شكون خاصو حساب؟</label>
+      <select id="accessSel">
+        <option value="open">حتى واحد: كلشي مفتوح، والحساب اختياري</option>
+        <option value="join">باش تعلق وتطلع للمنصة خاصك حساب، والفرجة مفتوحة</option>
+        <option value="watch">باش تتفرج خاصك حساب (الموقع غير للمسجلين)</option>
+      </select>
+      <button class="btn" type="submit">حفظ</button>
+    </form>
+    <h3 class="sub">الإيميل اللي كيصيفط الكودات</h3>
+    <p class="muted" id="mailState"></p>
+    <form id="mailForm" class="admin-form">
+      <label>النوع<select name="kind"><option value="gmail">Gmail</option><option value="hostinger">Hostinger</option><option value="other">آخر</option></select></label>
+      <label>السيرفر (SMTP)<input name="host" type="text" maxlength="100" dir="ltr" required></label>
+      <label>البور<input name="port" type="number" min="1" max="65535" dir="ltr" required></label>
+      <label>العنوان (الإيميل)<input name="user" type="email" maxlength="120" dir="ltr" autocomplete="off" required></label>
+      <label>كلمة السر ديال هاد الإيميل<input name="pass" type="password" maxlength="200" dir="ltr" autocomplete="new-password"></label>
+      <button class="btn primary" type="submit">حفظ الإيميل</button>
+    </form>
+    <form id="mailTest" class="admin-form">
+      <label>جرب: صيفط رسالة ل<input name="to" type="email" maxlength="120" dir="ltr" required></label>
+      <button class="btn" type="submit">صيفط رسالة تجريبية</button>
+    </form>
+    <h3 class="sub" id="memberCount">المسجلين</h3>
+    <ul id="members" class="admin-list"></ul>
+  </section>
+
+  <section class="panel">
     <h2>العروض والخلاص</h2>
     <p class="muted">كل عرض: الاسم، الثمن بالدولار فالشهر، وعدد المتابعين الأقصى فالقاعة.</p>
     <ul id="planList" class="admin-list"></ul>

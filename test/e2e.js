@@ -123,9 +123,13 @@ async function until(fn, ms = 15000, step = 250) {
     studio.on('pageerror', (e) => errors.push('studio: ' + e.message));
     studio.on('dialog', (d) => d.accept());
     await studio.goto(BASE + '/studio');
-    await studio.fill('#pw', 'bad'); await studio.click('#loginForm button');
+    await studio.fill('#pw', 'bad');
+    const pwType = () => studio.evaluate(() => document.querySelector('#pw').type);
+    const hidden1 = await pwType(); await studio.click('.pw-eye'); const shown = await pwType(); await studio.click('.pw-eye');
+    check('the eye button shows the typed password, then hides it again', hidden1 === 'password' && shown === 'text' && (await pwType()) === 'password' && (await studio.inputValue('#pw')) === 'bad');
+    await studio.click('#loginForm button[type=submit]');
     check('studio shows an error on a wrong password', (await until(() => studio.locator('#loginErr').isVisible(), 5000)) !== null);
-    await studio.fill('#pw', 'studio-pass-1'); await studio.click('#loginForm button');
+    await studio.fill('#pw', 'studio-pass-1'); await studio.click('#loginForm button[type=submit]');
     await studio.waitForSelector('#app:not([hidden])');
     const dim = () => studio.evaluate(() => { const v = document.querySelector('#preview'); return `${v.videoWidth}x${v.videoHeight}`; });
     check('mixer shows the camera in the preview (1280x720)', (await until(async () => (await dim()) === '1280x720')) !== null, await dim());
@@ -272,8 +276,8 @@ async function until(fn, ms = 15000, step = 250) {
     const frStudio = await frCtx.newPage();
     await frStudio.goto(BASE + '/studio');
     await frStudio.evaluate(() => localStorage.setItem('regam.lang', 'fr')); await frStudio.reload();
-    check('studio sign-in is in French', (await frStudio.textContent('#loginForm h1')) === 'Connexion au studio' && (await frStudio.textContent('#loginForm button')) === 'Entrer');
-    await frStudio.fill('#pw', 'studio-pass-1'); await frStudio.click('#loginForm button'); await frStudio.waitForSelector('#app:not([hidden])');
+    check('studio sign-in is in French', (await frStudio.textContent('#loginForm h1')) === 'Connexion au studio' && (await frStudio.textContent('#loginForm button[type=submit]')) === 'Entrer');
+    await frStudio.fill('#pw', 'studio-pass-1'); await frStudio.click('#loginForm button[type=submit]'); await frStudio.waitForSelector('#app:not([hidden])');
     check('studio controls are in French', (await frStudio.evaluate(() => ['#goBtn', '#camBtn', '#screenBtn', '#boardBtn', '#micBtn'].map((q) => document.querySelector(q).textContent).join(' | '))) === "Démarrer le live | Caméra | Partager l'écran | Tableau blanc | Micro");
     await frStudio.screenshot({ path: path.join(OUT, 'studio-fr.png') });
     await frCtx.close();
@@ -285,7 +289,7 @@ async function until(fn, ms = 15000, step = 250) {
     adm.on('dialog', (d) => d.accept());
     await adm.goto(BASE + '/admin');
     check('the administration page sends a visitor to the sign-in', (await until(() => adm.url().endsWith('/studio'))) !== null);
-    await adm.fill('#pw', 'studio-pass-1'); await adm.click('#loginForm button'); await adm.waitForSelector('#app:not([hidden])');
+    await adm.fill('#pw', 'studio-pass-1'); await adm.click('#loginForm button[type=submit]'); await adm.waitForSelector('#app:not([hidden])');
     const adminTok = await adm.evaluate(() => sessionStorage.getItem('regam.studio'));
     await adm.click('#adminLink'); await adm.waitForSelector('#roomList li');
     await adm.fill('#userForm [name=name]', 'Prof Salma'); await adm.fill('#userForm [name=login]', 'salma'); await adm.fill('#userForm [name=password]', 'salma-pass-9');
@@ -306,9 +310,9 @@ async function until(fn, ms = 15000, step = 250) {
     const teacher = await tctx.newPage();
     teacher.on('pageerror', (e) => errors.push('teacher: ' + e.message));
     await teacher.goto(BASE + '/studio');
-    await teacher.fill('#lg', 'salma'); await teacher.fill('#pw', 'wrong-pass-00'); await teacher.click('#loginForm button');
+    await teacher.fill('#lg', 'salma'); await teacher.fill('#pw', 'wrong-pass-00'); await teacher.click('#loginForm button[type=submit]');
     check('a teacher with a wrong password is refused', (await until(() => teacher.locator('#loginErr').isVisible(), 5000)) !== null);
-    await teacher.fill('#pw', 'salma-pass-9'); await teacher.click('#loginForm button'); await teacher.waitForSelector('#app:not([hidden])');
+    await teacher.fill('#pw', 'salma-pass-9'); await teacher.click('#loginForm button[type=submit]'); await teacher.waitForSelector('#app:not([hidden])');
     const teacherTok = await teacher.evaluate(() => sessionStorage.getItem('regam.studio'));
     check('the teacher lands in their own room, without the administration link', (await teacher.textContent('#roomName')) === 'Programmation Python' && await teacher.locator('#adminLink').isHidden() && (await teacher.textContent('#roomLink')).endsWith('/r/programmation-python'));
     const asTeacher = { Authorization: 'Bearer ' + teacherTok };
@@ -363,7 +367,7 @@ async function until(fn, ms = 15000, step = 250) {
     await apply.fill('[name=name]', 'Karim Bennani'); await apply.fill('[name=contact]', '+212 600 000 000'); await apply.fill('[name=roomTitle]', 'Crypto Débutants'); await apply.fill('[name=topic]', 'Crypto');
     await apply.fill('[name=login]', 'karim'); await apply.fill('[name=password]', 'karim-pass-7');
     await apply.screenshot({ path: path.join(OUT, 'teach.png'), fullPage: true });
-    await apply.click('#applyForm button');
+    await apply.click('#applyForm button[type=submit]');
     check('after the request the teacher sees how to pay', (await until(() => apply.locator('#applyDone').isVisible())) !== null && (await apply.textContent('#payInfo')).includes('USDT (TRC20): TXyz123') && (await apply.textContent('#donePlan')).startsWith('Classe 2'));
     check('a request opens nothing: no sign-in, no room', (await lg({ login: 'karim', password: 'karim-pass-7' })).status === 401 && (await (await fetch(BASE + '/api/rooms')).json()).rooms.length === 1);
     check('the same login cannot be requested twice, and anonymous visitors cannot approve', (await post('/api/apply', { planId: 'x', name: 'a', contact: 'b', roomTitle: 'c', login: 'karim', password: '12345678' }, {})).status >= 400 && (await post('/api/admin/user', { id: 'whatever', months: 1 }, {})).status === 401);

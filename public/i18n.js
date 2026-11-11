@@ -25,6 +25,8 @@ const DICT = {
   'الاتصال مقطوع، كنعاود نتصل…': ['Connexion perdue, reconnexion en cours…', 'Connection lost, reconnecting…'],
   'تسنى {n} ثواني قبل التعليق الجاي.': ['Attendez {n} secondes avant le prochain commentaire.', 'Wait {n} seconds before your next comment.'],
   'اللغة': ['Langue', 'Language'],
+  'بين كلمة السر': ['Afficher le mot de passe', 'Show password'],
+  'خبي كلمة السر': ['Masquer le mot de passe', 'Hide password'],
 
   // ---- viewer page
   'اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.': ["Le live n'a pas encore commencé. Gardez la page ouverte, il démarrera tout seul.", 'The live has not started yet. Keep this page open, it will start by itself.'],

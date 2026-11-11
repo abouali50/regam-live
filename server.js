@@ -579,7 +579,7 @@ function answerDoor(room, uid, ok) {           // uid '' = everybody at the door
   }
 }
 const handsList = (room) => [...room.hands].map(([uid, h]) => ({ uid, name: h.name })).slice(0, 50);
-const guestsPublic = (room) => [...room.guests].map(([slot, g]) => ({ slot, uid: g.uid, name: g.name, ready: g.ready, muted: !!g.muted }));
+const guestsPublic = (room) => [...room.guests].map(([slot, g]) => ({ slot, uid: g.uid, name: g.name, ready: g.ready, muted: !!g.muted, cam: g.cam !== false }));
 const slotOf = (room, uid) => { for (const [slot, g] of room.guests) if (g.uid === uid) return slot; return 0; };
 
 // Take one guest (or, without a slot, everybody) off the stage.
@@ -695,6 +695,11 @@ wss.on('connection', (ws, req) => {
       case 'onstage': {
         const g = room.guests.get(slotOf(room, ws.uid));
         if (g && !g.ready) { g.ready = true; broadcast(room, { t: 'guests', guests: guestsPublic(room) }); }
+        return;
+      }
+      case 'cam': {                      // a guest turns their camera on or off
+        const g = room.guests.get(slotOf(room, ws.uid));
+        if (g && (g.cam !== false) !== !!d.on) { g.cam = !!d.on; broadcast(room, { t: 'guests', guests: guestsPublic(room) }); }
         return;
       }
       case 'who': {                      // who is watching: the names people chose, and how many gave none

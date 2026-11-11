@@ -77,7 +77,7 @@ input[type="text"], input[type="password"], select { background: var(--bg); bord
 .dlg h2 { font-size: 19px; margin-bottom: 6px; }
 .dlg p { color: var(--muted); font-size: 15px; margin-bottom: 14px; }
 .dlg input { width: 100%; margin-bottom: 14px; }
-.dlg-actions { display: flex; gap: 8px; }
+.dlg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .err { color: var(--live) !important; font-size: 14px; }
 
 /* studio */

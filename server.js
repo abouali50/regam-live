@@ -40,7 +40,7 @@ if (ADMIN_PASSWORD.length < 8) {
 // A small JSON file: teachers and rooms. Everything else lives in memory.
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_FILE = path.join(DATA_DIR, 'db.json');
-const db = { users: [], rooms: [] };
+const db = { users: [], rooms: [], plans: [{ id: 'p100', name: '100', price: 500, capacity: 100 }], payInfo: '' };
 try { Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch { /* first run */ }
 let saveTimer = null;
 function save() {
@@ -89,13 +89,15 @@ function verify(token, kind) {
   if (Number(p[2]) < Date.now()) return null;
   return p[1];
 }
+// approved by the administrator, and (when the account has an end date) still paid for
+const isActive = (u) => !!u.active && (!u.paidUntil || u.paidUntil > Date.now());
 const hashPass = (password, salt) => crypto.scryptSync(String(password), salt, 32).toString('hex');
 // Who holds this token: the administrator, an active teacher, or nobody.
 function whoIs(token) {
   const id = verify(token, 'user');
   if (!id) return null;
   if (id === 'admin') return { id: 'admin', role: 'admin', name: HOST_NAME };
-  const u = db.users.find((x) => x.id === id && x.active);
+  const u = db.users.find((x) => x.id === id && isActive(x));
   return u ? { id: u.id, role: 'teacher', name: u.name } : null;
 }
 const canHost = (user, room) => !!user && !!room && (user.role === 'admin' || room.cfg.ownerId === user.id);
@@ -107,6 +109,13 @@ function isGuest(token, room) {
 const bearer = (req) => (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
 const clientIp = (req) => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
 
+const applies = new Map();       // ip -> [timestamps]  (teacher applications)
+function applyAllowed(ip) {
+  const now = Date.now(), list = (applies.get(ip) || []).filter((t) => t > now - 3600e3);
+  if (list.length >= 5) return false;
+  list.push(now); applies.set(ip, list);
+  return true;
+}
 const loginFails = new Map();    // ip -> { n, until }
 function loginAllowed(ip) {
   const f = loginFails.get(ip);
@@ -251,9 +260,9 @@ function handleRecordings(req, res, url) {
 }
 
 // ---------------------------------------------------------- administration --
-const publicRoom = (r) => ({ slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle });
+const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle });
 function slugFor(title) {
-  let base = String(title).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+  let base = String(title).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
   if (!SLUG.test(base)) base = 'room';
   let slug = base;
   for (let i = 2; rooms.has(slug) || slug === 'main'; i++) slug = `${base}-${i}`;
@@ -273,7 +282,8 @@ async function handleAdmin(req, res, url, what) {
 
   if (!what && req.method === 'GET') {
     return send(res, 200, {
-      users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active })),
+      users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
+      plans: db.plans, payInfo: db.payInfo,
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
     });
   }
@@ -291,10 +301,23 @@ async function handleAdmin(req, res, url, what) {
     } else {
       if (name) u.name = name;
       if (typeof b.active === 'boolean') u.active = b.active;
+      const months = Number(b.months);
+      if (Number.isInteger(months) && months > 0 && months <= 24) {   // payment received: extend the subscription
+        u.paidUntil = Math.max(Date.now(), u.paidUntil || 0) + months * 30 * 24 * 3600e3;
+        u.active = true;
+      }
+      if (u.active && u.pending) {                                    // first approval: open the room they asked for
+        u.pending = false;
+        const plan = db.plans.find((x) => x.id === u.planId);
+        if (u.wantRoom && !db.rooms.some((c) => c.ownerId === u.id) && rooms.size < 200) {
+          const cfg = { slug: slugFor(u.wantRoom), title: u.wantRoom, topic: u.wantTopic || '', ownerId: u.id, slow: 3, pinned: '', liveTitle: '', banned: {}, capacity: plan ? plan.capacity : 0 };
+          db.rooms.push(cfg); openRoom(cfg);
+        }
+      }
       if (password && password.length < 8) return send(res, 400, { error: 'password too short' });
     }
     if (password) { u.salt = crypto.randomBytes(12).toString('hex'); u.hash = hashPass(password, u.salt); }
-    if (!u.active) {                                           // a suspended teacher is cut off at once
+    if (!isActive(u)) {                                        // a suspended teacher is cut off at once
       for (const r of rooms.values()) {
         if (r.cfg.ownerId !== u.id) continue;
         for (const k of [...r.rtc.keys()]) if (k.startsWith('host:')) closeRtc(r, k);
@@ -327,6 +350,7 @@ async function handleAdmin(req, res, url, what) {
     } else {
       if (title) room.cfg.title = title;
       if (typeof b.topic === 'string') room.cfg.topic = topic;
+      if (Number.isInteger(b.capacity) && b.capacity >= 0 && b.capacity <= 100000) room.cfg.capacity = b.capacity;
       if (ownerId && ownerId !== room.cfg.ownerId) {
         room.cfg.ownerId = ownerId;
         for (const k of [...room.rtc.keys()]) if (k.startsWith('host:')) closeRtc(room, k);
@@ -335,6 +359,21 @@ async function handleAdmin(req, res, url, what) {
     }
     save();
     return send(res, 200, { slug: room.cfg.slug });
+  }
+  if (what === 'settings' && req.method === 'POST') {       // payment instructions and the plans on offer
+    const b = await readJson(req);
+    if (typeof b.payInfo === 'string') db.payInfo = b.payInfo.replace(/[\u0000-\u0008\u000b-\u001f]/g, '').slice(0, 1500);
+    if (Array.isArray(b.plans)) {
+      const plans = [];
+      for (const x of b.plans.slice(0, 12)) {
+        const name = clean(x && x.name, 30), price = Number(x && x.price), capacity = Number(x && x.capacity);
+        if (!name || !(price >= 0) || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000) return send(res, 400, { error: 'bad plan' });
+        plans.push({ id: (x.id && /^[a-z0-9]{2,12}$/.test(x.id)) ? x.id : 'p' + crypto.randomBytes(4).toString('hex'), name, price: Math.round(price * 100) / 100, capacity });
+      }
+      db.plans = plans;
+    }
+    save();
+    return send(res, 200, { ok: true });
   }
   if (what === 'room' && req.method === 'DELETE') {
     const room = rooms.get(url.searchParams.get('slug'));
@@ -366,19 +405,37 @@ const server = http.createServer(async (req, res) => {
       });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
+    if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans });
+    if (p === '/api/apply' && req.method === 'POST') {            // a teacher asks for an account; nothing is open until approved
+      const ip = clientIp(req);
+      if (!applyAllowed(ip)) return send(res, 429, { error: 'too many requests' });
+      const b = await readJson(req);
+      const name = clean(b.name, 40), login = clean(b.login, 30).toLowerCase(), password = String(b.password || '');
+      const contact = clean(b.contact, 80), wantRoom = clean(b.roomTitle, 60), wantTopic = clean(b.topic, 40);
+      const plan = db.plans.find((x) => x.id === b.planId);
+      if (!name || !contact || !wantRoom || !plan) return send(res, 400, { error: 'missing fields' });
+      if (!/^[a-z0-9._-]{3,30}$/.test(login) || login === 'admin') return send(res, 400, { error: 'bad name or login' });
+      if (password.length < 8) return send(res, 400, { error: 'password too short' });
+      if (db.users.some((x) => x.login === login)) return send(res, 409, { error: 'login already used' });
+      if (db.users.filter((x) => x.pending).length >= 300) return send(res, 429, { error: 'too many requests' });
+      const salt = crypto.randomBytes(12).toString('hex');
+      db.users.push({ id: 'u' + crypto.randomBytes(6).toString('hex'), name, login, active: false, pending: true, salt, hash: hashPass(password, salt), contact, wantRoom, wantTopic, planId: plan.id, askedAt: Date.now() });
+      save();
+      return send(res, 200, { ok: true, payInfo: db.payInfo, plan });
+    }
     if (p === '/api/login' && req.method === 'POST') {
       const ip = clientIp(req);
       if (!loginAllowed(ip)) return send(res, 429, { error: 'too many attempts' });
       const body = await readJson(req);
       const login = clean(body.login, 30).toLowerCase(), password = String(body.password || '');
       let id = null;
-      if (!login || login === 'admin') { if (safeEq(hmac(password), hmac(ADMIN_PASSWORD))) id = 'admin'; }
-      else {
-        const u = db.users.find((x) => x.login === login);
-        // hash even for an unknown login, so the answer takes the same time
-        const got = hashPass(password, u ? u.salt : 'no-such-user');
-        if (u && u.active && u.hash && safeEq(got, u.hash)) id = u.id;
-      }
+      const u = db.users.find((x) => x.login === login);
+      // hash even for an unknown login, so the answer takes the same time
+      const got = hashPass(password, u ? u.salt : 'no-such-user');
+      if (u && isActive(u) && u.hash && safeEq(got, u.hash)) id = u.id;
+      // the administrator has no login: their password is enough, whatever the browser
+      // put in the login field (autofill often writes an e-mail address there)
+      else if (!u && safeEq(hmac(password), hmac(ADMIN_PASSWORD))) id = 'admin';
       if (!id) { loginFailed(ip); return send(res, 401, { error: 'wrong login or password' }); }
       const me = whoIs(sign('user', id, 1000));
       return send(res, 200, { token: sign('user', id, 12 * 3600e3), role: me.role, name: me.name });
@@ -389,7 +446,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { user: me, rooms: [...rooms.values()].filter((r) => canHost(me, r)).map(publicRoom) });
     }
     if (p === '/api/recordings') return handleRecordings(req, res, url);
-    const a = p.match(/^\/api\/admin(?:\/(user|room))?$/);
+    const a = p.match(/^\/api\/admin(?:\/(user|room|settings))?$/);
     if (a) return handleAdmin(req, res, url, a[1]);
     const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+)$/);
     if (m) return handleRtc(req, res, url, m[1], m[2]);
@@ -401,6 +458,7 @@ const server = http.createServer(async (req, res) => {
     if (/^\/r\/[a-z0-9-]+$/.test(p)) return serveFile(res, path.join(PUBLIC_DIR, 'index.html'));
     if (p === '/studio') return serveFile(res, path.join(PUBLIC_DIR, 'studio.html'));
     if (p === '/admin') return serveFile(res, path.join(PUBLIC_DIR, 'admin.html'));
+    if (p === '/teach') return serveFile(res, path.join(PUBLIC_DIR, 'teach.html'));
     if (p === '/vendor/hls.min.js') return serveFile(res, path.join(__dirname, 'node_modules/hls.js/dist/hls.min.js'), 'public, max-age=86400');
     const file = path.join(PUBLIC_DIR, path.normalize(p));
     if (!file.startsWith(PUBLIC_DIR + path.sep)) return send(res, 400, 'Bad path');
@@ -427,6 +485,7 @@ setInterval(() => {
 }, 200);
 const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws, obj); };
 const toUid = (room, uid, obj) => { for (const ws of room.byUid.get(uid) || []) tx(ws, obj); };
+const viewersOf = (room) => { let n = 0; for (const ws of room.clients) if (!ws.mod) n++; return n; };
 const handsList = (room) => [...room.hands].map(([uid, h]) => ({ uid, name: h.name })).slice(0, 50);
 const guestPublic = (room) => (room.guest ? { name: room.guest.name, uid: room.guest.uid, ready: room.guest.ready } : null);
 
@@ -464,8 +523,13 @@ wss.on('connection', (ws, req) => {
       const room = d.room ? rooms.get(String(d.room)) : defaultRoom();
       if (!room) return ws.close();
       const user = whoIs(d.token);
+      const host = canHost(user, room);
+      if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
+        tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full
+        return ws.close();
+      }
       ws.room = room; ws.uid = d.uid;
-      ws.mod = canHost(user, room);
+      ws.mod = host;
       ws.userId = ws.mod ? user.id : null;
       ws.name = ws.mod ? user.name : clean(d.name, MAX_NAME);
       room.clients.add(ws);
@@ -590,6 +654,18 @@ setInterval(() => {
 setInterval(() => {
   const cutoff = Date.now() - 10 * 60e3;
   for (const room of rooms.values()) for (const [uid, ts] of room.lastMsgAt) if (ts < cutoff) room.lastMsgAt.delete(uid);
+}, 60e3);
+
+// A subscription that has run out ends the teacher's live and studio session.
+setInterval(() => {
+  for (const u of db.users) {
+    if (!u.active || isActive(u)) continue;
+    for (const r of rooms.values()) {
+      if (r.cfg.ownerId !== u.id) continue;
+      for (const k of [...r.rtc.keys()]) if (k.startsWith('host:')) closeRtc(r, k);
+      for (const ws of r.clients) if (ws.userId === u.id) ws.close();
+    }
+  }
 }, 60e3);
 
 // Ask the media server which rooms are on air.

@@ -44,12 +44,16 @@ function createLink({ name = '', token = '', room = '' } = {}) {
     ws.onmessage = (e) => {
       let d; try { d = JSON.parse(e.data); } catch { return; }
       if (d.t === 'batch') d.ev.forEach(emit);
-      else { if (d.t === 'init') link.ready = true; emit(d); }
+      else {
+        if (d.t === 'init') link.ready = true;
+        if (d.t === 'full') delay = 30000;          // the room is full: try again later, not at once
+        emit(d);
+      }
     };
     ws.onclose = () => {
       link.ready = false; emit({ t: 'offline' });
       setTimeout(connect, delay + Math.random() * 500);
-      delay = Math.min(delay * 2, 15000);
+      delay = Math.min(delay * 2, Math.max(delay, 15000));
     };
   }
   connect();

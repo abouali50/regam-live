@@ -170,8 +170,23 @@ EOF
       warn "HTTPS is still missing, and the camera only works over HTTPS. Run:"
       warn "  apt-get install -y certbot python3-certbot-nginx && certbot --nginx -d $DOMAIN"
     fi
+  elif command -v caddy >/dev/null && [ -f /etc/caddy/Caddyfile ]; then
+    # Caddy on the host: add our site once, keep a backup, undo if the file no longer parses.
+    if grep -qF "$DOMAIN" /etc/caddy/Caddyfile; then
+      say "Caddy already serves $DOMAIN"
+    else
+      say "Adding $DOMAIN to Caddy"
+      cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-regam
+      printf '\n%s {\n\treverse_proxy 127.0.0.1:%s\n}\n' "$DOMAIN" "$APP_PORT" >> /etc/caddy/Caddyfile
+      if caddy adapt --config /etc/caddy/Caddyfile >/dev/null 2>&1 && systemctl reload caddy; then
+        :
+      else
+        cp /etc/caddy/Caddyfile.bak-regam /etc/caddy/Caddyfile
+        warn "Could not add $DOMAIN to Caddy; /etc/caddy/Caddyfile was left unchanged."
+      fi
+    fi
   else
-    warn "Ports 80/443 are used by another web server that is not nginx."
+    warn "Ports 80/443 are used by another web server that is not nginx or Caddy."
     warn "Point it at http://127.0.0.1:$APP_PORT for $DOMAIN (with WebSocket support) and give it an HTTPS certificate."
   fi
 fi

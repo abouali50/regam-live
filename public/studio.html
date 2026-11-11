@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0c0f14">
+<title>الاستوديو · REGAM Live</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body class="studio">
+<header class="top">
+  <a class="brand" href="/" target="_blank" rel="noopener">REGAM<b>Live</b><span class="brand-sub">الاستوديو</span></a>
+  <div class="meta">
+    <span id="liveBadge" class="badge off">غير مباشر</span>
+    <span class="viewers" title="المتابعين دابا"><span class="dot"></span><span id="viewers">0</span></span>
+  </div>
+</header>
+
+<section id="login" class="login">
+  <form id="loginForm" class="card">
+    <h1>دخول الاستوديو</h1>
+    <label for="pw">كلمة السر</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+    <p id="loginErr" class="err" hidden></p>
+    <button class="btn primary" type="submit">دخل</button>
+  </form>
+</section>
+
+<main id="app" class="layout" hidden>
+  <section class="stage">
+    <div class="player">
+      <video id="preview" playsinline muted autoplay></video>
+      <div class="onair" id="onAir" hidden>على الهواء</div>
+    </div>
+    <p id="status" class="status" role="status">جاهز. اختار المصدر وبدا اللايف.</p>
+
+    <div class="controls">
+      <button id="goBtn" class="btn primary big" type="button">ابدأ اللايف</button>
+      <button id="camBtn" class="btn" type="button" aria-pressed="true">الكاميرا</button>
+      <button id="screenBtn" class="btn" type="button" aria-pressed="false">شارك الشاشة</button>
+      <button id="micBtn" class="btn" type="button" aria-pressed="true">الميكرو</button>
+    </div>
+
+    <div class="panel" id="stagePanel">
+      <h2>المنصة</h2>
+      <div id="guestBox" class="guest-box" hidden>
+        <span id="guestName"></span>
+        <button id="unstageBtn" class="btn danger" type="button">نزلو من المنصة</button>
+      </div>
+      <p id="noHands" class="muted">ما كاين حتى طلب دابا.</p>
+      <ul id="hands" class="hands"></ul>
+    </div>
+
+    <div class="panel settings">
+      <h2>الإعدادات</h2>
+      <form id="titleForm" class="row">
+        <label for="titleInput">عنوان اللايف</label>
+        <input id="titleInput" type="text" maxlength="80" placeholder="مثلا: كيفاش تكري MetaMask">
+        <button class="btn" type="submit">حفظ</button>
+      </form>
+      <form id="pinForm" class="row">
+        <label for="pinInput">رسالة مثبتة</label>
+        <input id="pinInput" type="text" maxlength="200" placeholder="كتبان فوق التعليقات">
+        <button class="btn" type="submit">ثبت</button>
+      </form>
+      <div class="row">
+        <label for="slowSel">الوقت بين تعليقين</label>
+        <select id="slowSel">
+          <option value="0">بلا حد</option><option value="3">3 ثواني</option><option value="10">10 ثواني</option>
+          <option value="30">30 ثانية</option><option value="60">دقيقة</option>
+        </select>
+      </div>
+    </div>
+  </section>
+  <aside class="chat" id="chat" aria-label="التعليقات"></aside>
+</main>
+<audio id="guestAudio" autoplay></audio>
+
+<script src="/common.js"></script>
+<script src="/studio.js"></script>
+</body>
+</html>

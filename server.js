@@ -302,7 +302,7 @@ wss.on('connection', (ws, req) => {
       if (!byUid.has(ws.uid)) byUid.set(ws.uid, new Set());
       byUid.get(ws.uid).add(ws);
       return tx(ws, {
-        t: 'init', live, likes, viewers: wss.clients.size, slow: state.slow, pinned: state.pinned, title: state.title,
+        t: 'init', live, likes, reacts: totals, viewers: wss.clients.size, slow: state.slow, pinned: state.pinned, title: state.title,
         history, guest: guestPublic(), mod: ws.mod, banned: !!state.banned[ws.uid],
         hands: ws.mod ? handsList() : undefined, hand: hands.has(ws.uid),
       });
@@ -346,7 +346,7 @@ wss.on('connection', (ws, req) => {
         const k = d.t === 'like' ? 2 : d.k;
         const now = Date.now();
         if (!Number.isInteger(k) || k < 0 || k >= REACTIONS || state.banned[ws.uid] || now - (ws.lastLike || 0) < 200) return;
-        ws.lastLike = now; likes++; reacts[k]++; likesDirty = true;
+        ws.lastLike = now; likes++; reacts[k]++; totals[k]++; likesDirty = true;
         return;
       }
     }
@@ -400,11 +400,11 @@ setInterval(() => {
   }
 }, 30e3);
 const REACTIONS = 7;                 // thumbs up, hug, heart, laugh, oops, blush, thinking
-let likes = 0, likesDirty = false, reacts = new Array(REACTIONS).fill(0);
+let likes = 0, likesDirty = false, reacts = new Array(REACTIONS).fill(0), totals = new Array(REACTIONS).fill(0);
 setInterval(() => {
   if (!likesDirty) return;
   likesDirty = false;
-  broadcast({ t: 'likes', n: likes, r: reacts });     // r = what was sent since the last tick
+  broadcast({ t: 'likes', n: likes, r: reacts, c: totals });     // r = sent since the last tick, c = totals per reaction
   reacts = new Array(REACTIONS).fill(0);
 }, 700);
 let lastViewers = -1;
@@ -426,7 +426,7 @@ async function pollLive() {
   } catch { /* media server down = offline */ }
   if (on !== live) {
     live = on;
-    if (on) { likes = 0; likesDirty = true; }      // a new live starts its hearts from zero
+    if (on) { likes = 0; totals = new Array(REACTIONS).fill(0); likesDirty = true; }      // a new live starts its hearts from zero
     broadcast({ t: 'live', on });
     if (!on && guest) endStage('ended');
   }

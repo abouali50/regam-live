@@ -174,3 +174,54 @@ async function rtcWatch(path, token, { video = true, audio = true, tries = 8 } =
     }
   }
 }
+
+// ------------------------------------------------------------- reactions --
+// One row of reactions with a counter under each, plus the emoji floating over
+// the video. Viewers can tap them (canSend); the studio only watches.
+const REACTIONS = [['👍', 'إعجاب'], ['🤗', 'تعاطف'], ['❤️', 'قلب'], ['😂', 'ضحك'], ['🤭', 'مفاجأة'], ['😳', 'خجل'], ['🤔', 'تفكير']];
+function mountReactions(row, floatBox, link, { canSend = false, totalEl = null } = {}) {
+  const counts = REACTIONS.map(() => 0);      // totals confirmed by the server
+  const sent = REACTIONS.map(() => 0);        // my own taps not yet confirmed
+  const nums = [];
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const short = (n) => (n >= 10000 ? Math.round(n / 1000) + 'k' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n));
+  function paint() {
+    let total = 0;
+    nums.forEach((node, k) => { const v = counts[k] + sent[k]; total += v; node.textContent = short(v); });
+    if (totalEl) totalEl.textContent = short(total);
+  }
+  function float(k) {
+    if (calm || document.hidden || !floatBox || floatBox.childElementCount > 28) return;
+    const h = el('span', { class: 'float-heart' }, REACTIONS[k][0]);
+    h.style.setProperty('--x', `${Math.round(Math.random() * 60 - 30)}px`);
+    h.style.setProperty('--s', (0.8 + Math.random() * 0.7).toFixed(2));
+    floatBox.append(h);
+    h.addEventListener('animationend', () => h.remove());
+  }
+  REACTIONS.forEach(([emoji, label], k) => {
+    const num = el('span', { class: 'react-n' }, '0');
+    nums.push(num);
+    const props = { class: 'react', 'aria-label': T(label), title: T(label) };
+    if (canSend) {
+      props.type = 'button';
+      props.onclick = () => {
+        if (!link.ready) return;
+        link.send({ t: 'react', k });
+        sent[k]++;
+        paint(); float(k);
+      };
+    }
+    row.append(el(canSend ? 'button' : 'span', props, el('span', { class: 'react-e', 'aria-hidden': 'true' }, emoji), num));
+  });
+  link.on('init', (d) => { (d.reacts || []).forEach((c, k) => { counts[k] = c; }); sent.fill(0); paint(); })
+    .on('likes', (d) => {
+      let shown = 0;
+      (d.r || []).forEach((n, k) => {            // what the other viewers just sent
+        const others = Math.max(0, n - sent[k]);
+        sent[k] = Math.max(0, sent[k] - n);
+        for (let i = 0; i < others && shown < 8; i++, shown++) setTimeout(() => float(k), shown * 110);
+      });
+      (d.c || []).forEach((c, k) => { counts[k] = c; });
+      paint();
+    });
+}

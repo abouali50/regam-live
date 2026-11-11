@@ -112,6 +112,17 @@ function openAccount(view = 'login') {
   show(view);
   dlg.showModal();
 }
+// The link in the e-mail (…?e=<address>&v=<code>) validates the account in one tap.
+(async function verifyByLink() {
+  const q = new URLSearchParams(location.search), e = q.get('e'), v = q.get('v');
+  if (!e || !v) return;
+  history.replaceState(null, '', location.pathname);
+  try {
+    const r = await fetch('/api/member/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: e, code: v }) });
+    if (r.ok) { const d = await r.json(); account.set(d.token, d.name); location.reload(); return; }
+  } catch { /* fall through to the notice */ }
+  if (!account.token) alert(T('هاد الرابط ما بقاش صالح. دخل بالإيميل وكلمة السر ديالك، ولا طلب كود جديد.'));
+})();
 // The account corner of the page header: "sign in / sign up", or the person's name and "sign out".
 async function mountAccount(host, site) {
   if (account.token) {

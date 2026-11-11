@@ -93,6 +93,8 @@ const DICT = {
   'حل الكاميرا': ['Activer la caméra', 'Turn camera on'],
   'بلا كاميرا': ['sans caméra', 'no camera'],
   'ما قدرناش نحلو الكاميرا. تأكد أن المتصفح مسموح ليه يستعملها.': ['Impossible d’activer la caméra. Vérifiez que le navigateur a le droit de l’utiliser.', 'The camera could not be turned on. Check that the browser is allowed to use it.'],
+  'هاد المتصفح ما كيقدرش يبث. جرب Chrome ولا Safari محدث.': ['Ce navigateur ne peut pas diffuser. Essayez Chrome ou un Safari à jour.', 'This browser cannot broadcast. Try Chrome or an up-to-date Safari.'],
+  'خلي هاد الصفحة مفتوحة قدامك: إلا خرجتي منها اللايف كيوقف.': ['Gardez cette page ouverte devant vous : si vous la quittez, le live s’arrête.', 'Keep this page open in front of you: if you leave it, the live stops.'],
   'طلع دابا': ['Monter maintenant', 'Join now'],
   'لا، شكرا': ['Non, merci', 'No, thanks'],
   '{name} على المنصة مع {host}': ['{name} est sur scène avec {host}', '{name} is on stage with {host}'],

@@ -551,6 +551,27 @@ async function until(fn, ms = 15000, step = 250) {
       check('the host can remove the sound', del.status === 200 && (await (await fetch(BASE + '/api/config')).json()).sound === '' && (await fetch(BASE + cfgNow.sound)).status === 404);
       await idle.context().close();
     }
+    // ---- the studio on a phone: no worker mixer there, the simple one takes over
+    {
+      const pctx = await browser.newContext({ ...devices['iPhone 14'], locale: 'ar-MA', permissions: ['camera', 'microphone'] });
+      const ph = await pctx.newPage();
+      ph.on('pageerror', (e) => errors.push('phone studio: ' + e.message));
+      await ph.goto(BASE + '/studio?mixer=simple');
+      await ph.fill('#pw', 'studio-pass-1'); await ph.click('#loginForm button[type=submit]'); await ph.waitForSelector('#app:not([hidden])');
+      check('the studio opens on a phone and is ready to go live', (await until(() => ph.evaluate(() => !document.querySelector('#goBtn').disabled && document.querySelector('#preview').videoWidth === 1280), 10000)) !== null
+        && await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      await ph.click('#camBtn');
+      await ph.click('#goBtn');
+      const onAir = (await until(() => ph.evaluate(() => !!window.__studio.live && window.__studio.pc && window.__studio.pc.connectionState === 'connected'), 20000)) !== null;
+      const pv = await (await browser.newContext({ locale: 'ar-MA' })).newPage();
+      await pv.goto(BASE + '/r/main');
+      check('a live started from the phone reaches the viewers with a moving picture', onAir && (await until(() => pv.locator('#liveBadge.on').isVisible(), 20000)) !== null
+        && (await until(() => sfu.evaluate(async () => { const p = window.paths.studio_main; if (!p) return false; const v = document.createElement('video'); v.muted = true; v.srcObject = p; await v.play().catch(() => {}); await new Promise((r) => setTimeout(r, 400)); return v.videoWidth === 1280; }), 20000)) !== null);
+      await ph.screenshot({ path: path.join(OUT, 'studio-phone.png'), fullPage: true });
+      await ph.click('#goBtn');
+      await until(() => pv.locator('#liveBadge.off').isVisible());
+      await pv.context().close(); await pctx.close();
+    }
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);
   } finally {

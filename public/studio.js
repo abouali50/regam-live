@@ -75,6 +75,7 @@
     $('#camBtn').onclick = () => (camTrack ? camOff() : camOn());
 
     async function screenOn() {
+      if (boardOn) boardOff();
       try {
         const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 25, max: 30 }, width: { max: 1920 }, height: { max: 1080 } }, audio: false });
         screenTrack = s.getVideoTracks()[0];
@@ -94,6 +95,37 @@
     }
     $('#screenBtn').onclick = () => (screenTrack ? screenOff() : screenOn());
 
+    // -------------------------------------------------------- whiteboard --
+    // The board takes the place of a shared screen in the mixer: full picture,
+    // with the camera (and the guest) in small tiles over it.
+    const board = createBoard($('#board'), $('#boardTyper'));
+    let boardOn = false;
+    function boardStart() {
+      if (screenTrack) screenOff();
+      boardOn = true;
+      setInput('screen', board.start());
+      $('#board').hidden = false; $('#boardBar').hidden = false; $('#boardCam').hidden = false;
+      press($('#boardBtn'), true);
+      tune();
+    }
+    function boardOff() {
+      boardOn = false;
+      board.stop();
+      setInput('screen', null);
+      $('#board').hidden = true; $('#boardBar').hidden = true; $('#boardCam').hidden = true;
+      press($('#boardBtn'), false);
+      tune();
+    }
+    $('#boardBtn').onclick = () => (boardOn ? boardOff() : boardStart());
+    const pick = (group, btn) => group.forEach((b) => press(b, b === btn));
+    const toolBtns = [...document.querySelectorAll('#boardBar [data-tool]')];
+    toolBtns.forEach((b) => { b.onclick = () => { board.setTool(b.dataset.tool); pick(toolBtns, b); }; });
+    const colorBtns = [...document.querySelectorAll('#boardBar [data-color]')];
+    colorBtns.forEach((b) => { b.onclick = () => { board.setColor(b.dataset.color); pick(colorBtns, b); }; });
+    $('#boardSize').onchange = () => board.setSize(Number($('#boardSize').value));
+    $('#boardUndo').onclick = () => board.undo();
+    $('#boardClear').onclick = () => { if (confirm('تمسح السبورة كاملة؟')) board.clear(); };
+
     async function ensureMic() {
       if (micTrack) return true;
       try {
@@ -112,7 +144,7 @@
     // When the connection is weak, drop frames rather than sharpness: the audience
     // gets a fixed picture size, and text on a shared screen must stay readable.
     function tune() {
-      mixed.contentHint = screenTrack ? 'detail' : 'motion';
+      mixed.contentHint = (screenTrack || boardOn) ? 'detail' : 'motion';
       const sender = pc && pc.getSenders().find((s) => s.track && s.track.kind === 'video');
       if (!sender) return;
       const p = sender.getParameters();
@@ -255,7 +287,7 @@
 
     addEventListener('pagehide', () => { if (liveOn) stopLive(); });
     addEventListener('beforeunload', (e) => { if (liveOn) e.preventDefault(); });
-    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed };   // for diagnostics
+    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board };   // for diagnostics
     camOn();
   }
 })();

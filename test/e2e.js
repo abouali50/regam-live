@@ -179,6 +179,34 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.click('#screenBtn');
     check('stopping the share returns to 1280x720', (await until(async () => (await dim()) === '1280x720')) !== null);
 
+    // ---- whiteboard ---------------------------------------------------------------
+    await studio.click('#boardBtn');
+    check('whiteboard switches the broadcast to 1920x1080', (await until(async () => (await dim()) === '1920x1080')) !== null, await dim());
+    const box = await studio.locator('#board').boundingBox();
+    await studio.mouse.move(box.x + box.width * 0.15, box.y + box.height * 0.6);
+    await studio.mouse.down();
+    for (let i = 1; i <= 12; i++) await studio.mouse.move(box.x + box.width * (0.15 + i * 0.03), box.y + box.height * (0.6 + 0.12 * Math.sin(i / 2)));
+    await studio.mouse.up();
+    await studio.click('#boardBar [data-tool="text"]');
+    await studio.click('#boardBar [data-color="#d92d2d"]');
+    await studio.mouse.click(box.x + box.width * 0.12, box.y + box.height * 0.2);
+    await studio.keyboard.type('MetaMask : étape 1');
+    await studio.keyboard.press('Escape');
+    await studio.mouse.click(box.x + box.width * 0.7, box.y + box.height * 0.38);
+    await studio.keyboard.type('الدرس الأول');
+    await studio.keyboard.press('Escape');
+    check('drawing and typing land on the whiteboard', (await studio.evaluate(() => window.__studio.board.count)) === 3);
+    const inked = () => sfu.evaluate(() => { const v = document.getElementById('v_studio'); const c = document.createElement('canvas'); c.width = 192; c.height = 108; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 192, 108); const d = g.getImageData(0, 0, 192, 108).data; let white = 0, red = 0; for (let i = 0; i < d.length; i += 4) { if (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235) white++; if (d[i] > 150 && d[i + 1] < 110 && d[i + 2] < 110) red++; } return { white: white / (192 * 108), red }; });
+    const seenBoard = await until(async () => { const r = await inked(); return r.white > 0.6 && r.red > 3 ? r : null; }, 15000);
+    check('audience relay shows the whiteboard with the red text', seenBoard !== null, JSON.stringify(seenBoard || await inked()));
+    await studio.screenshot({ path: path.join(OUT, 'studio-board.png') });
+    await studio.click('#boardUndo');
+    check('undo removes the last item', (await studio.evaluate(() => window.__studio.board.count)) === 2);
+    await studio.click('#screenBtn');
+    check('sharing the screen closes the whiteboard', await studio.locator('#board').isHidden() && (await until(async () => (await dim()) === '1920x1080')) !== null);
+    await studio.click('#screenBtn');
+    check('back to the camera after both are off', (await until(async () => (await dim()) === '1280x720')) !== null);
+
     // ---- host removes the guest -------------------------------------------------
     await studio.click('#unstageBtn');
     check('guest is taken off stage and returns to the normal player', (await until(() => viewer.evaluate(() => !document.querySelector('#video').srcObject && document.querySelector('#stageBar').hidden))) !== null);

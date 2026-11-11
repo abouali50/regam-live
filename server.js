@@ -341,10 +341,12 @@ wss.on('connection', (ws, req) => {
       case 'leave':
         if (guest && guest.uid === ws.uid) endStage('left');
         return;
-      case 'like': {                     // hearts: anyone watching, a few per second at most
+      case 'like':                       // older pages: a plain heart
+      case 'react': {                    // reactions: anyone watching, a few per second at most
+        const k = d.t === 'like' ? 2 : d.k;
         const now = Date.now();
-        if (state.banned[ws.uid] || now - (ws.lastLike || 0) < 200) return;
-        ws.lastLike = now; likes++; likesDirty = true;
+        if (!Number.isInteger(k) || k < 0 || k >= REACTIONS || state.banned[ws.uid] || now - (ws.lastLike || 0) < 200) return;
+        ws.lastLike = now; likes++; reacts[k]++; likesDirty = true;
         return;
       }
     }
@@ -397,8 +399,14 @@ setInterval(() => {
     ws.alive = false; ws.ping();
   }
 }, 30e3);
-let likes = 0, likesDirty = false;
-setInterval(() => { if (likesDirty) { likesDirty = false; broadcast({ t: 'likes', n: likes }); } }, 700);
+const REACTIONS = 7;                 // thumbs up, hug, heart, laugh, oops, blush, thinking
+let likes = 0, likesDirty = false, reacts = new Array(REACTIONS).fill(0);
+setInterval(() => {
+  if (!likesDirty) return;
+  likesDirty = false;
+  broadcast({ t: 'likes', n: likes, r: reacts });     // r = what was sent since the last tick
+  reacts = new Array(REACTIONS).fill(0);
+}, 700);
 let lastViewers = -1;
 setInterval(() => {
   const n = wss.clients.size;

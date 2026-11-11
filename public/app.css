@@ -135,3 +135,13 @@ input[type="text"], input[type="password"], select { background: var(--bg); bord
 .float-heart { position: absolute; bottom: 0; left: 50%; color: var(--live); font-size: 30px; line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,.5); animation: rise 2.2s ease-out forwards; }
 @keyframes rise { from { transform: translate(-50%, 0) scale(.5); opacity: 0; } 15% { opacity: 1; } to { transform: translate(calc(-50% + var(--x)), -260px) scale(var(--s)); opacity: 0; } }
 @media (max-width: 900px) { .under { flex-wrap: wrap; } .actions .btn { padding: 8px 12px; } }
+/* reactions */
+.reactions { display: flex; align-items: center; gap: 10px; }
+.react-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.react { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); font-size: 22px; line-height: 1; cursor: pointer; padding: 0; transition: transform .12s; }
+.react:hover { border-color: #3a4556; }
+.react:active { transform: scale(1.25); }
+.react:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.reactions .likes-count { margin-inline-start: auto; background: var(--panel-2); border-radius: 999px; padding: 4px 12px; font-weight: 700; color: var(--text); }
+.float-heart { font-size: 32px; }
+@media (max-width: 900px) { .reactions { padding: 0 12px; } .react { width: 40px; height: 40px; font-size: 20px; } .react-row { gap: 5px; } }

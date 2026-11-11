@@ -99,31 +99,39 @@
     link.send({ t: 'hand', on: !handUp });
   };
 
-  // -------------------------------------------------------- hearts, share --
+  // ----------------------------------------------------- reactions, share --
+  const REACTIONS = [['👍', 'إعجاب'], ['🤗', 'تعاطف'], ['❤️', 'قلب'], ['😂', 'ضحك'], ['🤭', 'مفاجأة'], ['😳', 'خجل'], ['🤔', 'تفكير']];
   const heartsBox = $('#hearts');
   let likeTotal = 0, mine = 0;
+  const sent = REACTIONS.map(() => 0);        // my own reactions not yet echoed by the server
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function floatHeart() {
-    if (calm || document.hidden || heartsBox.childElementCount > 24) return;
-    const h = el('span', { class: 'float-heart' }, '♥');
+  function floatEmoji(k) {
+    if (calm || document.hidden || heartsBox.childElementCount > 28) return;
+    const h = el('span', { class: 'float-heart' }, REACTIONS[k][0]);
     h.style.setProperty('--x', `${Math.round(Math.random() * 60 - 30)}px`);
     h.style.setProperty('--s', (0.8 + Math.random() * 0.7).toFixed(2));
     heartsBox.append(h);
     h.addEventListener('animationend', () => h.remove());
   }
-  function showLikes(n) {
-    const fresh = n - likeTotal - mine;       // hearts sent by other viewers since the last count
-    mine = 0; likeTotal = n;
+  function showLikes(n, r) {
+    likeTotal = n; mine = 0;
     $('#likes').textContent = n;
-    for (let i = 0; i < Math.min(Math.max(fresh, 0), 6); i++) setTimeout(floatHeart, i * 120);
+    let shown = 0;
+    (r || []).forEach((count, k) => {            // reactions from the other viewers
+      const others = Math.max(0, count - (sent[k] || 0));
+      sent[k] = 0;
+      for (let i = 0; i < others && shown < 8; i++, shown++) setTimeout(() => floatEmoji(k), shown * 110);
+    });
   }
-  $('#likeBtn').onclick = () => {
-    if (!link.ready) return;
-    link.send({ t: 'like' });
-    mine++;
-    $('#likes').textContent = likeTotal + mine;
-    floatHeart();
-  };
+  REACTIONS.forEach(([emoji, label], k) => {
+    $('#reactions').append(el('button', { type: 'button', class: 'react', 'aria-label': label, title: label, onclick: () => {
+      if (!link.ready) return;
+      link.send({ t: 'react', k });
+      sent[k]++; mine++;
+      $('#likes').textContent = likeTotal + mine;
+      floatEmoji(k);
+    } }, emoji));
+  });
   $('#shareBtn').onclick = async () => {
     const data = { title: document.title, text: $('#title').textContent, url: location.origin + '/' };
     try {
@@ -201,7 +209,7 @@
   })
     .on('live', (d) => setLive(d.on))
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
-    .on('likes', (d) => showLikes(d.n))
+    .on('likes', (d) => showLikes(d.n, d.r))
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guest', (d) => showGuest(d.guest))
     .on('hand', (d) => { setHand(d.on); if (d.on) chat.say('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.', 6000); })

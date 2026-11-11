@@ -152,9 +152,11 @@ async function until(fn, ms = 15000, step = 250) {
     check('a forged moderator token cannot pin a message', (await viewer.textContent('.pinned')) === 'التكوين كيبدا دابا');
 
     // ---- hearts ------------------------------------------------------------------
-    for (let i = 0; i < 3; i++) { await viewer.click('#likeBtn'); await sleep(260); }
+    for (const k of [0, 3, 6]) { await viewer.locator('#reactions button').nth(k).click(); await sleep(260); }
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'spammerbbbbbbbbb', name: 'x' })); for (let i = 0; i < 200; i++) w.send(JSON.stringify({ t: 'like' })); }; });
-    check('hearts are counted for everyone, and flooding is limited', (await until(async () => Number(await studio.textContent('#likes')) === 4, 6000)) !== null, 'studio shows ' + await studio.textContent('#likes'));
+    check('all seven reactions are offered', (await viewer.locator('#reactions button').count()) === 7);
+    await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'badreactccccccc1', name: 'x' })); for (const k of [7, -1, 'a', 2.5, null]) w.send(JSON.stringify({ t: 'react', k })); }; });
+    check('reactions are counted for everyone, and flooding is limited', (await until(async () => Number(await studio.textContent('#likes')) === 4, 6000)) !== null, 'studio shows ' + await studio.textContent('#likes'));
 
     // ---- guest on stage -------------------------------------------------------
     await viewer.click('#handBtn');

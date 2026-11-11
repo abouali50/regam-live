@@ -69,7 +69,7 @@ h1, h2, p { margin: 0; }
 .note { padding: 7px 14px; font-size: 13px; color: var(--gold); border-top: 1px solid var(--line); flex: none; }
 .composer { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); flex: none; }
 .composer input { flex: 1; min-width: 0; }
-input[type="text"], input[type="password"], select { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="datetime-local"], select { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
 
 /* dialogs */
 .dlg { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 22px; width: min(92vw, 420px); }

@@ -25,6 +25,10 @@ const DICT = {
   'الاتصال مقطوع، كنعاود نتصل…': ['Connexion perdue, reconnexion en cours…', 'Connection lost, reconnecting…'],
   'تسنى {n} ثواني قبل التعليق الجاي.': ['Attendez {n} secondes avant le prochain commentaire.', 'Wait {n} seconds before your next comment.'],
   'اللغة': ['Langue', 'Language'],
+  'لون الكتابة': ['Couleur du texte', 'Text colour'],
+  'الكتابة بالصوت': ['Dicter', 'Dictate'],
+  'إملاء بالصوت': ['Dictée vocale', 'Voice typing'],
+  'هاد الشخص راه على المنصة.': ['Cette personne est déjà sur scène.', 'This person is already on stage.'],
   'بين كلمة السر': ['Afficher le mot de passe', 'Show password'],
   'خبي كلمة السر': ['Masquer le mot de passe', 'Hide password'],
 

@@ -31,6 +31,8 @@ const MAX_GUESTS = 12;               // guests on stage at once, next to the hos
 const REACTIONS = 7;                 // thumbs up, hug, heart, laugh, oops, blush, thinking
 const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const zeros = () => new Array(REACTIONS).fill(0);
+const COLORS = 9;                    // comment colours offered to everyone (0 = default)
+const colorOf = (v) => (Number.isInteger(v) && v > 0 && v < COLORS ? v : 0);
 
 if (ADMIN_PASSWORD.length < 8) {
   console.error('ADMIN_PASSWORD is missing or shorter than 8 characters.');
@@ -544,6 +546,7 @@ wss.on('connection', (ws, req) => {
       ws.mod = host;
       ws.userId = ws.mod ? user.id : null;
       ws.name = ws.mod ? user.name : clean(d.name, MAX_NAME);
+      ws.color = colorOf(d.color);
       room.clients.add(ws);
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
       room.byUid.get(ws.uid).add(ws);
@@ -560,6 +563,7 @@ wss.on('connection', (ws, req) => {
 
     switch (d.t) {
       case 'name': if (!ws.mod) ws.name = clean(d.name, MAX_NAME); return;
+      case 'color': ws.color = colorOf(d.c); return;          // the colour of this person's comments
 
       case 'msg': {
         const text = clean(d.text, MAX_TEXT);
@@ -571,7 +575,7 @@ wss.on('connection', (ws, req) => {
           if (wait > 0) return tx(ws, { t: 'err', code: 'slow', wait: Math.ceil(wait / 1000) });
         }
         room.lastMsgAt.set(ws.uid, now);
-        const msg = { id: ++room.seq, uid: ws.uid, name: ws.name, text, ts: now, mod: ws.mod || undefined };
+        const msg = { id: ++room.seq, uid: ws.uid, name: ws.name, text, ts: now, mod: ws.mod || undefined, c: ws.color || undefined };
         room.history.push(msg);
         if (room.history.length > HISTORY) room.history.shift();
         return broadcast(room, { t: 'msg', m: msg });
@@ -638,7 +642,8 @@ wss.on('connection', (ws, req) => {
       case 'stage': {
         const uid = String(d.uid || '');
         const h = room.hands.get(uid);
-        if (!h || !room.byUid.has(uid) || slotOf(room, uid)) return;
+        if (slotOf(room, uid)) return tx(ws, { t: 'err', code: 'onstage' });
+        if (!h || !room.byUid.has(uid)) return;
         let slot = 0;
         for (let i = 1; i <= MAX_GUESTS; i++) if (!room.guests.has(i)) { slot = i; break; }
         if (!slot) return tx(ws, { t: 'err', code: 'stagefull' });

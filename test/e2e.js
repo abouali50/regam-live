@@ -145,13 +145,13 @@ async function until(fn, ms = 15000, step = 250) {
 
     // ---- chat + moderation --------------------------------------------------
     await viewer.fill('.composer input', 'سلام من المتفرج');
-    await viewer.click('.composer button');
+    await viewer.click('.composer button[type=submit]');
     await viewer.fill('#nameInput', 'كريم'); await viewer.click('#nameForm button[type=submit]');
-    await viewer.fill('.composer input', 'سلام من المتفرج'); await viewer.click('.composer button');
+    await viewer.fill('.composer input', 'سلام من المتفرج'); await viewer.click('.composer button[type=submit]');
     check('comment reaches the studio', (await until(() => studio.locator('.msg', { hasText: 'سلام من المتفرج' }).isVisible())) !== null);
-    await viewer.fill('.composer input', 'تعليق ثاني بزربة'); await viewer.click('.composer button');
+    await viewer.fill('.composer input', 'تعليق ثاني بزربة'); await viewer.click('.composer button[type=submit]');
     check('slow mode blocks a second comment sent right away', (await until(() => viewer.locator('.note', { hasText: 'تسنى' }).isVisible(), 4000)) !== null);
-    await studio.fill('.composer input', 'مرحبا بيكم'); await studio.click('.composer button');
+    await studio.fill('.composer input', 'مرحبا بيكم'); await studio.click('.composer button[type=submit]');
     check('host comment is shown to viewers as host', (await until(() => viewer.locator('.msg.host', { hasText: 'مرحبا بيكم' }).isVisible())) !== null);
     await studio.fill('#titleInput', 'كيفاش تكري MetaMask'); await studio.click('#titleForm button');
     await studio.fill('#pinInput', 'التكوين كيبدا دابا'); await studio.click('#pinForm button');
@@ -159,6 +159,17 @@ async function until(fn, ms = 15000, step = 250) {
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'attackeraaaaaaaa', name: 'x', token: 'admin.host.9999999999999.deadbeef' })); w.send(JSON.stringify({ t: 'pin', text: 'HACKED' })); }; });
     await sleep(700);
     check('a forged moderator token cannot pin a message', (await viewer.textContent('.pinned')) === 'التكوين كيبدا دابا');
+
+    // ---- comment colours, spacing, dictation button -----------------------------------------
+    await sleep(3200);
+    await viewer.click('.color-btn'); await viewer.locator('.swatch').nth(1).click();
+    await viewer.fill('.composer input', 'تعليق بالأزرق'); await viewer.click('.composer button[type=submit]');
+    const blue = studio.locator('.msg', { hasText: 'تعليق بالأزرق' });
+    check('a viewer picks a colour and everyone sees their comment in it', (await until(() => blue.isVisible())) !== null && (await blue.locator('.txt').evaluate((n) => getComputedStyle(n).color)) === 'rgb(106, 168, 255)');
+    check('the name and the comment are separated by a space', /^كريم\s+تعليق بالأزرق/.test(await blue.evaluate((n) => n.innerText)));
+    await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'colorcheat000001', name: 'x', color: 99 })); w.send(JSON.stringify({ t: 'color', c: '<b>' })); w.send(JSON.stringify({ t: 'msg', text: 'couleur invalide' })); }; });
+    check('an invalid colour is ignored', (await until(() => studio.locator('.msg', { hasText: 'couleur invalide' }).isVisible())) !== null && (await studio.locator('.msg', { hasText: 'couleur invalide' }).locator('.txt').getAttribute('class')) === 'txt');
+    check('the dictation button appears only where the browser can do speech to text', (await viewer.evaluate(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition))) === (await viewer.locator('.mic-btn').isVisible()));
 
     // ---- hearts ------------------------------------------------------------------
     for (const k of [0, 3, 6]) { await viewer.locator('#reactions button').nth(k).click(); await sleep(260); }
@@ -195,7 +206,7 @@ async function until(fn, ms = 15000, step = 250) {
     g2.on('pageerror', (e) => errors.push('guest2: ' + e.message));
     await g2.goto(BASE + '/');
     check('comments are folded for a new visitor, with a counter of what arrives', (await until(() => g2.locator('#liveBadge.on').isVisible())) !== null && await g2.locator('.composer').isHidden() && await g2.locator('.msgs').isHidden());
-    await studio.fill('.composer input', 'مرحبا بالضيف الثاني'); await studio.click('.composer button');
+    await studio.fill('.composer input', 'مرحبا بالضيف الثاني'); await studio.click('.composer button[type=submit]');
     check('the counter shows the new comment, and a click opens the comments', (await until(async () => (await g2.textContent('.chat-unread')) === '1' && await g2.locator('.chat-unread').isVisible(), 6000)) !== null
       && (await g2.click('.chat-head'), await g2.locator('.msg', { hasText: 'مرحبا بالضيف الثاني' }).isVisible()) && await g2.locator('.chat-unread').isHidden());
     await g2.click('#handBtn'); await g2.fill('#nameInput', 'سلمى'); await g2.click('#nameForm button[type=submit]');
@@ -284,7 +295,7 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.locator('.msg', { hasText: 'سلام من المتفرج' }).locator('button', { hasText: 'حظر' }).click();
     check('ban removes the comments for everyone', (await until(() => viewer.locator('.msg', { hasText: 'سلام من المتفرج' }).count().then((n) => n === 0))) !== null);
     await sleep(3200);
-    await viewer.fill('.composer input', 'واش باقي نقدر نكتب؟'); await viewer.click('.composer button');
+    await viewer.fill('.composer input', 'واش باقي نقدر نكتب؟'); await viewer.click('.composer button[type=submit]');
     await sleep(800);
     check('a banned viewer cannot comment any more', (await studio.locator('.msg', { hasText: 'واش باقي' }).count()) === 0);
 
@@ -370,7 +381,7 @@ async function until(fn, ms = 15000, step = 250) {
     const pupil = await vctx.newPage();
     await pupil.goto(BASE + '/r/programmation-python');
     check("a viewer of the teacher's room sees it live, with its own title and host", (await until(() => pupil.locator('#liveBadge.on').isVisible())) !== null && (await pupil.textContent('#title')) === 'Programmation Python' && (await pupil.textContent('#roomHost')) === 'Prof Salma');
-    await teacher.fill('.composer input', 'bonjour la classe'); await teacher.click('.composer button');
+    await teacher.fill('.composer input', 'bonjour la classe'); await teacher.click('.composer button[type=submit]');
     await pupil.locator('#reactions button').nth(1).click();
     check('chat and reactions stay inside their room', (await until(() => pupil.locator('.msg.host', { hasText: 'bonjour la classe' }).isVisible())) !== null
       && (await until(async () => (await teacher.textContent('#likes')) === '1', 5000)) !== null

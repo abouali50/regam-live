@@ -7,6 +7,7 @@ const FPS = 25;
 const inputs = {};           // name -> { reader, frame }
 let writer = null, canvas = null, ctx = null, brand = 'REGAM Live', busy = false;
 const guestNames = {};        // slot -> name shown on the guest's picture
+const guestOff = {};          // slot -> true when the guest's camera is off (a name card is shown instead)
 
 onmessage = ({ data }) => {
   if (data.type === 'init') {
@@ -20,6 +21,7 @@ onmessage = ({ data }) => {
     pump(data.name, data.readable.getReader());
   } else if (data.type === 'remove') drop(data.name);
   else if (data.type === 'guestName') guestNames[data.slot] = data.name || '';
+  else if (data.type === 'guestCam') guestOff[data.slot] = !data.on;
 };
 
 function drop(name) {
@@ -54,11 +56,23 @@ function contain(f, x, y, w, h) {         // show everything, letterbox
   const fw = f.displayWidth, fh = f.displayHeight, s = Math.min(w / fw, h / fh);
   ctx.drawImage(f, x + (w - fw * s) / 2, y + (h - fh * s) / 2, fw * s, fh * s);
 }
+function card(label, x, y, w, h) {        // someone without a camera: their initial on a plain card
+  ctx.fillStyle = '#1a2130';
+  ctx.fillRect(x, y, w, h);
+  const r = Math.min(w, h) * 0.2;
+  ctx.fillStyle = '#e9b949';
+  ctx.beginPath(); ctx.arc(x + w / 2, y + h / 2, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#14181f'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `700 ${Math.round(r * 1.1)}px system-ui, "Segoe UI", Tahoma, sans-serif`;
+  ctx.fillText([...(label || '?').trim()][0] || '?', x + w / 2, y + h / 2 + r * 0.06);
+  ctx.textAlign = 'start';
+}
+const picture = (p, x, y, w, h) => (p.frame ? cover(p.frame, x, y, w, h) : card(p.label, x, y, w, h));
 function tile(f, x, y, w, h, label) {     // rounded picture-in-picture bubble
   const r = Math.round(h * 0.08);
   ctx.save();
   ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.clip();
-  cover(f, x, y, w, h);
+  picture({ frame: f, label }, x, y, w, h);
   if (label) nameTag(label, x, y, w, h, Math.max(14, Math.round(h * 0.11)));
   ctx.restore();
   ctx.lineWidth = Math.max(2, h * 0.012); ctx.strokeStyle = 'rgba(255,255,255,.85)';
@@ -81,7 +95,7 @@ async function draw() {
   // the people on screen: the host first, then the guests in the order of their slots
   const people = [];
   if (cam) people.push({ frame: cam, label: '' });
-  for (let slot = 1; slot <= 12; slot++) { const f = frameOf('guest' + slot); if (f) people.push({ frame: f, label: guestNames[slot] || '' }); }
+  for (let slot = 1; slot <= 12; slot++) { const f = frameOf('guest' + slot); if (f) people.push({ frame: guestOff[slot] ? null : f, label: guestNames[slot] || '' }); }
   const W = screen ? 1920 : 1280, H = screen ? 1080 : 720;
   if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
 
@@ -106,7 +120,7 @@ async function draw() {
       const x0 = (W - (inRow * cw + (inRow - 1) * gap)) / 2;            // centre a short last row
       const x = x0 + (i - row * cols) * (cw + gap), y = row * (ch + gap);
       ctx.save(); ctx.beginPath(); ctx.rect(x, y, cw, ch); ctx.clip();
-      cover(p.frame, x, y, cw, ch);
+      picture(p, x, y, cw, ch);
       if (p.label) nameTag(p.label, x, y, cw, ch, Math.round(H * (rows > 1 ? 0.034 : 0.04)));
       ctx.restore();
     });

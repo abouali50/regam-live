@@ -144,19 +144,41 @@
   const inviteDlg = $('#inviteDlg'), inviteErr = $('#inviteErr'), stageBar = $('#stageBar'), micBtn = $('#micBtn');
   let stage = null;   // { token, slot, cam, pub, watch, voice }
 
-  async function goOnStage(token, slot) {
+  // A still, dark picture sent in place of the camera when it is off. It keeps the
+  // video line open, so the camera can come back later without reconnecting.
+  function blankVideo() {
+    const c = document.createElement('canvas'); c.width = 320; c.height = 240;
+    const x = c.getContext('2d'); let n = 0;
+    const paint = () => { x.fillStyle = '#1a2130'; x.fillRect(0, 0, 320, 240); x.fillStyle = (n++ % 2) ? '#1b2231' : '#1a2130'; x.fillRect(0, 0, 8, 8); };
+    paint();
+    const timer = setInterval(paint, 200);
+    return { track: c.captureStream(5).getVideoTracks()[0], timer };
+  }
+  const camWanted = { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 20 }, facingMode: 'user' };
+  const micWanted = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+
+  async function goOnStage(token, slot, withCam = true) {
     let cam;
-    try { cam = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 20 }, facingMode: 'user' },
-    }); } catch (e) { if (e) e.step = `camera ${e.name || ''}`.trim(); throw e; }
-    stage = { token, slot, cam };
+    try {
+      try { cam = await navigator.mediaDevices.getUserMedia({ audio: micWanted, video: withCam ? camWanted : false }); }
+      catch (e) {
+        // the camera is refused, missing or busy: go up with the microphone alone
+        if (!withCam) throw e;
+        cam = await navigator.mediaDevices.getUserMedia({ audio: micWanted, video: false });
+        withCam = false;
+      }
+    } catch (e) { if (e) e.step = `camera ${e.name || ''}`.trim(); throw e; }
+    const vtrack = cam.getVideoTracks()[0] || null, blank = blankVideo();
+    withCam = !!vtrack;
+    stage = { token, slot, cam, vtrack, blank, vsender: null };
     let step = 'publish';                       // which part failed, shown to the person so it can be reported
     try {
       const pub = new RTCPeerConnection();
       stage.pub = pub;
       pub.addTransceiver(cam.getAudioTracks()[0], { direction: 'sendonly', streams: [cam] });
-      preferH264(pub.addTransceiver(cam.getVideoTracks()[0], { direction: 'sendonly', streams: [cam], sendEncodings: [{ maxBitrate: 500_000 }] }));
+      const vt = pub.addTransceiver(vtrack || blank.track, { direction: 'sendonly', streams: [cam], sendEncodings: [{ maxBitrate: 500_000 }] });
+      stage.vsender = vt.sender;
+      preferH264(vt);
       await rtcNegotiate(pub, 'whip', 'guest' + slot, token);
 
     } catch (e) { leaveStage(false); if (e) e.step = `${step}${slot} ${e.status || e.name || ''}`.trim(); throw e; }
@@ -184,6 +206,8 @@
     setMuted(false);
     lockLang(true);
     link.send({ t: 'onstage' });
+    link.send({ t: 'cam', on: withCam });
+    paintCam();
     stage.pub.onconnectionstatechange = () => {
       if (stage && ['failed', 'closed'].includes(stage.pub.connectionState)) { leaveStage(true); chat.say(T('تقطع الاتصال ديالك بالمنصة.')); }
     };
@@ -192,6 +216,8 @@
     if (!stage) return;
     const s = stage; stage = null;
     s.cam.getTracks().forEach((t) => t.stop());
+    if (s.vtrack) s.vtrack.stop();
+    clearInterval(s.blank.timer); s.blank.track.stop();
     if (s.pub) rtcClose(s.pub, 'whip', 'guest' + s.slot, s.token);
     if (s.watch) rtcClose(s.watch.pc, 'whep', 'studio', s.token);
     if (s.voice) rtcClose(s.voice.pc, 'whep', 'backstage' + s.slot, s.token);
@@ -218,6 +244,28 @@
     if (!t || hostMuted) return;
     t.enabled = !t.enabled;
     micBtn.textContent = T(t.enabled ? 'سد الميكرو' : 'حل الميكرو');
+  };
+  // Camera on or off while on stage. Off: the camera is really released and a name card is shown.
+  const camBtn = $('#camBtn');
+  const paintCam = () => { camBtn.textContent = T(stage && stage.vtrack ? 'سد الكاميرا' : 'حل الكاميرا'); };
+  camBtn.onclick = async () => {
+    const s = stage;
+    if (!s || !s.vsender || camBtn.disabled) return;
+    camBtn.disabled = true;
+    try {
+      if (s.vtrack) {
+        await s.vsender.replaceTrack(s.blank.track);
+        s.vtrack.stop(); s.vtrack = null;
+        link.send({ t: 'cam', on: false });
+      } else {
+        const t = (await navigator.mediaDevices.getUserMedia({ video: camWanted })).getVideoTracks()[0];
+        if (stage !== s) { t.stop(); return; }
+        await s.vsender.replaceTrack(t);
+        s.vtrack = t;
+        link.send({ t: 'cam', on: true });
+      }
+    } catch { chat.say(T('ما قدرناش نحلو الكاميرا. تأكد أن المتصفح مسموح ليه يستعملها.'), 6000); }
+    finally { camBtn.disabled = false; paintCam(); }
   };
   $('#leaveBtn').onclick = () => leaveStage(true);
 
@@ -261,22 +309,24 @@
     .on('invite', (d) => {
       setHand(false);
       inviteErr.hidden = true;
-      $('#inviteYes').disabled = false;
-      $('#inviteYes').textContent = T('طلع دابا');
-      $('#inviteYes').onclick = async () => {
-        $('#inviteYes').disabled = true;
-        $('#inviteYes').textContent = T('كنتصلو…');
+      const yes = $('#inviteYes'), mic = $('#inviteMic');
+      const idle = () => { yes.disabled = mic.disabled = false; yes.textContent = T('طلع دابا'); mic.textContent = T('طلع بالميكرو فقط'); };
+      const go = async (btn, withCam) => {
+        yes.disabled = mic.disabled = true;
+        btn.textContent = T('كنتصلو…');
         inviteErr.hidden = true;
-        try { await goOnStage(d.token, d.slot); inviteDlg.close(); }
+        try { await goOnStage(d.token, d.slot, withCam); inviteDlg.close(); }
         catch (e) {
-          $('#inviteYes').disabled = false;
-          $('#inviteYes').textContent = T('طلع دابا');
           inviteErr.hidden = false;
           inviteErr.textContent = e && e.name === 'NotAllowedError'
             ? T('خاصك تسمح للمتصفح باستعمال الكاميرا والميكرو، ومن بعد عاود.')
             : T('ما قدرناش نطلعوك للمنصة. تأكد من الكاميرا والأنترنيت وعاود.') + (e && e.step ? ` [${e.step}]` : '');
         }
+        idle();
       };
+      idle();
+      yes.onclick = () => go(yes, true);
+      mic.onclick = () => go(mic, false);
       $('#inviteNo').onclick = () => { inviteDlg.close(); link.send({ t: 'leave' }); };
       inviteDlg.oncancel = () => link.send({ t: 'leave' });
       inviteDlg.showModal();

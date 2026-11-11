@@ -320,7 +320,7 @@
       guests = list || [];
       $('#noGuests').hidden = guests.length > 0;
       $('#onStage').replaceChildren(...guests.map((g) => el('li', { class: 'guest-box' },
-        el('span', {}, T(g.ready ? '{name} على المنصة' : 'كنتسناو {name} يدخل…', { name: g.name }) + (g.muted ? ' 🔇' : '')),
+        el('span', {}, T(g.ready ? '{name} على المنصة' : 'كنتسناو {name} يدخل…', { name: g.name }) + (g.muted ? ' 🔇' : '') + (g.cam === false ? ' · ' + T('بلا كاميرا') : '')),
         el('span', { class: 'guest-acts' },
           el('button', { class: 'btn', type: 'button', onclick: () => link.send({ t: 'mute', uid: g.uid, on: !g.muted }) }, T(g.muted ? 'حل ليه الميكرو' : 'سد ليه الميكرو')),
           el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'unstage', uid: g.uid }) }, T('نزلو من المنصة'))))));
@@ -329,6 +329,7 @@
       $('#muteAll').onclick = () => link.send({ t: 'mute', on: !guests.every((g) => g.muted) });
       for (const g of guests) {
         worker.postMessage({ type: 'guestName', slot: g.slot, name: g.name });
+        worker.postMessage({ type: 'guestCam', slot: g.slot, on: g.cam !== false });
         const st = onStage.get(g.slot);                       // a closed microphone is cut here too, whatever the guest's page does
         if (st && st.uid === g.uid && st.audio) st.audio.enabled = !g.muted;
       }

@@ -233,11 +233,23 @@ async function until(fn, ms = 15000, step = 250) {
     await until(async () => (await studio.locator('#hands li').count()) === 3);
     for (let i = 0; i < 3; i++) { await studio.locator('#hands li button').first().click(); await sleep(150); }
     for (const p of extra) await until(() => p.locator('#inviteDlg[open]').isVisible());
-    await Promise.all(extra.map((p) => p.click('#inviteYes')));
+    await Promise.all(extra.map((p, i) => p.click(i === 2 ? '#inviteMic' : '#inviteYes')));       // the third comes up with the microphone only
     check('five guests are on stage at once, each heard by the audience', (await until(() => studio.evaluate(() => [1, 2, 3, 4, 5].every((n) => { const s = window.__studio.stage.get(n); return !!(s && s.node); })), 40000)) !== null
       && (await studio.locator('#onStage li').count()) === 5, await studio.evaluate(() => JSON.stringify([...window.__studio.stage].map(([n, s]) => [n, !!s.rx, !!s.node, !!s.back]))));
     check('every one of the five sees the stage and hears the others', (await until(async () => { for (const p of [viewer, g2, ...extra]) if (!(await p.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.srcObject.getAudioTracks().length === 1 && v.videoWidth > 0; }))) return false; return true; }, 30000)) !== null);
     await studio.screenshot({ path: path.join(OUT, 'studio-5-guests.png') });
+    // camera on or off: the third guest came up without a camera, then turns it on, then off again
+    const omar = extra[2], omarLi = studio.locator('#onStage li', { hasText: 'عمر' });
+    check('a guest can come up with the microphone only: a name card stands in for the camera', (await until(() => omarLi.locator('text=بلا كاميرا').isVisible(), 8000)) !== null
+      && await omar.evaluate(() => document.querySelector('#camBtn').textContent === 'حل الكاميرا') && (await studio.locator('#onStage li', { hasText: 'بلا كاميرا' }).count()) === 1);
+    await sleep(600); await studio.screenshot({ path: path.join(OUT, 'studio-guest-no-camera.png') });
+    await omar.click('#camBtn');
+    check('the guest turns the camera on while on stage', (await until(async () => (await studio.locator('#onStage li', { hasText: 'بلا كاميرا' }).count()) === 0, 8000)) !== null
+      && (await until(() => omar.evaluate(() => document.querySelector('#camBtn').textContent === 'سد الكاميرا'), 5000)) !== null);
+    await omar.click('#camBtn');
+    check('and off again, without leaving the stage', (await until(() => omarLi.locator('text=بلا كاميرا').isVisible(), 8000)) !== null && await omar.locator('#stageBar').isVisible()
+      && await studio.evaluate(() => { const s = window.__studio.stage.get(5) || {}; return !!s.rx && s.rx.pc.connectionState === 'connected'; }));
+    await omar.click('#camBtn'); await until(async () => (await studio.locator('#onStage li', { hasText: 'بلا كاميرا' }).count()) === 0, 8000);
     // the host closes one guest's microphone, then opens it again
     await studio.locator('#onStage li', { hasText: 'هدى' }).locator('button').first().click();
     const huda = extra[1];

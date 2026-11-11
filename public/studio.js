@@ -8,10 +8,10 @@
   // --------------------------------------------------------------- login --
   $('#loginForm').onsubmit = async (e) => {
     e.preventDefault();
-    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('#pw').value }) });
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: $('#lg').value.trim(), password: $('#pw').value }) });
     if (!r.ok) {
       $('#loginErr').hidden = false;
-      $('#loginErr').textContent = T(r.status === 429 ? 'محاولات بزاف. تسنى ربع ساعة وعاود.' : 'كلمة السر غالطة.');
+      $('#loginErr').textContent = T(r.status === 429 ? 'محاولات بزاف. تسنى ربع ساعة وعاود.' : 'اسم الدخول ولا كلمة السر غالطين.');
       return;
     }
     token = (await r.json()).token;
@@ -26,10 +26,34 @@
   }
 
   async function start() {
+    // who am I, and which rooms may I broadcast in?
+    const meRes = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } });
+    if (!meRes.ok) return logout();
+    const me = await meRes.json();
     $('#login').hidden = true;
     $('#app').hidden = false;
-    const cfg = await fetch('/api/config').then((r) => r.json());
-    const link = createLink({ token });
+    $('#logoutBtn').onclick = logout;
+    $('#adminLink').hidden = me.user.role !== 'admin';
+    if (!me.rooms.length) {
+      status(T('ما عندك حتى قاعة. طلب من المدير يعطيك قاعة.'));
+      $('#goBtn').disabled = true;
+      return;
+    }
+    const wanted = new URLSearchParams(location.search).get('room');
+    const mine = me.rooms.find((r) => r.slug === wanted) || me.rooms[0];
+    window.REGAM_ROOM = mine.slug;
+    const cfg = await fetch('/api/config?room=' + mine.slug).then((r) => r.json());
+    const viewerUrl = location.origin + (cfg.rooms === 1 ? '/' : '/r/' + mine.slug);
+    $('#roomName').textContent = mine.title;
+    $('#roomLink').textContent = viewerUrl.replace(/^https?:\/\//, ''); $('#roomLink').href = viewerUrl;
+    $('#copyLink').onclick = async () => { try { await navigator.clipboard.writeText(viewerUrl); status(T('تنسخ الرابط. لصقو فين بغيتي.')); } catch { status(viewerUrl); } };
+    if (me.rooms.length > 1) {
+      $('#roomSel').hidden = false; $('#roomName').hidden = true;
+      $('#roomSel').replaceChildren(...me.rooms.map((r) => el('option', { value: r.slug, selected: r.slug === mine.slug }, r.title)));
+      $('#roomSel').onchange = () => { location.search = '?room=' + $('#roomSel').value; };
+    }
+    const recUrl = (extra = '') => `/api/recordings?room=${mine.slug}${extra}`;
+    const link = createLink({ token, room: mine.slug });
     mountChat($('#chat'), link);
     mountReactions($('#reactions'), $('#hearts'), link, { totalEl: $('#likes') });
 
@@ -180,7 +204,7 @@
         liveOn = true;
         tune();
         $('#goBtn').textContent = T('وقف اللايف');
-        lockLang(true);
+        lockLang(true); $('#roomSel').disabled = true;
         $('#goBtn').classList.add('danger');
         $('#onAir').hidden = false;
         status(T('كنتصلو…'));
@@ -197,7 +221,7 @@
       if (pc) { rtcClose(pc, 'whip', 'studio', token); pc = null; }
       liveOn = false;
       $('#goBtn').textContent = T('ابدأ اللايف');
-      lockLang(false);
+      lockLang(false); $('#roomSel').disabled = false;
       $('#goBtn').classList.remove('danger');
       $('#onAir').hidden = true;
       status(T('وقف اللايف.'));
@@ -290,7 +314,7 @@
     async function loadRecs() {
       let data;
       try {
-        const r = await fetch('/api/recordings', { headers: { Authorization: 'Bearer ' + token } });
+        const r = await fetch(recUrl(), { headers: { Authorization: 'Bearer ' + token } });
         if (!r.ok) return;
         data = await r.json();
       } catch { return; }
@@ -300,10 +324,10 @@
         return el('li', {},
           el('span', { dir: 'ltr' }, `${fmtName(f.name)} · ${fmtSize(f.size)}`),
           busy ? el('span', { class: 'muted' }, T('كيتسجل دابا…')) : el('span', { class: 'rec-actions' },
-            el('a', { class: 'btn primary', href: `/api/recordings?name=${encodeURIComponent(f.name)}&token=${encodeURIComponent(token)}`, download: '' }, T('تحميل')),
+            el('a', { class: 'btn primary', href: recUrl(`&name=${encodeURIComponent(f.name)}&token=${encodeURIComponent(token)}`), download: '' }, T('تحميل')),
             el('button', { class: 'btn', type: 'button', onclick: async () => {
               if (!confirm(T('تحذف هاد التسجيل نهائيا؟'))) return;
-              await fetch(`/api/recordings?name=${encodeURIComponent(f.name)}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+              await fetch(recUrl(`&name=${encodeURIComponent(f.name)}`), { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
               loadRecs();
             } }, T('حذف'))));
       }));

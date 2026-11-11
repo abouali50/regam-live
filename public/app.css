@@ -155,3 +155,35 @@ span.react { cursor: default; }
 .react-n { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1; }
 .hearts { z-index: 3; }
 @media (max-width: 900px) { .react { width: 41px; min-height: 52px; } .react-e { font-size: 20px; } }
+/* rooms: front page, studio room bar, administration */
+.rooms-link { color: var(--muted); font-size: 14px; text-decoration: none; margin-inline-end: auto; margin-inline-start: 14px; }
+.rooms-link:hover { color: var(--text); }
+.room-host { color: var(--muted); font-size: 14px; }
+.home-main, .admin-main { width: 100%; max-width: 1100px; margin: 0 auto; padding: 22px 16px 40px; display: grid; gap: 18px; align-content: start; }
+.home-title { font-size: 28px; }
+.room-groups { display: grid; gap: 22px; }
+.room-group h2 { font-size: 17px; color: var(--gold); margin-bottom: 10px; }
+.room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.room-card { display: grid; gap: 6px; justify-items: start; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); text-decoration: none; }
+.room-card:hover { border-color: #3a4556; }
+.room-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.room-card.is-live { border-color: var(--live); }
+.room-name { font-size: 18px; line-height: 1.3; overflow-wrap: anywhere; }
+.room-now { color: var(--gold); font-size: 14px; overflow-wrap: anywhere; }
+.room-by { color: var(--muted); font-size: 14px; }
+.roombar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.roombar .btn { padding: 6px 12px; font-size: 14px; text-decoration: none; }
+.room-url { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.roombar #logoutBtn { margin-inline-start: auto; }
+.admin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end; }
+.admin-form label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.admin-form input, .admin-form select { width: 100%; }
+.admin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.admin-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--panel-2); border-radius: 10px; }
+.admin-list li.is-off strong { color: var(--muted); }
+.admin-main-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.admin-list .rec-actions { flex-wrap: wrap; }
+.admin-list select { padding: 5px 8px; font-size: 14px; }
+body.home, body.admin { min-height: 100dvh; }
+a.btn { color: var(--text); text-decoration: none; display: inline-block; }
+a.btn.primary { color: #1b1405; }

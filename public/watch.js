@@ -3,8 +3,14 @@
 (async function () {
   const video = $('#video'), offline = $('#offline'), unmute = $('#unmute');
   const badge = $('#liveBadge'), handBtn = $('#handBtn'), guestLine = $('#guestLine');
-  const cfg = await fetch('/api/config').then((r) => r.json());
-  document.title = cfg.title;
+  // the room comes from the address (/r/<room>); the front page is the first room
+  const slug = (location.pathname.match(/^\/r\/([a-z0-9-]+)$/) || [])[1] || '';
+  const cfgRes = await fetch('/api/config?room=' + slug);
+  if (!cfgRes.ok) { location.replace('/rooms'); return; }
+  const cfg = await cfgRes.json();
+  window.REGAM_ROOM = cfg.room;
+  if (cfg.rooms > 1) { $('#roomsLink').hidden = false; $('#roomHost').textContent = cfg.host; $('#roomHost').hidden = false; }
+  document.title = cfg.title === cfg.site ? cfg.site : `${cfg.title} · ${cfg.site}`;
   $('#title').textContent = cfg.title;
 
   let live = false, hls = null, retry = null, onStage = false, handUp = false;
@@ -28,7 +34,7 @@
     });
   }
 
-  const link = createLink({ name: store.get('regam.name') || '' });
+  const link = createLink({ name: store.get('regam.name') || '', room: cfg.room });
   const chat = mountChat($('#chat'), link, { askName });
 
   // -------------------------------------------------------------- player --
@@ -102,7 +108,7 @@
   // ----------------------------------------------------- reactions, share --
   mountReactions($('#reactions'), $('#hearts'), link, { canSend: true, totalEl: $('#likes') });
   $('#shareBtn').onclick = async () => {
-    const data = { title: document.title, text: $('#title').textContent, url: location.origin + '/' };
+    const data = { title: document.title, text: $('#title').textContent, url: location.origin + location.pathname };
     try {
       if (navigator.share) await navigator.share(data);
       else { await navigator.clipboard.writeText(data.url); chat.say(T('تنسخ الرابط. لصقو فين بغيتي.')); }

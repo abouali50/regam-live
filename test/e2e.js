@@ -11,7 +11,7 @@ const { chromium, devices } = require('playwright');
 const OUT = process.env.OUT || path.join(__dirname, 'out');
 const HLS_DIR = path.join(OUT, 'hls');
 fs.rmSync(OUT, { recursive: true, force: true });
-fs.mkdirSync(path.join(HLS_DIR, 'air'), { recursive: true });
+fs.mkdirSync(path.join(HLS_DIR, 'air_main'), { recursive: true });
 const AUTH = 'Basic ' + Buffer.from('regam:mtxpass').toString('base64');
 const results = [];
 const check = (name, ok, extra = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${extra ? '  [' + extra + ']' : ''}`); };
@@ -61,7 +61,7 @@ async function until(fn, ms = 15000, step = 250) {
   const seen = { unauth: 0, posts: [] };
   let sid = 0;
   const rtc = http.createServer(async (req, res) => {
-    const m = req.url.match(/^\/([a-z]+)\/(whip|whep)(?:\/(\w+))?$/);
+    const m = req.url.match(/^\/([a-z0-9_-]+)\/(whip|whep)(?:\/(\w+))?$/);
     if (!m) { res.writeHead(404); return res.end(); }
     if (req.headers.authorization !== AUTH) { seen.unauth++; res.writeHead(401); return res.end(); }
     if (req.method === 'DELETE') { await sfu.evaluate((id) => window.drop(id), m[3]); res.writeHead(200); return res.end(); }
@@ -74,14 +74,16 @@ async function until(fn, ms = 15000, step = 250) {
     res.end(answer);
   }).listen(18889);
   const api = http.createServer(async (req, res) => {
-    const on = req.headers.authorization === AUTH && await sfu.evaluate(() => !!window.paths.studio);
-    res.writeHead(on ? 200 : 404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(on ? { name: 'air', available: true } : { error: 'not found' }));
+    // like MediaMTX: every room being published to has its "air_<room>" path available
+    const ok = req.headers.authorization === AUTH && req.url.startsWith('/v3/paths/list');
+    const names = ok ? await sfu.evaluate(() => Object.keys(window.paths).filter((k) => k.startsWith('studio_')).map((k) => 'air_' + k.slice(7))) : [];
+    res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ itemCount: names.length, pageCount: 1, items: names.map((name) => ({ name, available: true })) }));
   }).listen(19997);
   const hlsSrv = http.createServer((req, res) => {
     // like MediaMTX: without the CDN secret, a playlist request is answered with a redirect
     if (req.headers.authorization !== 'Bearer mtxpass') { seen.hlsNoSecret = (seen.hlsNoSecret || 0) + 1; res.writeHead(302, { Location: req.url + '?cookieCheck=1' }); return res.end(); }
-    const f = path.join(HLS_DIR, path.normalize(req.url.split('?')[0]));
+    const f = path.join(HLS_DIR, path.normalize(req.url.split('?')[0].replace(/^\/air_[a-z0-9-]+\//, '/air_main/')));
     fs.readFile(f, (e, d) => { res.writeHead(e ? 404 : 200, { 'Content-Type': f.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp4' }); res.end(e ? '' : d); });
   }).listen(18888);
 
@@ -89,22 +91,22 @@ async function until(fn, ms = 15000, step = 250) {
   const ff = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-re', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25',
     '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000', '-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '400k', '-g', '25',
     '-c:a', 'libopus', '-f', 'hls', '-hls_time', '1', '-hls_list_size', '6', '-hls_flags', 'delete_segments', '-hls_segment_type', 'fmp4',
-    path.join(HLS_DIR, 'air', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
+    path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
     PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
-  fs.mkdirSync(path.join(OUT, 'rec', 'air'), { recursive: true });
-  fs.writeFileSync(path.join(OUT, 'rec', 'air', '2026-11-10_20-30-00-000000.mp4'), Buffer.alloc(2_500_000, 7));
-  fs.writeFileSync(path.join(OUT, 'rec', 'air', 'notes.txt'), 'x');
+  fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
+  fs.writeFileSync(path.join(OUT, 'rec', 'air_main', '2026-11-10_20-30-00-000000.mp4'), Buffer.alloc(2_500_000, 7));
+  fs.writeFileSync(path.join(OUT, 'rec', 'air_main', 'notes.txt'), 'x');
   await until(() => fetch(BASE + '/healthz').then((r) => r.ok));
 
   try {
     // ---- security checks on the API --------------------------------------
     check('login rejects a wrong password', (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"nope"}' })).status === 401);
     check('publishing without a token is refused', (await fetch(BASE + '/api/rtc/whip/studio', { method: 'POST', body: 'x' })).status === 401);
-    check('only the audience stream is exposed over HLS', (await fetch(BASE + '/hls/studio/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/guest/index.m3u8')).status === 404);
+    check('only the audience stream is exposed over HLS', (await fetch(BASE + '/hls/studio_main/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/guest_main/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/air_nope/index.m3u8')).status === 404);
     check('path traversal is refused', [400, 404].includes((await fetch(BASE + '/%2e%2e/server.js')).status));
 
     // ---- viewer (desktop) -------------------------------------------------
@@ -132,7 +134,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('studio connects and goes on air', (await until(() => studio.evaluate(() => window.__studio.pc && window.__studio.pc.connectionState === 'connected'))) !== null);
     check('viewer page switches to "live" by itself', (await until(() => viewer.locator('#liveBadge.on').isVisible())) !== null);
     check('audience player plays the HLS stream', (await until(() => viewer.evaluate(() => { const v = document.querySelector('#video'); return v.videoWidth > 0 && v.currentTime > 0.5; }), 25000)) !== null);
-    check('relay receives mixed video + audio from the studio', (await until(() => sfu.evaluate(() => { const v = document.getElementById('v_studio'); return v && v.videoWidth === 1280 && window.paths.studio.getAudioTracks().length === 1; }))) !== null, await sfu.evaluate(() => { const v = document.getElementById('v_studio'); return v ? v.videoWidth + 'x' + v.videoHeight + ' audio=' + window.paths.studio.getAudioTracks().length : 'none'; }));
+    check('relay receives mixed video + audio from the studio', (await until(() => sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v && v.videoWidth === 1280 && window.paths.studio_main.getAudioTracks().length === 1; }))) !== null, await sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v ? v.videoWidth + 'x' + v.videoHeight + ' audio=' + window.paths.studio_main.getAudioTracks().length : 'none'; }));
 
     // ---- chat + moderation --------------------------------------------------
     await viewer.fill('.composer input', 'سلام من المتفرج');
@@ -174,7 +176,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('guest is on stage (camera published, sees the host in real time)', (await until(() => viewer.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.videoWidth > 0 && v.srcObject.getAudioTracks().length === 1; }), 20000)) !== null);
     check('studio mixes the guest picture + voice', (await until(() => studio.locator('#guestName', { hasText: 'على المنصة' }).isVisible(), 20000)) !== null && (await until(() => studio.evaluate(() => !!document.querySelector('#guestAudio').srcObject), 8000)) !== null);
     await sleep(1500);
-    check('media sessions opened: ' + seen.posts.join(' '), ['whip:studio', 'whip:backstage', 'whip:guest', 'whep:studio', 'whep:backstage', 'whep:guest'].every((k) => seen.posts.includes(k)));
+    check('media sessions opened: ' + seen.posts.join(' '), ['whip:studio_main', 'whip:backstage_main', 'whip:guest_main', 'whep:studio_main', 'whep:backstage_main', 'whep:guest_main'].every((k) => seen.posts.includes(k)));
     check('viewers are told who is on stage', true === await (async () => { const p = await vctx.newPage(); await p.goto(BASE + '/'); const ok = (await until(() => p.locator('#guestLine', { hasText: 'كريم' }).isVisible())) !== null; await p.close(); return ok; })());
     await studio.screenshot({ path: path.join(OUT, 'studio-guest.png') });
     await viewer.screenshot({ path: path.join(OUT, 'viewer-onstage.png') });
@@ -190,7 +192,7 @@ async function until(fn, ms = 15000, step = 250) {
     });
     await studio.click('#screenBtn');
     check('screen share switches the broadcast to 1920x1080', (await until(async () => (await dim()) === '1920x1080')) !== null, await dim());
-    check('audience relay receives the 1080p picture', (await until(() => sfu.evaluate(() => document.getElementById('v_studio').videoWidth === 1920), 15000)) !== null);
+    check('audience relay receives the 1080p picture', (await until(() => sfu.evaluate(() => document.getElementById('v_studio_main').videoWidth === 1920), 15000)) !== null);
     await sleep(800);
     await studio.screenshot({ path: path.join(OUT, 'studio-screen.png') });
     await studio.click('#screenBtn');
@@ -219,7 +221,7 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.keyboard.type('الدرس الأول');
     await studio.keyboard.press('Escape');
     check('drawing and typing land on the whiteboard', (await studio.evaluate(() => window.__studio.board.count)) === 3);
-    const inked = () => sfu.evaluate(() => { const v = document.getElementById('v_studio'); const c = document.createElement('canvas'); c.width = 192; c.height = 108; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 192, 108); const d = g.getImageData(0, 0, 192, 108).data; let white = 0, red = 0; for (let i = 0; i < d.length; i += 4) { if (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235) white++; if (d[i] > 150 && d[i + 1] < 110 && d[i + 2] < 110) red++; } return { white: white / (192 * 108), red }; });
+    const inked = () => sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); const c = document.createElement('canvas'); c.width = 192; c.height = 108; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 192, 108); const d = g.getImageData(0, 0, 192, 108).data; let white = 0, red = 0; for (let i = 0; i < d.length; i += 4) { if (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235) white++; if (d[i] > 150 && d[i + 1] < 110 && d[i + 2] < 110) red++; } return { white: white / (192 * 108), red }; });
     const seenBoard = await until(async () => { const r = await inked(); return r.white > 0.6 && r.red > 3 ? r : null; }, 15000);
     check('audience relay shows the whiteboard with the red text', seenBoard !== null, JSON.stringify(seenBoard || await inked()));
     await studio.screenshot({ path: path.join(OUT, 'studio-board.png') });
@@ -233,7 +235,7 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- host removes the guest -------------------------------------------------
     await studio.click('#unstageBtn');
     check('guest is taken off stage and returns to the normal player', (await until(() => viewer.evaluate(() => !document.querySelector('#video').srcObject && document.querySelector('#stageBar').hidden))) !== null);
-    check('guest media session is closed on the relay', (await until(() => sfu.evaluate(() => !window.paths.guest && !window.paths.backstage))) !== null);
+    check('guest media session is closed on the relay', (await until(() => sfu.evaluate(() => !window.paths.guest_main && !window.paths.backstage_main))) !== null);
     check('a removed guest can no longer use the stage token', (await viewer.evaluate(() => fetch('/api/rtc/whip/guest', { method: 'POST', body: 'x', headers: { Authorization: 'Bearer stage.x.1.y' } }).then((r) => r.status))) === 401);
 
     // ---- ban -----------------------------------------------------------------------
@@ -276,6 +278,75 @@ async function until(fn, ms = 15000, step = 250) {
     await frStudio.screenshot({ path: path.join(OUT, 'studio-fr.png') });
     await frCtx.close();
 
+    // ---- rooms and teachers ----------------------------------------------------------------
+    const adminCtx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1280, height: 860 }, permissions: ['camera', 'microphone'] });
+    const adm = await adminCtx.newPage();
+    adm.on('pageerror', (e) => errors.push('admin: ' + e.message));
+    adm.on('dialog', (d) => d.accept());
+    await adm.goto(BASE + '/admin');
+    check('the administration page sends a visitor to the sign-in', (await until(() => adm.url().endsWith('/studio'))) !== null);
+    await adm.fill('#pw', 'studio-pass-1'); await adm.click('#loginForm button'); await adm.waitForSelector('#app:not([hidden])');
+    const adminTok = await adm.evaluate(() => sessionStorage.getItem('regam.studio'));
+    await adm.click('#adminLink'); await adm.waitForSelector('#roomList li');
+    await adm.fill('#userForm [name=name]', 'Prof Salma'); await adm.fill('#userForm [name=login]', 'salma'); await adm.fill('#userForm [name=password]', 'salma-pass-9');
+    await adm.click('#userForm button'); await adm.waitForSelector('#users li');
+    await adm.fill('#roomForm [name=title]', 'Programmation Python'); await adm.fill('#roomForm [name=topic]', 'Programmation');
+    await adm.selectOption('#roomForm [name=ownerId]', { label: 'Prof Salma' });
+    await adm.click('#roomForm button');
+    check('the administrator creates a teacher and a room from the page', (await until(() => adm.locator('#roomList li', { hasText: 'Programmation Python' }).isVisible())) !== null && (await adm.locator('#roomList li', { hasText: 'Programmation Python' }).locator('.room-url').textContent()).endsWith('/r/programmation-python'));
+    await adm.screenshot({ path: path.join(OUT, 'admin.png'), fullPage: true });
+    check('the old viewer page keeps working at its own address', (await fetch(BASE + '/r/main')).status === 200 && (await viewer.locator('#liveBadge.on').isVisible()));
+
+    const home = await vctx.newPage();
+    await home.goto(BASE + '/');
+    check('with two rooms the front page lists them, the live one marked', (await until(async () => (await home.locator('.room-card').count()) === 2 && (await home.locator('.room-card.is-live').count()) === 1)) !== null && (await home.locator('.room-group').first().locator('.room-card.is-live').count()) === 1 && (await home.locator('.room-group h2').last().textContent()) === 'Programmation');
+    await home.screenshot({ path: path.join(OUT, 'home.png') });
+
+    const tctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1380, height: 900 }, permissions: ['camera', 'microphone'] });
+    const teacher = await tctx.newPage();
+    teacher.on('pageerror', (e) => errors.push('teacher: ' + e.message));
+    await teacher.goto(BASE + '/studio');
+    await teacher.fill('#lg', 'salma'); await teacher.fill('#pw', 'wrong-pass-00'); await teacher.click('#loginForm button');
+    check('a teacher with a wrong password is refused', (await until(() => teacher.locator('#loginErr').isVisible(), 5000)) !== null);
+    await teacher.fill('#pw', 'salma-pass-9'); await teacher.click('#loginForm button'); await teacher.waitForSelector('#app:not([hidden])');
+    const teacherTok = await teacher.evaluate(() => sessionStorage.getItem('regam.studio'));
+    check('the teacher lands in their own room, without the administration link', (await teacher.textContent('#roomName')) === 'Programmation Python' && await teacher.locator('#adminLink').isHidden() && (await teacher.textContent('#roomLink')).endsWith('/r/programmation-python'));
+    const asTeacher = { Authorization: 'Bearer ' + teacherTok };
+    check('a teacher cannot reach the administration or another room', (await fetch(BASE + '/api/admin', { headers: asTeacher })).status === 403
+      && (await fetch(BASE + '/api/admin/room', { method: 'POST', headers: asTeacher, body: '{"title":"x","ownerId":"admin"}' })).status === 403
+      && (await fetch(BASE + '/api/rtc/whip/studio?room=main', { method: 'POST', headers: asTeacher, body: 'x' })).status === 401
+      && (await fetch(BASE + '/api/recordings?room=main', { headers: asTeacher })).status === 401);
+    await teacher.evaluate((tok) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'teacherinmain001', room: 'main', token: tok })); w.send(JSON.stringify({ t: 'pin', text: 'TEACHER WAS HERE' })); }; }, teacherTok);
+    await sleep(700);
+    check('a teacher is an ordinary viewer in a room that is not theirs', (await viewer.textContent('.pinned')) === 'التكوين كيبدا دابا');
+
+    await teacher.click('#goBtn');
+    check('the teacher goes live in their room while the first room is live too', (await until(() => teacher.evaluate(() => window.__studio.pc && window.__studio.pc.connectionState === 'connected'))) !== null
+      && (await until(async () => { const r = await (await fetch(BASE + '/api/rooms')).json(); return r.rooms.filter((x) => x.live).length === 2; })) !== null);
+    const pupil = await vctx.newPage();
+    await pupil.goto(BASE + '/r/programmation-python');
+    check("a viewer of the teacher's room sees it live, with its own title and host", (await until(() => pupil.locator('#liveBadge.on').isVisible())) !== null && (await pupil.textContent('#title')) === 'Programmation Python' && (await pupil.textContent('#roomHost')) === 'Prof Salma');
+    await teacher.fill('.composer input', 'bonjour la classe'); await teacher.click('.composer button');
+    await pupil.locator('#reactions button').nth(1).click();
+    check('chat and reactions stay inside their room', (await until(() => pupil.locator('.msg.host', { hasText: 'bonjour la classe' }).isVisible())) !== null
+      && (await until(async () => (await teacher.textContent('#likes')) === '1', 5000)) !== null
+      && (await viewer.locator('.msg', { hasText: 'bonjour la classe' }).count()) === 0 && (await studio.textContent('#likes')) !== '1');
+    check('each room publishes on its own media paths', seen.posts.includes('whip:studio_programmation-python') && (await sfu.evaluate(() => !!window.paths['studio_programmation-python'] && !!window.paths.studio_main)));
+
+    const asAdmin = { Authorization: 'Bearer ' + adminTok, 'Content-Type': 'application/json' };
+    const sal = (await (await fetch(BASE + '/api/admin', { headers: asAdmin })).json()).users[0];
+    check('a teacher who still has a room cannot be deleted', (await fetch(BASE + '/api/admin/user?id=' + sal.id, { method: 'DELETE', headers: asAdmin })).status === 409);
+    await fetch(BASE + '/api/admin/user', { method: 'POST', headers: asAdmin, body: JSON.stringify({ id: sal.id, active: false }) });
+    check('suspending a teacher cuts their live and their access at once', (await fetch(BASE + '/api/me', { headers: asTeacher })).status === 401
+      && (await until(async () => { const r = await (await fetch(BASE + '/api/rooms')).json(); return r.rooms.find((x) => x.slug === 'programmation-python').live === false; }, 15000)) !== null
+      && (await fetch(BASE + '/api/login', { method: 'POST', body: '{"login":"salma","password":"salma-pass-9"}' })).status === 401);
+    check('the first room is not affected', (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((x) => x.slug === 'main').live === true);
+    check('deleting the room and then the teacher works; the front page is the single room again', (await fetch(BASE + '/api/admin/room?slug=programmation-python', { method: 'DELETE', headers: asAdmin })).status === 200
+      && (await fetch(BASE + '/api/admin/user?id=' + sal.id, { method: 'DELETE', headers: asAdmin })).status === 200
+      && (await fetch(BASE + '/api/admin/room?slug=main', { method: 'DELETE', headers: asAdmin })).status === 409
+      && (await (await fetch(BASE + '/')).text()).includes('id="video"'));
+    await tctx.close(); await adminCtx.close(); await home.close(); await pupil.close();
+
     // ---- recordings ----------------------------------------------------------------------
     check('recordings are private', (await fetch(BASE + '/api/recordings')).status === 401 && (await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4')).status === 401);
     const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
@@ -285,7 +356,7 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.reload(); await studio.waitForSelector('#recs li .rec-actions', { timeout: 20000 });
     check('studio lists the recording with date and size', /10\/11\/2026 · 20:30 · (2|3) MB/.test(await studio.textContent('#recs li')), await studio.textContent('#recs li'));
     await studio.click('#recs li button');
-    check('deleting a recording removes the file', (await until(() => !fs.existsSync(path.join(OUT, 'rec', 'air', '2026-11-10_20-30-00-000000.mp4')), 5000)) !== null && (await until(() => studio.locator('#noRecs').isVisible(), 5000)) !== null);
+    check('deleting a recording removes the file', (await until(() => !fs.existsSync(path.join(OUT, 'rec', 'air_main', '2026-11-10_20-30-00-000000.mp4')), 5000)) !== null && (await until(() => studio.locator('#noRecs').isVisible(), 5000)) !== null);
     await studio.click('#goBtn');
     await until(() => studio.evaluate(() => window.__studio.pc && window.__studio.pc.connectionState === 'connected'));
 

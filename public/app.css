@@ -217,7 +217,11 @@ a.btn.primary { color: #1b1405; }
 .sub { font-size: 14px; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
 li.guest-box { list-style: none; flex-wrap: wrap; }
 .guest-acts { display: flex; gap: 6px; flex-wrap: wrap; }
-#muteAll { margin-top: 8px; }
+#muteAll, #admitAll { margin-top: 8px; }
+.check { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; cursor: pointer; }
+.check input { width: 20px; height: 20px; flex: none; }
+#soundTry { width: 100%; margin-top: 8px; }
+.offline .btn { pointer-events: auto; }
 /* comments fold away */
 .chat-head { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; text-align: start; }
 .chat-head:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }

@@ -254,6 +254,31 @@ async function until(fn, ms = 15000, step = 250) {
     for (const name of ['يوسف', 'هدى', 'عمر']) await studio.locator('#onStage li', { hasText: name }).locator('button.danger').click();
     check('the three leave and the first two stay', (await until(async () => (await studio.locator('#onStage li').count()) === 2 && await studio.evaluate(() => window.__studio.stage.size === 2), 10000)) !== null);
     for (const p of extra) await p.context().close();
+    // ---- waiting room: people give a name, the host lets them in or not
+    await studio.check('#gateChk');
+    await sleep(500);
+    const door = async () => { const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 700, height: 600 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('door: ' + e.message)); await p.goto(BASE + '/'); return p; };
+    const w1 = await door();
+    check('with the waiting room on, a newcomer is asked for a name and gets no stream', (await until(() => w1.locator('#nameDlg[open]').isVisible())) !== null
+      && (await w1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && await w1.locator('#liveBadge.off').isVisible());
+    await w1.fill('#nameInput', 'نادية'); await w1.click('#nameForm button[type=submit]');
+    check('the host sees who is waiting', (await until(() => studio.locator('#waiting li', { hasText: 'نادية' }).isVisible())) !== null && await w1.locator('#offlineText', { hasText: 'تسنى' }).isVisible());
+    check('people already inside keep watching', await viewer.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status) === 200);
+    await studio.locator('#waiting li', { hasText: 'نادية' }).locator('button.primary').click();
+    check('once admitted, the person watches the live', (await until(() => w1.locator('#liveBadge.on').isVisible())) !== null
+      && (await until(() => w1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null && (await studio.locator('#waiting li').count()) === 0);
+    const w2 = await door();
+    await until(() => w2.locator('#nameDlg[open]').isVisible());
+    await w2.fill('#nameInput', 'مجهول'); await w2.click('#nameForm button[type=submit]');
+    await until(() => studio.locator('#waiting li', { hasText: 'مجهول' }).isVisible());
+    await studio.locator('#waiting li', { hasText: 'مجهول' }).locator('button.danger').click();
+    check('a refused person is told so and stays out, even after a reload', (await until(() => w2.locator('#offlineText', { hasText: 'ما قبلش' }).isVisible())) !== null
+      && (await w2.reload(), (await until(() => w2.locator('#offlineText', { hasText: 'ما قبلش' }).isVisible())) !== null)
+      && (await w2.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403);
+    await studio.uncheck('#gateChk');
+    const w3 = await door();
+    check('with the waiting room off, everybody enters directly', (await until(() => w3.locator('#liveBadge.on').isVisible())) !== null);
+    for (const p of [w1, w2, w3]) await p.context().close();
     check('paths beyond the twelve stage slots are refused', (await fetch(BASE + '/api/rtc/whep/guest13', { method: 'POST', body: 'x', headers: { Authorization: 'Bearer ' + await studio.evaluate(() => sessionStorage.getItem('regam.studio')) } })).status >= 404);
     await sleep(1200);
     await studio.screenshot({ path: path.join(OUT, 'studio-3-people.png') });
@@ -496,6 +521,24 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- end of live -------------------------------------------------------------------
     await studio.click('#goBtn');
     check('viewers go back to "offline" when the live stops', (await until(() => viewer.locator('#offline').isVisible())) !== null);
+    // ---- sound for the time before the live
+    {
+      const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
+      const bytes = Buffer.alloc(5000, 7);
+      const noAuth = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg' }, body: bytes });
+      const notSound = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'text/html', Authorization: 'Bearer ' + tok }, body: bytes });
+      const up = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg', Authorization: 'Bearer ' + tok }, body: bytes });
+      const cfgNow = await (await fetch(BASE + '/api/config')).json();
+      const part = await fetch(BASE + cfgNow.sound, { headers: { Range: 'bytes=100-199' } });
+      check('only the host can set a waiting sound, and phones can fetch it in pieces', noAuth.status === 401 && notSound.status === 415 && up.status === 200 && /^\/media\/sound\/main\?v=\d+$/.test(cfgNow.sound)
+        && part.status === 206 && part.headers.get('content-range') === 'bytes 100-199/5000' && (await part.arrayBuffer()).byteLength === 100, `${noAuth.status} ${notSound.status} ${up.status} ${cfgNow.sound} ${part.status}`);
+      const idle = await (await browser.newContext({ locale: 'ar-MA' })).newPage();
+      await idle.goto(BASE + '/r/main');
+      check('while nothing is live, viewers get a button to hear the waiting sound', (await until(() => idle.locator('#soundBtn').isVisible())) !== null);
+      const del = await fetch(BASE + '/api/sound', { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
+      check('the host can remove the sound', del.status === 200 && (await (await fetch(BASE + '/api/config')).json()).sound === '' && (await fetch(BASE + cfgNow.sound)).status === 404);
+      await idle.context().close();
+    }
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);
   } finally {

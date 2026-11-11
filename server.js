@@ -17,6 +17,7 @@ const MTX_RTC = (env.MTX_RTC || 'http://mediamtx:8889').replace(/\/$/, '');
 const MTX_HLS = (env.MTX_HLS || 'http://mediamtx:8888').replace(/\/$/, '');
 const MTX_API = (env.MTX_API || 'http://mediamtx:9997').replace(/\/$/, '');
 const MTX_AUTH = 'Basic ' + Buffer.from(`${env.MTX_USER || 'regam'}:${env.MTX_PASS || ''}`).toString('base64');
+const HLS_SECRET = env.HLS_SECRET || env.MTX_PASS || '';
 const HLS_PUBLIC_URL = (env.HLS_PUBLIC_URL || '').replace(/\/$/, '');
 const SITE_TITLE = env.SITE_TITLE || 'REGAM Live';
 const HOST_NAME = env.HOST_NAME || 'REGAM';
@@ -156,9 +157,12 @@ async function handleRtc(req, res, kind, name) {
   send(res, 201, text, { 'Content-Type': 'application/sdp' });
 }
 
+// The audience stream. Only the "air" path is public; the media server treats us
+// as its CDN (shared secret), which gives plain playlists without per-viewer
+// redirects and cookies.
 function proxyHls(req, res, sub) {
-  if (sub.includes('..')) return send(res, 400, 'Bad path');
-  const up = http.get(MTX_HLS + sub, { headers: { 'User-Agent': 'regam-live' } }, (r) => {
+  if (sub.includes('..') || !sub.startsWith(`/${AIR}/`)) return send(res, 404, 'Not found');
+  const up = http.get(MTX_HLS + sub, { headers: { 'User-Agent': 'regam-live', Authorization: `Bearer ${HLS_SECRET}` } }, (r) => {
     const h = {
       'Content-Type': r.headers['content-type'] || 'application/octet-stream',
       'Access-Control-Allow-Origin': '*',

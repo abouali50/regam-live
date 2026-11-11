@@ -79,6 +79,8 @@ async function until(fn, ms = 15000, step = 250) {
     res.end(JSON.stringify(on ? { name: 'air', available: true } : { error: 'not found' }));
   }).listen(19997);
   const hlsSrv = http.createServer((req, res) => {
+    // like MediaMTX: without the CDN secret, a playlist request is answered with a redirect
+    if (req.headers.authorization !== 'Bearer mtxpass') { seen.hlsNoSecret = (seen.hlsNoSecret || 0) + 1; res.writeHead(302, { Location: req.url + '?cookieCheck=1' }); return res.end(); }
     const f = path.join(HLS_DIR, path.normalize(req.url.split('?')[0]));
     fs.readFile(f, (e, d) => { res.writeHead(e ? 404 : 200, { 'Content-Type': f.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp4' }); res.end(e ? '' : d); });
   }).listen(18888);
@@ -99,6 +101,7 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- security checks on the API --------------------------------------
     check('login rejects a wrong password', (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"nope"}' })).status === 401);
     check('publishing without a token is refused', (await fetch(BASE + '/api/rtc/whip/studio', { method: 'POST', body: 'x' })).status === 401);
+    check('only the audience stream is exposed over HLS', (await fetch(BASE + '/hls/studio/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/guest/index.m3u8')).status === 404);
     check('path traversal is refused', [400, 404].includes((await fetch(BASE + '/%2e%2e/server.js')).status));
 
     // ---- viewer (desktop) -------------------------------------------------
@@ -204,7 +207,7 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.click('#goBtn');
     check('viewers go back to "offline" when the live stops', (await until(() => viewer.locator('#offline').isVisible())) !== null);
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
-    check('media server credentials were sent on every upstream call', seen.unauth === 0);
+    check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);
   } finally {
     ff.kill('SIGKILL'); app.kill(); await browser.close(); rtc.close(); api.close(); hlsSrv.close();
   }

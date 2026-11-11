@@ -100,38 +100,7 @@
   };
 
   // ----------------------------------------------------- reactions, share --
-  const REACTIONS = [['👍', 'إعجاب'], ['🤗', 'تعاطف'], ['❤️', 'قلب'], ['😂', 'ضحك'], ['🤭', 'مفاجأة'], ['😳', 'خجل'], ['🤔', 'تفكير']];
-  const heartsBox = $('#hearts');
-  let likeTotal = 0, mine = 0;
-  const sent = REACTIONS.map(() => 0);        // my own reactions not yet echoed by the server
-  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function floatEmoji(k) {
-    if (calm || document.hidden || heartsBox.childElementCount > 28) return;
-    const h = el('span', { class: 'float-heart' }, REACTIONS[k][0]);
-    h.style.setProperty('--x', `${Math.round(Math.random() * 60 - 30)}px`);
-    h.style.setProperty('--s', (0.8 + Math.random() * 0.7).toFixed(2));
-    heartsBox.append(h);
-    h.addEventListener('animationend', () => h.remove());
-  }
-  function showLikes(n, r) {
-    likeTotal = n; mine = 0;
-    $('#likes').textContent = n;
-    let shown = 0;
-    (r || []).forEach((count, k) => {            // reactions from the other viewers
-      const others = Math.max(0, count - (sent[k] || 0));
-      sent[k] = 0;
-      for (let i = 0; i < others && shown < 8; i++, shown++) setTimeout(() => floatEmoji(k), shown * 110);
-    });
-  }
-  REACTIONS.forEach(([emoji, label], k) => {
-    $('#reactions').append(el('button', { type: 'button', class: 'react', 'aria-label': T(label), title: T(label), onclick: () => {
-      if (!link.ready) return;
-      link.send({ t: 'react', k });
-      sent[k]++; mine++;
-      $('#likes').textContent = likeTotal + mine;
-      floatEmoji(k);
-    } }, emoji));
-  });
+  mountReactions($('#reactions'), $('#hearts'), link, { canSend: true, totalEl: $('#likes') });
   $('#shareBtn').onclick = async () => {
     const data = { title: document.title, text: $('#title').textContent, url: location.origin + '/' };
     try {
@@ -204,14 +173,12 @@
   link.on('init', (d) => {
     setLive(d.live);
     $('#viewers').textContent = d.viewers;
-    likeTotal = d.likes || 0; mine = 0; $('#likes').textContent = likeTotal;
     if (d.title) $('#title').textContent = d.title;
     showGuest(d.guest); setHand(!!d.hand);
     if (onStage && !(d.guest && d.guest.uid === link.uid)) leaveStage(false);
   })
     .on('live', (d) => setLive(d.on))
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
-    .on('likes', (d) => showLikes(d.n, d.r))
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guest', (d) => showGuest(d.guest))
     .on('hand', (d) => { setHand(d.on); if (d.on) chat.say(T('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.'), 6000); })

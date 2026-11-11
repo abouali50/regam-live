@@ -156,7 +156,14 @@ async function until(fn, ms = 15000, step = 250) {
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'spammerbbbbbbbbb', name: 'x' })); for (let i = 0; i < 200; i++) w.send(JSON.stringify({ t: 'like' })); }; });
     check('all seven reactions are offered', (await viewer.locator('#reactions button').count()) === 7);
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'badreactccccccc1', name: 'x' })); for (const k of [7, -1, 'a', 2.5, null]) w.send(JSON.stringify({ t: 'react', k })); }; });
-    check('reactions are counted for everyone, and flooding is limited', (await until(async () => Number(await studio.textContent('#likes')) === 4, 6000)) !== null, 'studio shows ' + await studio.textContent('#likes'));
+    const perKind = (page) => page.evaluate(() => [...document.querySelectorAll('#reactions .react-n')].map((n) => n.textContent).join(','));
+    check('each reaction has its own counter, shown to viewers and in the studio', (await until(async () => (await perKind(studio)) === '1,0,1,1,0,0,1' && (await perKind(viewer)) === '1,0,1,1,0,0,1', 6000)) !== null, 'studio ' + await perKind(studio) + ' viewer ' + await perKind(viewer));
+    const floated = [];
+    await studio.exposeFunction('sawFloat', (e) => floated.push(e));
+    await studio.evaluate(() => new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => window.sawFloat(n.textContent)))).observe(document.querySelector('#hearts'), { childList: true }));
+    await viewer.locator('#reactions button').nth(3).click(); await sleep(300); await viewer.locator('#reactions button').nth(0).click();
+    check('the studio sees the same emoji float, not only hearts', (await until(() => floated.includes('😂') && floated.includes('👍'), 6000)) !== null, floated.join(' '));
+    check('reactions are counted for everyone, and flooding is limited', (await until(async () => Number(await studio.textContent('#likes')) === 6, 6000)) !== null, 'studio shows ' + await studio.textContent('#likes'));
 
     // ---- guest on stage -------------------------------------------------------
     await viewer.click('#handBtn');

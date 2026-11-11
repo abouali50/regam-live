@@ -31,6 +31,7 @@
     const cfg = await fetch('/api/config').then((r) => r.json());
     const link = createLink({ token });
     mountChat($('#chat'), link);
+    mountReactions($('#reactions'), $('#hearts'), link, { totalEl: $('#likes') });
 
     // --------------------------------------------------------- the mixer --
     const supported = 'MediaStreamTrackProcessor' in window && 'MediaStreamTrackGenerator' in window;
@@ -272,7 +273,7 @@
 
     link.on('init', (d) => {
       if (!d.mod) return logout();            // token expired
-      $('#viewers').textContent = d.viewers; $('#likes').textContent = d.likes || 0;
+      $('#viewers').textContent = d.viewers;
       $('#titleInput').value = d.title || '';
       $('#pinInput').value = d.pinned || '';
       $('#slowSel').value = String(d.slow);
@@ -280,7 +281,6 @@
     })
       .on('live', (d) => setBadge(d.on))
       .on('viewers', (d) => { $('#viewers').textContent = d.n; })
-      .on('likes', (d) => { $('#likes').textContent = d.n; })
       .on('hands', (d) => showHands(d.list))
       .on('guest', (d) => showGuest(d.guest))
       .on('slow', (d) => { $('#slowSel').value = String(d.sec); });

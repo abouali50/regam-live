@@ -148,3 +148,10 @@ input[type="text"], input[type="password"], select { background: var(--bg); bord
 /* language menu */
 .lang { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--text); }
 .lang:disabled { opacity: .5; }
+/* reactions with a counter under each */
+.react { width: 46px; height: auto; min-height: 56px; border-radius: 14px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 5px 0; color: var(--text); }
+span.react { cursor: default; }
+.react-e { font-size: 22px; line-height: 1.1; }
+.react-n { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1; }
+.hearts { z-index: 3; }
+@media (max-width: 900px) { .react { width: 41px; min-height: 52px; } .react-e { font-size: 20px; } }

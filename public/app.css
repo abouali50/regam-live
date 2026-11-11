@@ -358,3 +358,11 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .cap-menu .check { margin: 0; }
 .btn.on { border-color: var(--gold); color: var(--gold); }
 .cap-last { margin: 0; color: var(--text); font-size: 14px; }
+
+/* join with a code, and the way into a room */
+.join-form { display: grid; gap: 6px; max-width: 420px; color: var(--muted); font-size: 14px; }
+.join-row { display: flex; gap: 8px; }
+.join-row input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+.room-enter { margin-top: 6px; align-self: start; background: var(--gold); color: #1b1405; font-weight: 700; padding: 6px 14px; border-radius: 999px; font-size: 14px; }
+.room-next { color: var(--gold); font-size: 13px; }
+.offline-hint { margin: 0; font-size: 14px; max-width: 46ch; background: rgba(2,20,36,.6); padding: 6px 12px; border-radius: 10px; }

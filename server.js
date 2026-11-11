@@ -387,7 +387,7 @@ function handleRecordings(req, res, url) {
 }
 
 // ---------------------------------------------------------- administration --
-const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle });
+const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, next: nextOf(r) });
 function slugFor(title) {
   let base = String(title).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
   if (!SLUG.test(base)) base = 'room';
@@ -552,6 +552,12 @@ const server = http.createServer(async (req, res) => {
       if (acct.access() === 'watch' && !acct.memberOf(bearer(req))) return send(res, 401, { error: 'sign in' });
       if (!codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
       return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 12 * 3600e3)}; Path=/hls/; Max-Age=43200; HttpOnly; SameSite=Lax` });
+    }
+    if (p === '/api/join' && req.method === 'POST') {            // "join with a code": which room does this entry code open?
+      const code = String((await readJson(req)).code || '').replace(/\D/g, ''), ip = clientIp(req);
+      const room = code.length === 6 ? [...rooms.values()].find((r) => r.cfg.code && safeEq(r.cfg.code, code)) : null;
+      if (!codeAllowed(ip, !room)) return send(res, 429, { error: 'too many requests' });
+      return room ? send(res, 200, { slug: room.cfg.slug }) : send(res, 404, { error: 'bad code' });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
     if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans });

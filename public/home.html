@@ -21,6 +21,14 @@
       <button id="heroIn" class="btn" type="button">الدخول</button>
     </p>
     <p class="hero-hello" id="heroHello" hidden></p>
+    <form id="joinForm" class="join-form">
+      <label for="joinCode">عندك كود ديال الدعوة؟</label>
+      <span class="join-row">
+        <input id="joinCode" class="acc-code" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="000 000" dir="ltr">
+        <button class="btn primary" type="submit">دخل بالكود</button>
+      </span>
+      <span id="joinErr" class="err" hidden></span>
+    </form>
   </section>
   <h2 class="home-title">القاعات</h2>
   <p class="muted" id="homeLead">اختار القاعة اللي بغيتي تتبع. القاعات اللي فيها لايف دابا كيبانو الأولين.</p>

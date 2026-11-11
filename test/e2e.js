@@ -397,6 +397,13 @@ async function until(fn, ms = 15000, step = 250) {
       const c2 = await open1('?code=' + code);
       check('the invitation link enters directly and shows the announced session', (await until(() => c2.locator('#liveBadge.on').isVisible(), 8000)) !== null && !/code=/.test(c2.url())
         && (await c2.evaluate(async () => (await fetch('/api/config?room=main')).json())).next.title === 'MetaMask الدرس الثاني' && (await c2.evaluate(() => document.querySelector('#nextLine').textContent)).includes('MetaMask'));
+      const hp = await (await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 700 } })).newPage();
+      await hp.goto(BASE + '/rooms');
+      const badJoin = await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code === '333333' ? '444444' : '333333' }) });
+      await hp.fill('#joinCode', code.slice(0, 3) + ' ' + code.slice(3)); await hp.click('#joinForm button[type=submit]');
+      check('on the home page, typing the invitation code leads straight into its room', badJoin.status === 404 && (await until(() => hp.locator('#liveBadge.on').isVisible(), 10000)) !== null && hp.url().endsWith('/r/main')
+        && (await hp.textContent('#handBtn')) === 'Demander à monter');
+      await hp.context().close();
       await studio.click('#nextClear'); await studio.uncheck('#codeChk');
       const c3 = await open1();
       check('without the code option, the room is open again', (await until(() => c3.locator('#liveBadge.on').isVisible(), 8000)) !== null && (await (await fetch(BASE + '/api/config')).json()).locked === false);

@@ -33,6 +33,7 @@ function createLink({ name = '', token = '', room = '' } = {}) {
     uid: myUid(), name, token, ws: null, ready: false,
     on(t, fn) { (handlers[t] = handlers[t] || []).push(fn); return link; },
     send(obj) { if (link.ws && link.ws.readyState === 1) link.ws.send(JSON.stringify(obj)); },
+    hello() { link.send({ t: 'hello', uid: link.uid, name: link.name, token: link.token, room, color: Number(store.get('regam.color')) || 0 }); },
     setName(n) { link.name = n; store.set('regam.name', n); link.send({ t: 'name', name: n }); },
   };
   const emit = (ev) => (handlers[ev.t] || []).forEach((fn) => fn(ev));
@@ -40,7 +41,7 @@ function createLink({ name = '', token = '', room = '' } = {}) {
   function connect() {
     const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
     link.ws = ws;
-    ws.onopen = () => { delay = 1000; ws.send(JSON.stringify({ t: 'hello', uid: link.uid, name: link.name, token: link.token, room, color: Number(store.get('regam.color')) || 0 })); };
+    ws.onopen = () => { delay = 1000; link.hello(); };
     ws.onmessage = (e) => {
       let d; try { d = JSON.parse(e.data); } catch { return; }
       if (d.t === 'batch') d.ev.forEach(emit);

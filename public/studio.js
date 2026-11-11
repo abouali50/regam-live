@@ -335,6 +335,50 @@
       syncGuests();
     }
 
+    // ---- waiting room: people give their name and wait for the host to let them in
+    let waitingN = 0;
+    function showWaiting(gate, list) {
+      $('#gateChk').checked = gate;
+      $('#noWaiting').hidden = !gate || list.length > 0;
+      $('#admitAll').hidden = list.length < 2;
+      $('#waiting').replaceChildren(...list.map((w) => el('li', {},
+        el('span', {}, w.name),
+        el('span', { class: 'guest-acts' },
+          el('button', { class: 'btn primary', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: true }) }, T('دخلو')),
+          el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: false }) }, T('رفض'))))));
+      if (list.length > waitingN) status(T('{name} كيتسنى فقاعة الانتظار.', { name: list[list.length - 1].name }));
+      waitingN = list.length;
+    }
+    $('#gateChk').onchange = () => link.send({ t: 'gate', on: $('#gateChk').checked });
+    $('#admitAll').onclick = () => link.send({ t: 'admit' });
+
+    // ---- the sound people hear while the room is not live
+    function showSound(url) {
+      $('#soundDel').hidden = !url;
+      $('#soundTry').hidden = !url;
+      if (url) $('#soundTry').src = url; else $('#soundTry').removeAttribute('src');
+    }
+    fetch('/api/config?room=' + encodeURIComponent(window.REGAM_ROOM || '')).then((r) => r.json()).then((c) => showSound(c.sound)).catch(() => {});
+    $('#soundFile').onchange = async () => {
+      const f = $('#soundFile').files[0];
+      if (!f) return;
+      const note = $('#soundNote');
+      if (f.size > 60 * 1024 * 1024) { note.textContent = T('الملف كبير بزاف. الحد هو 60 ميغا.'); return; }
+      note.textContent = T('كنصيفطو الملف…');
+      try {
+        const type = f.type || (/\.m4a$/i.test(f.name) ? 'audio/mp4' : 'audio/mpeg');
+        const r = await fetch('/api/sound?room=' + encodeURIComponent(window.REGAM_ROOM || ''), { method: 'POST', headers: { 'Content-Type': type, Authorization: 'Bearer ' + token }, body: f });
+        if (!r.ok) throw new Error(r.status);
+        showSound((await r.json()).sound);
+        note.textContent = T('تسجل الصوت. الناس غادي يسمعوه ملي ما يكونش لايف.');
+      } catch { note.textContent = T('ما قدرناش نسجلو الملف. خاصو يكون MP3 أو M4A.'); }
+      $('#soundFile').value = '';
+    };
+    $('#soundDel').onclick = async () => {
+      await fetch('/api/sound?room=' + encodeURIComponent(window.REGAM_ROOM || ''), { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } }).catch(() => {});
+      showSound(''); $('#soundNote').textContent = T('تحيد الصوت.');
+    };
+
     function showHands(list) {
       $('#noHands').hidden = list.length > 0;
       $('#hands').replaceChildren(...list.map((h) => el('li', {},
@@ -359,7 +403,9 @@
       $('#slowSel').value = String(d.slow);
       maxGuests = d.maxGuests || 12;
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
+      showWaiting(!!d.gate, d.waiting || []);
     })
+      .on('waiting', (d) => showWaiting(d.gate, d.list))
       .on('live', (d) => setBadge(d.on))
       .on('viewers', (d) => { $('#viewers').textContent = d.n; })
       .on('hands', (d) => showHands(d.list))

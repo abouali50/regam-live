@@ -83,6 +83,28 @@
   }
   unmute.onclick = () => { video.muted = false; video.play(); unmute.hidden = true; };
 
+  // ------------------------------------------- sound while nothing is live --
+  // The room's host can give a sound (a recitation, music) for the time before the live.
+  const soundBtn = $('#soundBtn');
+  const waitSound = cfg.sound ? new Audio(cfg.sound) : null;
+  let soundWanted = true;                       // the person has not paused it
+  if (waitSound) { waitSound.loop = true; waitSound.preload = 'none'; }
+  function syncSound() {
+    if (!waitSound) return;
+    const idle = !live && !onStage;
+    soundBtn.hidden = !idle;
+    if (idle && soundWanted) waitSound.play().catch(() => {});      // browsers start it only after a first tap
+    else waitSound.pause();
+    paintSound();
+  }
+  const paintSound = () => { soundBtn.textContent = T(waitSound && !waitSound.paused ? '⏸ وقف الصوت' : '🔊 استمع'); };
+  if (waitSound) {
+    waitSound.onplay = waitSound.onpause = paintSound;
+    soundBtn.onclick = () => { soundWanted = waitSound.paused; if (soundWanted) waitSound.play().catch(() => {}); else waitSound.pause(); };
+    // the first tap anywhere on the page lets the sound start
+    addEventListener('pointerdown', (e) => { if (e.target !== soundBtn && soundWanted && !live && !onStage) waitSound.play().catch(() => {}); }, { once: true });
+  }
+
   function setLive(on) {
     live = on;
     badge.textContent = T(on ? 'مباشر' : 'غير مباشر');
@@ -91,6 +113,7 @@
     if (!on) unmute.hidden = true;
     handBtn.hidden = !on || onStage;
     if (on) startHls(); else stopHls();
+    syncSound();
   }
   function showGuests(list) {
     const on = (list || []).filter((g) => g.ready).map((g) => g.name);
@@ -203,8 +226,27 @@
     setLive(false);
     $('#offlineText').textContent = T('القاعة عامرة دابا. غادي نعاودو نجربو بوحدنا من بعد شوية.');
   });
-  link.on('init', (d) => {
+  // ---- waiting room: the person gives a name, the host lets them in (or not)
+  const knockBtn = $('#knockBtn');
+  const pass = () => fetch(`/api/pass?room=${encodeURIComponent(cfg.room)}&uid=${link.uid}`).catch(() => {});
+  async function knock() {
+    const n = link.name || await askName();
+    if (n) link.send({ t: 'knock', name: n });
+  }
+  knockBtn.onclick = knock;
+  link.on('wait', (d) => {
+    setLive(false);
+    knockBtn.hidden = d.named;
+    $('#offlineText').textContent = T(d.named ? 'وصل الطلب ديالك. تسنى صاحب اللايف يدخلك.' : 'هاد القاعة فيها قاعة انتظار. كتب سميتك، وصاحب اللايف غادي يدخلك.');
+    if (!d.named && !nameDlg.open) knock();
+  })
+    .on('admitted', () => { knockBtn.hidden = true; link.hello(); })
+    .on('refused', () => { setLive(false); knockBtn.hidden = true; $('#offlineText').textContent = T('صاحب اللايف ما قبلش الدخول ديالك.'); })
+    .on('gate', (d) => { if (d.on) pass(); });
+  link.on('init', async (d) => {
+    knockBtn.hidden = true;
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
+    if (d.gate) await pass();                 // lets the player fetch the stream
     setLive(d.live);
     $('#viewers').textContent = d.viewers;
     if (d.title) $('#title').textContent = d.title;

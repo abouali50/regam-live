@@ -90,6 +90,14 @@
       <ul id="hands" class="hands"></ul>
     </div>
 
+    <div class="panel" id="gatePanel">
+      <h2>قاعة الانتظار</h2>
+      <label class="check"><input id="gateChk" type="checkbox"> <span>اللي بغا يدخل يكتب سميتو، وأنا اللي نقبلو (بحال Zoom)</span></label>
+      <p id="noWaiting" class="muted" hidden>ما كاين حتى واحد كيتسنى.</p>
+      <ul id="waiting" class="hands"></ul>
+      <button id="admitAll" class="btn" type="button" hidden>دخل الجميع</button>
+    </div>
+
     <div class="panel" id="recPanel">
       <h2>التسجيلات</h2>
       <p id="noRecs" class="muted">ما كاين حتى تسجيل. كل لايف كيتسجل بوحدو.</p>
@@ -115,6 +123,13 @@
           <option value="30">30 ثانية</option><option value="60">دقيقة</option>
         </select>
       </div>
+      <div class="row">
+        <label for="soundFile">صوت الانتظار</label>
+        <input id="soundFile" type="file" accept="audio/*,.mp3,.m4a">
+        <button id="soundDel" class="btn" type="button" hidden>حيد الصوت</button>
+      </div>
+      <p id="soundNote" class="muted">صوت (تلاوة مثلا) كيسمعوه الناس ملي ما كاينش لايف. ملف MP3 أو M4A، حتى ل 60 ميغا.</p>
+      <audio id="soundTry" controls hidden></audio>
     </div>
   </section>
   <aside class="chat" id="chat" aria-label="التعليقات"></aside>

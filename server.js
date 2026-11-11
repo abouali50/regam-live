@@ -67,6 +67,7 @@ function openRoom(cfg) {
     cfg, live: false, seq: 0, history: [], hands: new Map(), guests: new Map(), rtc: new Map(),   // guests: slot -> { uid, name, nonce, ready }
     clients: new Set(), byUid: new Map(), lastMsgAt: new Map(), outbox: [],
     likes: 0, reacts: zeros(), totals: zeros(), likesDirty: false, lastViewers: -1,
+    waiters: new Set(), admitted: new Set(), refused: new Set(),     // waiting room: sockets at the door, people let in, people turned away
   };
   rooms.set(cfg.slug, room);
   fs.mkdir(path.join(REC_ROOT, `air_${cfg.slug}`), { recursive: true }, () => {});   // ours, so we may delete recordings
@@ -168,6 +169,64 @@ function serveFile(res, file, cache = 'no-cache') {
   });
 }
 const clean = (s, max) => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+const cookieOf = (req, name) => {
+  for (const part of String(req.headers.cookie || '').split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim(); }
+  return '';
+};
+// Sound played to people while the room is not live (one file per room, sent by its host).
+const SOUND_TYPES = { 'audio/mpeg': 1, 'audio/mp3': 1, 'audio/mp4': 1, 'audio/x-m4a': 1, 'audio/m4a': 1, 'audio/aac': 1, 'audio/ogg': 1, 'audio/wav': 1, 'audio/x-wav': 1 };
+const SOUND_MAX = 60 * 1024 * 1024;
+const soundFile = (slug) => path.join(DATA_DIR, `sound_${slug}`);
+function handleSound(req, res, url) {
+  const room = roomOf(url);
+  if (!room) return send(res, 404, { error: 'no such room' });
+  if (!canHost(whoIs(bearer(req)), room)) return send(res, 401, { error: 'unauthorized' });
+  if (req.method === 'DELETE') {
+    delete room.cfg.sound; save();
+    fs.unlink(soundFile(room.cfg.slug), () => {});
+    return send(res, 200, { ok: true });
+  }
+  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+  const type = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+  if (!SOUND_TYPES[type]) return send(res, 415, { error: 'not a sound file' });
+  if (Number(req.headers['content-length']) > SOUND_MAX) return send(res, 413, { error: 'too large' });
+  const tmp = soundFile(room.cfg.slug) + '.tmp', out = fs.createWriteStream(tmp);
+  let size = 0, failed = false;
+  const fail = (code) => { if (failed) return; failed = true; req.unpipe(out); out.destroy(); fs.unlink(tmp, () => {}); send(res, code, { error: code === 413 ? 'too large' : 'upload failed' }); req.resume(); };
+  req.on('data', (c) => { size += c.length; if (size > SOUND_MAX) fail(413); });
+  req.on('error', () => fail(400)); out.on('error', () => fail(500));
+  req.on('aborted', () => fail(400));
+  req.pipe(out);
+  out.on('finish', () => {
+    if (failed) return;
+    if (!size) return fail(400);
+    fs.rename(tmp, soundFile(room.cfg.slug), (e) => {
+      if (e) return fail(500);
+      room.cfg.sound = { type, v: Date.now() }; save();
+      send(res, 200, { ok: true, sound: soundUrl(room) });
+    });
+  });
+}
+const soundUrl = (room) => (room.cfg.sound ? `/media/sound/${room.cfg.slug}?v=${room.cfg.sound.v}` : '');
+function serveSound(req, res, slug) {
+  const room = rooms.get(slug);
+  if (!room || !room.cfg.sound) return send(res, 404, 'Not found');
+  fs.stat(soundFile(slug), (e, st) => {
+    if (e) return send(res, 404, 'Not found');
+    const head = { 'Content-Type': room.cfg.sound.type === 'audio/mp3' ? 'audio/mpeg' : room.cfg.sound.type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=86400' };
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    let from = 0, to = st.size - 1, code = 200;
+    if (m && (m[1] || m[2])) {                    // phones ask for the file in pieces
+      if (m[1]) { from = Number(m[1]); if (m[2]) to = Math.min(to, Number(m[2])); } else from = Math.max(0, st.size - Number(m[2]));
+      if (from > to || from >= st.size) { res.writeHead(416, { 'Content-Range': `bytes */${st.size}` }); return res.end(); }
+      code = 206; head['Content-Range'] = `bytes ${from}-${to}/${st.size}`;
+    }
+    head['Content-Length'] = to - from + 1;
+    res.writeHead(code, head);
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(soundFile(slug), { start: from, end: to }).on('error', () => res.destroy()).pipe(res);
+  });
+}
 const roomOf = (url) => (url.searchParams.get('room') ? rooms.get(url.searchParams.get('room')) : defaultRoom());
 
 // Which role may open which WebRTC session on the media server.
@@ -220,6 +279,8 @@ async function handleRtc(req, res, url, kind, name) {
 function proxyHls(req, res, sub) {
   const m = sub.match(/^\/air_([a-z0-9-]+)\//);
   if (sub.includes('..') || !m || !rooms.has(m[1])) return send(res, 404, 'Not found');
+  // a room with a waiting room only streams to the people its host let in
+  if (rooms.get(m[1]).cfg.gate && verify(cookieOf(req, `rlp_${m[1]}`), 'pass') !== m[1]) return send(res, 403, 'Forbidden');
   const up = http.get(MTX_HLS + sub, { headers: { 'User-Agent': 'regam-live', Authorization: `Bearer ${HLS_SECRET}` } }, (r) => {
     const h = {
       'Content-Type': r.headers['content-type'] || 'application/octet-stream',
@@ -409,8 +470,16 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
-        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`,
+        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, sound: soundUrl(room),
       });
+    }
+    if (p === '/api/sound') return handleSound(req, res, url);
+    if (p.startsWith('/media/sound/')) return serveSound(req, res, p.slice(13));
+    if (p === '/api/pass') {                      // the pass that lets an admitted person's player fetch the stream
+      const room = roomOf(url);
+      if (!room) return send(res, 404, { error: 'no such room' });
+      if (room.cfg.gate && !room.admitted.has(String(url.searchParams.get('uid') || ''))) return send(res, 403, { error: 'not admitted' });
+      return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 12 * 3600e3)}; Path=/hls/; Max-Age=43200; HttpOnly; SameSite=Lax` });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
     if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans });
@@ -494,6 +563,21 @@ setInterval(() => {
 const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws, obj); };
 const toUid = (room, uid, obj) => { for (const ws of room.byUid.get(uid) || []) tx(ws, obj); };
 const viewersOf = (room) => { let n = 0; for (const ws of room.clients) if (!ws.mod) n++; return n; };
+// People at the door of a room with a waiting room (one line per person, whatever their number of tabs).
+function waitingList(room) {
+  const seen = new Map();
+  for (const ws of room.waiters) if (ws.wname && !seen.has(ws.uid)) seen.set(ws.uid, { uid: ws.uid, name: ws.wname });
+  return [...seen.values()].slice(0, 100);
+}
+const tellWaiting = (room) => toMods(room, { t: 'waiting', gate: !!room.cfg.gate, list: waitingList(room) });
+function answerDoor(room, uid, ok) {           // uid '' = everybody at the door
+  for (const ws of [...room.waiters]) {
+    if (uid ? ws.uid !== uid : !ws.wname && !ok) continue;
+    room.waiters.delete(ws); ws.waitRoom = null;
+    if (ok) { room.admitted.add(ws.uid); room.refused.delete(ws.uid); } else room.refused.add(ws.uid);
+    tx(ws, { t: ok ? 'admitted' : 'refused' });
+  }
+}
 const handsList = (room) => [...room.hands].map(([uid, h]) => ({ uid, name: h.name })).slice(0, 50);
 const guestsPublic = (room) => [...room.guests].map(([slot, g]) => ({ slot, uid: g.uid, name: g.name, ready: g.ready, muted: !!g.muted }));
 const slotOf = (room, uid) => { for (const [slot, g] of room.guests) if (g.uid === uid) return slot; return 0; };
@@ -518,6 +602,7 @@ wss.on('connection', (ws, req) => {
   ws.on('pong', () => { ws.alive = true; });
   ws.on('error', () => {});
   ws.on('close', () => {
+    if (ws.waitRoom) { const r = ws.waitRoom; ws.waitRoom = null; r.waiters.delete(ws); if (ws.wname) tellWaiting(r); }
     const room = ws.room;
     if (!room) return;
     room.clients.delete(ws);
@@ -532,7 +617,7 @@ wss.on('connection', (ws, req) => {
     if (!d || typeof d.t !== 'string') return;
 
     if (d.t === 'hello') {
-      if (ws.room) return;
+      if (ws.room || ws.waitRoom) return;
       if (!/^[a-z0-9]{12,40}$/.test(String(d.uid || ''))) return ws.close();
       const room = d.room ? rooms.get(String(d.room)) : defaultRoom();
       if (!room) return ws.close();
@@ -541,6 +626,16 @@ wss.on('connection', (ws, req) => {
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full
         return ws.close();
+      }
+      if (!host && room.cfg.gate && !room.admitted.has(String(d.uid))) {      // waiting room: the host lets people in one by one
+        ws.uid = String(d.uid);
+        if (room.refused.has(ws.uid)) return tx(ws, { t: 'refused' });
+        if (room.waiters.size >= 2000) { tx(ws, { t: 'full', capacity: 0 }); return ws.close(); }
+        ws.waitRoom = room; ws.wname = clean(d.name, MAX_NAME);
+        room.waiters.add(ws);
+        tx(ws, { t: 'wait', named: !!ws.wname });
+        if (ws.wname) tellWaiting(room);
+        return;
       }
       ws.room = room; ws.uid = d.uid;
       ws.mod = host;
@@ -555,7 +650,16 @@ wss.on('connection', (ws, req) => {
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
+        gate: !!room.cfg.gate, waiting: ws.mod ? waitingList(room) : undefined,
       });
+    }
+    if (ws.waitRoom) {                      // at the door: the only thing to say is one's name
+      if ((d.t === 'knock' || d.t === 'name') && clean(d.name, MAX_NAME)) {
+        ws.wname = clean(d.name, MAX_NAME);
+        tx(ws, { t: 'wait', named: true });
+        tellWaiting(ws.waitRoom);
+      }
+      return;
     }
     const room = ws.room;
     if (!room) return;
@@ -654,6 +758,16 @@ wss.on('connection', (ws, req) => {
         broadcast(room, { t: 'guests', guests: guestsPublic(room) });
         return toMods(room, { t: 'hands', list: handsList(room) });
       }
+      case 'gate':                         // waiting room on or off
+        cfg.gate = !!d.on; save();
+        if (cfg.gate) { for (const c of room.clients) room.admitted.add(c.uid); }   // people already inside stay
+        else { answerDoor(room, '', true); room.refused.clear(); }
+        broadcast(room, { t: 'gate', on: cfg.gate });
+        return tellWaiting(room);
+      case 'admit':                        // let one person in (or everybody), or turn one away
+        if (d.uid) answerDoor(room, String(d.uid), d.ok !== false);
+        else for (const w of waitingList(room)) answerDoor(room, w.uid, true);     // everybody who gave a name
+        return tellWaiting(room);
       case 'mute': {                       // the host closes or opens a guest's microphone (no uid: every guest)
         let changed = false;
         for (const [, g] of room.guests) {

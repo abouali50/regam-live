@@ -43,7 +43,7 @@
     const mine = me.rooms.find((r) => r.slug === wanted) || me.rooms[0];
     window.REGAM_ROOM = mine.slug;
     const cfg = await fetch('/api/config?room=' + mine.slug).then((r) => r.json());
-    const viewerUrl = location.origin + (cfg.rooms === 1 ? '/' : '/r/' + mine.slug);
+    const viewerUrl = location.origin + (cfg.rooms === 1 && !cfg.accounts ? '/' : '/r/' + mine.slug);
     $('#roomName').textContent = mine.title;
     $('#roomLink').textContent = viewerUrl.replace(/^https?:\/\//, ''); $('#roomLink').href = viewerUrl;
     $('#copyLink').onclick = async () => { try { await navigator.clipboard.writeText(viewerUrl); status(T('تنسخ الرابط. لصقو فين بغيتي.')); } catch { status(viewerUrl); } };

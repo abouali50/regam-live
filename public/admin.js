@@ -7,6 +7,7 @@
   const ERR = {
     'login already used': 'هاد اسم الدخول مستعمل.', 'password too short': 'كلمة السر خاصها 8 حروف ولا أكثر.',
     'bad name or login': 'اسم الدخول: 3 حروف ولا أكثر، حروف لاتينية وأرقام.', 'teacher still has rooms': 'هاد الأستاذ باقي عندو قاعات. بدل الأستاذ ديالها ولا حذفها أولا.',
+    'bad mail settings': 'عمر السيرفر، العنوان وكلمة السر ديال الإيميل أولا.',
     'the last room cannot be deleted': 'ما يمكنش تحذف آخر قاعة.', 'title and teacher are required': 'خاص اسم القاعة والأستاذ.',
   };
   async function done(res, okText) {
@@ -51,11 +52,12 @@
         el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف الأستاذ "{name}"؟', { name: u.name }))) api('/user?id=' + u.id, { method: 'DELETE' }).then((r) => done(r, T('تحذف الأستاذ.'))); } }, T('حذف'))))));
 
     showSettings(data);
+    showAccounts(data.accounts);
     $('#roomList').replaceChildren(...data.rooms.map((r) => el('li', {},
       el('span', { class: 'admin-main-cell' },
         el('strong', {}, r.title), r.topic ? el('span', { class: 'muted' }, r.topic) : null,
         r.live ? el('span', { class: 'badge on' }, T('مباشر')) : null,
-        el('a', { class: 'room-url', href: data.rooms.length === 1 ? '/' : '/r/' + r.slug, target: '_blank', rel: 'noopener', dir: 'ltr' }, location.host + (data.rooms.length === 1 ? '/' : '/r/' + r.slug))),
+        el('a', { class: 'room-url', href: data.rooms.length === 1 && !data.accounts.mailReady ? '/' : '/r/' + r.slug, target: '_blank', rel: 'noopener', dir: 'ltr' }, location.host + (data.rooms.length === 1 && !data.accounts.mailReady ? '/' : '/r/' + r.slug))),
       el('span', { class: 'rec-actions' },
         el('button', { class: 'btn', type: 'button', onclick: () => {
           const n = prompt(T('العدد الأقصى ديال المتابعين (0 = بلا حد):'), String(r.capacity || 0));
@@ -68,6 +70,45 @@
         } }, T('بدل الاسم')),
         el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف القاعة "{name}"؟ التسجيلات ديالها كيبقاو فالسيرفر.', { name: r.title }))) api('/room?slug=' + r.slug, { method: 'DELETE' }).then((res) => done(res, T('تحذفات القاعة.'))); } }, T('حذف'))))));
   }
+
+  // ---- viewer accounts: who needs one, the mailbox that sends the codes, the people signed up
+  const PRESET = { gmail: ['smtp.gmail.com', 465], hostinger: ['smtp.hostinger.com', 465] };
+  function showAccounts(a) {
+    const f = $('#mailForm').elements;
+    $('#accessSel').value = a.access;
+    $('#mailState').textContent = T(a.mailReady ? 'الإيميل مركب: التسجيل خدام.' : 'مازال ما ركبتيش الإيميل: التسجيل ما خدامش حتى تركبو.');
+    $('#mailState').className = a.mailReady ? 'ok-text' : 'err';
+    if (!$('#mailForm').contains(document.activeElement)) {
+      f.host.value = a.mail.host || PRESET.gmail[0]; f.port.value = a.mail.port || 465; f.user.value = a.mail.user;
+      f.kind.value = Object.keys(PRESET).find((k) => PRESET[k][0] === f.host.value) || 'other';
+      f.pass.placeholder = a.mail.hasPass ? '••••••••' : '';
+    }
+    $('#memberCount').textContent = T('المسجلين: {n} (منهم {v} مفعلين)', { n: a.members.total, v: a.members.verified });
+    $('#members').replaceChildren(...a.members.list.map((m) => el('li', { class: m.verified ? '' : 'is-off' },
+      el('span', { class: 'admin-main-cell' }, el('strong', {}, m.name), el('span', { class: 'muted', dir: 'ltr' }, m.email), m.verified ? null : el('span', { class: 'badge off' }, T('ما مفعلش'))),
+      el('span', { class: 'rec-actions' }, el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف الحساب ديال "{name}"؟', { name: m.name }))) api('/member?id=' + m.id, { method: 'DELETE' }).then((r) => done(r, T('تحذف الحساب.'))); } }, T('حذف'))))));
+  }
+  $('#mailForm').elements.kind.onchange = (e) => { const p = PRESET[e.target.value]; if (p) { $('#mailForm').elements.host.value = p[0]; $('#mailForm').elements.port.value = p[1]; } };
+  $('#accessForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const want = $('#accessSel').value;
+    const res = await api('/settings', { method: 'POST', body: JSON.stringify({ access: want }) });
+    if (await done(res, T('تحفظ.')) && $('#accessSel').value !== want) say(T('ركب الإيميل أولا: بلا بيه حتى واحد ما يقدر يسجل.'));
+  };
+  $('#mailForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target.elements;
+    api('/settings', { method: 'POST', body: JSON.stringify({ mail: { host: f.host.value, port: Number(f.port.value), user: f.user.value, from: f.user.value, pass: f.pass.value.replace(/\s+/g, '') } }) })
+      .then((r) => { f.pass.value = ''; return done(r, T('تحفظ الإيميل. جربو دابا برسالة تجريبية.')); });
+  };
+  $('#mailTest').onsubmit = async (e) => {
+    e.preventDefault();
+    say(T('كنصيفطو…'));
+    const r = await api('/mailtest', { method: 'POST', body: JSON.stringify({ to: e.target.elements.to.value }) });
+    const d = await r.json().catch(() => ({}));
+    say(r.ok ? T('تصيفطات الرسالة. شوف الإيميل ديالك (وحتى Spam).') : T('ما تصيفطاتش الرسالة. تأكد من العنوان وكلمة السر ديال الإيميل.') + (d.error ? ' — ' + d.error : ''));
+  };
+  addPasswordEyes($('#mailForm'));
 
   // ---- plans and payment instructions
   let plans = [];

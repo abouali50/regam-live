@@ -27,13 +27,111 @@ function myUid() {
 
 // ---------------------------------------------------------------- socket --
 // One WebSocket with automatic reconnect. on(type, fn) to listen.
+// --------------------------------------------------------------- account --
+// A viewer's account: name, e-mail and password, opened with a code sent by e-mail.
+const account = {
+  get token() { return store.get('regam.member') || ''; },
+  get name() { return store.get('regam.memberName') || ''; },
+  set(token, name) { store.set('regam.member', token); store.set('regam.memberName', name); store.set('regam.name', name); },
+  clear() { try { localStorage.removeItem('regam.member'); localStorage.removeItem('regam.memberName'); } catch { /* private mode */ } },
+};
+const ACCOUNT_ERR = {
+  'bad name or email': 'كتب الاسم ديالك وإيميل صحيح.', 'password too short': 'كلمة السر خاصها 8 حروف ولا أكثر.',
+  'email already used': 'هاد الإيميل عندو حساب. دخل بكلمة السر ديالك.', 'bad code': 'الكود غالط ولا سالا الوقت ديالو. طلب كود جديد.',
+  'bad login': 'الإيميل ولا كلمة السر غالطين.', 'too many requests': 'محاولات بزاف. تسنى شوية وعاود.',
+  'mail failed': 'ما قدرناش نصيفطو الإيميل. تأكد من العنوان وعاود.', 'mail not set up': 'التسجيل مازال ما مفعلش فهاد الموقع.',
+};
+// Opens the sign-in / sign-up window. view: 'login' or 'signup'. The page reloads once signed in.
+function openAccount(view = 'login') {
+  let dlg = document.getElementById('accountDlg');
+  if (dlg) dlg.remove();
+  const err = el('p', { class: 'err', hidden: true }), note = el('p', { class: 'muted' });
+  const field = (label, props) => { const i = el('input', props); return { i, row: el('label', { class: 'acc-field' }, label, i) }; };
+  const name = field(T('الاسم (كيبان للناس)'), { type: 'text', maxlength: 24, autocomplete: 'name' });
+  const email = field(T('الإيميل'), { type: 'email', maxlength: 120, autocomplete: 'email', dir: 'ltr', inputmode: 'email', autocapitalize: 'off' });
+  const pass = field(T('كلمة السر'), { type: 'password', minlength: 8, maxlength: 200, dir: 'ltr' });
+  const code = field(T('الكود اللي وصلك فالإيميل'), { type: 'text', inputmode: 'numeric', maxlength: 6, autocomplete: 'one-time-code', dir: 'ltr', class: 'acc-code' });
+  const submit = el('button', { class: 'btn primary', type: 'submit' });
+  const links = el('p', { class: 'acc-links' });
+  const title = el('h2', {});
+  const form = el('form', { class: 'acc-form' }, title, note, name.row, email.row, pass.row, code.row, err, el('div', { class: 'dlg-actions' }, submit, el('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, T('إلغاء'))), links);
+  dlg = el('dialog', { id: 'accountDlg', class: 'dlg' }, form);
+  document.body.append(dlg);
+  const linkTo = (text, v) => el('button', { class: 'acc-link', type: 'button', onclick: () => show(v) }, text);
+  const post = async (what, body) => {
+    const r = await fetch('/api/member/' + what, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, lang: LANG }) });
+    return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+  };
+  const fail = (r) => { err.hidden = false; err.textContent = T(ACCOUNT_ERR[r.data.error] || 'ما قدرناش نديرو هاد العملية. عاود من بعد شوية.'); };
+  const done = (r) => { account.set(r.data.token, r.data.name); location.reload(); };
+  let mode = view;
+  function show(v, text = '') {
+    mode = v; err.hidden = true; note.textContent = text; note.hidden = !text;
+    title.textContent = T({ login: 'الدخول', signup: 'إنشاء حساب', code: 'فعل الحساب ديالك', forgot: 'نسيتي كلمة السر؟', reset: 'كلمة سر جديدة' }[v]);
+    submit.textContent = T({ login: 'دخل للحساب', signup: 'صيفط ليا الكود', code: 'فعل الحساب', forgot: 'صيفط ليا الكود', reset: 'بدل كلمة السر ودخل' }[v]);
+    name.row.hidden = v !== 'signup';
+    email.row.hidden = v === 'code' || v === 'reset';
+    pass.row.hidden = v === 'code' || v === 'forgot';
+    code.row.hidden = v !== 'code' && v !== 'reset';
+    pass.i.autocomplete = v === 'login' ? 'current-password' : 'new-password';
+    name.i.required = v === 'signup'; email.i.required = !email.row.hidden; pass.i.required = !pass.row.hidden; code.i.required = !code.row.hidden;
+    links.replaceChildren(...(v === 'login' ? [linkTo(T('ما عنديش حساب: نسجل'), 'signup'), linkTo(T('نسيت كلمة السر'), 'forgot')]
+      : v === 'signup' ? [linkTo(T('عندي حساب: ندخل'), 'login')]
+        : v === 'code' ? [el('button', { class: 'acc-link', type: 'button', onclick: async () => { const r = await post('login', { email: email.i.value, password: pass.i.value }); if (r.data.error === 'unverified') show('code', T('صيفطنا ليك كود جديد. شوف الإيميل ديالك (وحتى Spam).')); else fail(r); } }, T('صيفط كود جديد'))]
+          : [linkTo(T('رجع للدخول'), 'login')]));
+    setTimeout(() => (v === 'signup' ? name.i : v === 'code' || v === 'reset' ? code.i : email.i).focus(), 0);
+  }
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    submit.disabled = true; err.hidden = true;
+    try {
+      const em = email.i.value.trim();
+      if (mode === 'signup') {
+        const r = await post('signup', { name: name.i.value, email: em, password: pass.i.value });
+        if (r.ok) show('code', T('صيفطنا كود ل {email}. شوف الإيميل ديالك (وحتى Spam) وكتب الكود هنا.', { email: em })); else fail(r);
+      } else if (mode === 'code') {
+        const r = await post('verify', { email: em, code: code.i.value });
+        if (r.ok) done(r); else fail(r);
+      } else if (mode === 'login') {
+        const r = await post('login', { email: em, password: pass.i.value });
+        if (r.ok) done(r);
+        else if (r.data.error === 'unverified') show('code', T('الحساب ديالك مازال ما تفعلش. صيفطنا ليك كود جديد فالإيميل.'));
+        else fail(r);
+      } else if (mode === 'forgot') {
+        await post('forgot', { email: em });
+        pass.i.value = '';
+        show('reset', T('إلا كان هاد الإيميل عندو حساب، راه وصلو كود. كتب الكود وكلمة السر الجديدة.'));
+      } else if (mode === 'reset') {
+        const r = await post('reset', { email: em, code: code.i.value, password: pass.i.value });
+        if (r.ok) done(r); else fail(r);
+      }
+    } catch { fail({ data: {} }); }
+    submit.disabled = false;
+  };
+  addPasswordEyes(dlg);
+  show(view);
+  dlg.showModal();
+}
+// The account corner of the page header: "sign in / sign up", or the person's name and "sign out".
+async function mountAccount(host, site) {
+  if (account.token) {
+    const r = await fetch('/api/member/me', { headers: { Authorization: 'Bearer ' + account.token } }).catch(() => null);
+    if (r && r.status === 401) { account.clear(); location.reload(); return; }     // the account was removed, or the session ended
+  }
+  if (!account.token && !(site && site.accounts)) return;
+  const box = el('span', { class: 'acc-box' });
+  if (account.token) box.append(el('span', { class: 'acc-name' }, account.name), el('button', { class: 'btn small', type: 'button', onclick: () => { account.clear(); location.reload(); } }, T('خروج')));
+  else box.append(el('button', { class: 'btn small', type: 'button', onclick: () => openAccount('login') }, T('دخول')), el('button', { class: 'btn small primary', type: 'button', onclick: () => openAccount('signup') }, T('تسجيل')));
+  host.append(box);
+}
+
 function createLink({ name = '', token = '', room = '' } = {}) {
   const handlers = {};
   const link = {
     uid: myUid(), name, token, ws: null, ready: false,
     on(t, fn) { (handlers[t] = handlers[t] || []).push(fn); return link; },
     send(obj) { if (link.ws && link.ws.readyState === 1) link.ws.send(JSON.stringify(obj)); },
-    hello() { link.send({ t: 'hello', uid: link.uid, name: link.name, token: link.token, room, color: Number(store.get('regam.color')) || 0 }); },
+    hello() { link.send({ t: 'hello', uid: link.uid, name: link.name, token: link.token, mt: account.token, room, color: Number(store.get('regam.color')) || 0 }); },
     setName(n) { link.name = n; store.set('regam.name', n); link.send({ t: 'name', name: n }); },
   };
   const emit = (ev) => (handlers[ev.t] || []).forEach((fn) => fn(ev));

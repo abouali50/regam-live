@@ -95,7 +95,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'),
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -266,10 +266,69 @@ async function until(fn, ms = 15000, step = 250) {
     for (const name of ['يوسف', 'هدى', 'عمر']) await studio.locator('#onStage li', { hasText: name }).locator('button.danger').click();
     check('the three leave and the first two stay', (await until(async () => (await studio.locator('#onStage li').count()) === 2 && await studio.evaluate(() => window.__studio.stage.size === 2), 10000)) !== null);
     for (const p of extra) await p.context().close();
+    // ---- viewer accounts: sign-up with a code sent by e-mail
+    {
+      const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
+      const adminSet = (body) => fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const lastMail = () => { const l = fs.readFileSync(path.join(OUT, 'outbox.jsonl'), 'utf8').trim().split('\n'); return JSON.parse(l[l.length - 1]); };
+      const codeIn = (m) => (m.text.match(/\b(\d{6})\b/) || [])[1];
+      const actx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1100, height: 800 } });
+      const a = await actx.newPage();
+      a.on('pageerror', (e) => errors.push('account: ' + e.message));
+      const closed = await fetch(BASE + '/api/member/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'X', email: 'x@example.com', password: 'motdepasse1' }) });
+      const lockEarly = await adminSet({ access: 'watch' });
+      const still = (await (await fetch(BASE + '/api/site')).json()).access;
+      check('without a mailbox to send codes, sign-up is closed and the site cannot be locked', closed.status === 503 && lockEarly.status === 200 && still === 'open');
+      const mailSet = await adminSet({ mail: { host: 'smtp.test.local', port: 465, user: 'live@test.local', from: 'live@test.local', pass: 'secret-pass' } });
+      check('once the mailbox is set, the front address becomes the site\'s home page', mailSet.status === 200 && /hero/.test(await (await fetch(BASE + '/')).text()));
+      await a.goto(BASE + '/');
+      check('the front page offers to create an account or sign in, in the visitor\'s language', (await until(() => a.locator('#heroUp').isVisible())) !== null && (await a.textContent('#heroUp')) === 'Créer un compte' && await a.locator('.acc-box').isVisible());
+      await a.click('#heroUp');
+      await a.fill('#accountDlg input[type=text]', 'Samira'); await a.fill('#accountDlg input[type=email]', 'Samira@Example.com'); await a.fill('#accountDlg input[type=password]', 'motdepasse1');
+      await a.click('#accountDlg button[type=submit]');
+      check('signing up sends a six-digit code to the person\'s own address', (await until(() => a.locator('#accountDlg .acc-code').isVisible())) !== null
+        && lastMail().to === 'samira@example.com' && /^\d{6}$/.test(codeIn(lastMail())) && /Samira/.test(lastMail().text));
+      const early = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'samira@example.com', password: 'motdepasse1' }) });
+      await a.fill('#accountDlg .acc-code', '000000'); await a.click('#accountDlg button[type=submit]');
+      check('nothing opens before the right code: sign-in refused, wrong code refused', early.status === 403 && (await until(() => a.locator('#accountDlg .err').isVisible())) !== null);
+      await a.fill('#accountDlg .acc-code', codeIn(lastMail())); await a.click('#accountDlg button[type=submit]');
+      check('the right code activates the account and signs the person in', (await until(() => a.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null && await a.locator('#heroHello').isVisible());
+      const dup = await fetch(BASE + '/api/member/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'X', email: 'samira@example.com', password: 'autrechose1' }) });
+      check('an address cannot be registered twice', dup.status === 409);
+
+      // members only: without an account, no stream and no room
+      const locked = await adminSet({ access: 'watch' });
+      const anon = await (await browser.newContext({ locale: 'ar-MA' })).newPage();
+      await anon.goto(BASE + '/r/main');
+      check('with "account needed to watch", a visitor without one is shown the way in and gets no stream', locked.status === 200 && (await until(() => anon.locator('#signBtns').isVisible())) !== null
+        && (await anon.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && (await anon.evaluate(async () => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa')).status)) === 401);
+      await a.goto(BASE + '/r/main');
+      check('a signed-in member enters, under the name of the account', (await until(() => a.locator('#liveBadge.on').isVisible())) !== null
+        && (await until(() => a.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null
+        && (await studio.click('.who-btn'), (await until(async () => (await studio.locator('.who-list li').allTextContents()).includes('Samira'), 8000)) !== null));
+      await studio.click('.who-dlg .btn');
+      await adminSet({ access: 'join' });
+      await anon.reload();
+      check('with "account needed to take part", watching is open but raising a hand asks to sign in', (await until(() => anon.locator('#liveBadge.on').isVisible())) !== null
+        && (await anon.click('#handBtn'), (await until(() => anon.locator('#accountDlg[open]').isVisible())) !== null));
+      // forgotten password
+      await anon.locator('#accountDlg .acc-link', { hasText: 'نسيت' }).click();
+      await anon.fill('#accountDlg input[type=email]', 'samira@example.com'); await anon.click('#accountDlg button[type=submit]');
+      await until(() => anon.locator('#accountDlg .acc-code').isVisible());
+      await anon.fill('#accountDlg .acc-code', codeIn(lastMail())); await anon.fill('#accountDlg input[type=password]', 'nouveaupass2'); await anon.click('#accountDlg button[type=submit]');
+      const oldPw = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'samira@example.com', password: 'motdepasse1' }) });
+      check('a forgotten password is replaced with a code sent by e-mail', (await until(() => anon.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null && oldPw.status === 401);
+      // administration
+      const adminData = await (await fetch(BASE + '/api/admin', { headers: { Authorization: 'Bearer ' + tok } })).json();
+      const noMailLock = await (await fetch(BASE + '/api/member/me')).status;
+      check('the administrator sees the members, never their password', adminData.accounts.members.total === 1 && adminData.accounts.members.list[0].email === 'samira@example.com' && !JSON.stringify(adminData).includes('hash') && adminData.accounts.mail.hasPass === true && !JSON.stringify(adminData).includes('secret-pass') && noMailLock === 401);
+      await adminSet({ access: 'open', mail: { host: '', port: 465, user: '', from: '' } });       // the rest of the run is without accounts, as on a fresh install
+      await anon.context().close(); await actx.close();
+    }
     // ---- waiting room: people give a name, the host lets them in or not
     await studio.check('#gateChk');
     await sleep(500);
-    const door = async () => { const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 700, height: 600 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('door: ' + e.message)); await p.goto(BASE + '/'); return p; };
+    const door = async () => { const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 700, height: 600 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('door: ' + e.message)); await p.goto(BASE + '/r/main'); return p; };
     const w1 = await door();
     check('with the waiting room on, a newcomer is asked for a name and gets no stream', (await until(() => w1.locator('#nameDlg[open]').isVisible())) !== null
       && (await w1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && await w1.locator('#liveBadge.off').isVisible());

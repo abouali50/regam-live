@@ -13,12 +13,24 @@
   <div class="meta"></div>
 </header>
 <main class="home-main">
-  <h1 class="home-title">القاعات</h1>
+  <section class="hero">
+    <h1 id="heroTitle">دروس ولقاءات مباشرة</h1>
+    <p id="heroLead">تابع الأساتذة ديالك على المباشر، سول، علق، وطلع معاهم للمنصة بالصوت والصورة.</p>
+    <p class="hero-actions" id="heroActions" hidden>
+      <button id="heroUp" class="btn primary" type="button">إنشاء حساب</button>
+      <button id="heroIn" class="btn" type="button">الدخول</button>
+    </p>
+    <p class="hero-hello" id="heroHello" hidden></p>
+  </section>
+  <h2 class="home-title">القاعات</h2>
   <p class="muted" id="homeLead">اختار القاعة اللي بغيتي تتبع. القاعات اللي فيها لايف دابا كيبانو الأولين.</p>
   <div id="rooms" class="room-groups"></div>
   <p id="noRooms" class="muted" hidden>ما كاين حتى قاعة دابا.</p>
-  <p><a class="btn" href="/teach">بغيتي تولي أستاذ عندنا؟ سجل هنا</a></p>
 </main>
+<footer class="foot">
+  <a href="/teach">بغيتي تولي أستاذ عندنا؟ سجل هنا</a>
+  <a href="/studio">دخول الأساتذة</a>
+</footer>
 <script src="/i18n.js"></script>
 <script src="/common.js"></script>
 <script src="/home.js"></script>

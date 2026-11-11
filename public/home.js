@@ -27,6 +27,16 @@
           el('span', { class: 'room-by' }, r.host),
           r.live ? el('span', { class: 'viewers' }, el('span', { class: 'dot' }), String(r.viewers)) : null))))));
   }
+  // the account corner, and the invitation to sign up for people who have no account yet
+  fetch('/api/site').then((r) => r.json()).then((site) => {
+    mountAccount(document.querySelector('.top .meta'), site);
+    if (account.token) { $('#heroHello').hidden = false; $('#heroHello').textContent = T('مرحبا {name}', { name: account.name }); }
+    else if (site.accounts) {
+      $('#heroActions').hidden = false;
+      $('#heroUp').onclick = () => openAccount('signup');
+      $('#heroIn').onclick = () => openAccount('login');
+    }
+  }).catch(() => {});
   load();
   setInterval(load, 10000);
 })();

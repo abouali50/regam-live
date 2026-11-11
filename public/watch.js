@@ -9,7 +9,8 @@
   if (!cfgRes.ok) { location.replace('/rooms'); return; }
   const cfg = await cfgRes.json();
   window.REGAM_ROOM = cfg.room;
-  if (cfg.rooms > 1) { $('#roomsLink').hidden = false; $('#roomHost').textContent = cfg.host; $('#roomHost').hidden = false; }
+  if (cfg.rooms > 1 || cfg.accounts) $('#roomsLink').hidden = false;
+  if (cfg.rooms > 1) { $('#roomHost').textContent = cfg.host; $('#roomHost').hidden = false; }
   document.title = cfg.title === cfg.site ? cfg.site : `${cfg.title} · ${cfg.site}`;
   $('#title').textContent = cfg.title;
 
@@ -18,6 +19,8 @@
   // ---------------------------------------------------------------- name --
   const nameDlg = $('#nameDlg'), nameInput = $('#nameInput');
   function askName() {
+    // where an account is needed to take part, the name is the account's name
+    if (cfg.access !== 'open' && !account.token) { openAccount('login'); return Promise.resolve(null); }
     return new Promise((resolve) => {
       nameInput.value = link.name || '';
       const finish = (v) => { nameDlg.close(); resolve(v); };
@@ -34,7 +37,8 @@
     });
   }
 
-  const link = createLink({ name: store.get('regam.name') || '', room: cfg.room });
+  const link = createLink({ name: account.name || store.get('regam.name') || '', room: cfg.room });
+  mountAccount(document.querySelector('.top .meta'), cfg);
   const chat = mountChat($('#chat'), link, { askName });
   mountWho(link);
 
@@ -276,7 +280,7 @@
   });
   // ---- waiting room: the person gives a name, the host lets them in (or not)
   const knockBtn = $('#knockBtn');
-  const pass = () => fetch(`/api/pass?room=${encodeURIComponent(cfg.room)}&uid=${link.uid}`).catch(() => {});
+  const pass = () => fetch(`/api/pass?room=${encodeURIComponent(cfg.room)}&uid=${link.uid}`, { headers: account.token ? { Authorization: 'Bearer ' + account.token } : {} }).catch(() => {});
   async function knock() {
     const n = link.name || await askName();
     if (n) link.send({ t: 'knock', name: n });
@@ -290,11 +294,20 @@
   })
     .on('admitted', () => { knockBtn.hidden = true; link.hello(); })
     .on('refused', () => { setLive(false); knockBtn.hidden = true; $('#offlineText').textContent = T('صاحب اللايف ما قبلش الدخول ديالك.'); })
-    .on('gate', (d) => { if (d.on) pass(); });
+    .on('gate', (d) => { if (d.on) pass(); })
+    .on('signin', () => {                     // the site is for signed-in people: show the way in
+      setLive(false); knockBtn.hidden = true;
+      $('#offlineText').textContent = T('خاصك حساب باش تتفرج. سجل ولا دخل بالحساب ديالك.');
+      if (account.token) { account.clear(); location.reload(); return; }
+      $('#signBtns').hidden = false;
+    })
+    .on('err', (d) => { if (d.code === 'signin') openAccount('login'); });
+  $('#signIn').onclick = () => openAccount('login');
+  $('#signUp').onclick = () => openAccount('signup');
   link.on('init', async (d) => {
     knockBtn.hidden = true;
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
-    if (d.gate) await pass();                 // lets the player fetch the stream
+    if (d.needPass) await pass();                 // lets the player fetch the stream
     setLive(d.live);
     $('#viewers').textContent = d.viewers;
     if (d.title) $('#title').textContent = d.title;

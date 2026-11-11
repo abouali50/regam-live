@@ -217,8 +217,9 @@ a.btn.primary { color: #1b1405; }
 .sub { font-size: 14px; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
 li.guest-box { list-style: none; flex-wrap: wrap; }
 .guest-acts { display: flex; gap: 6px; flex-wrap: wrap; }
-.mix-sources { position: fixed; left: 0; bottom: 0; width: 2px; height: 2px; overflow: hidden; opacity: 0; pointer-events: none; }
-.mix-sources video { width: 2px; height: 2px; }
+/* the pictures being mixed: kept on screen (phones stop decoding a video that is hidden), but too small and faint to notice */
+.mix-sources { position: fixed; left: 0; top: 0; width: 6px; height: 6px; overflow: hidden; opacity: 0.02; pointer-events: none; z-index: 1; }
+.mix-sources video { width: 6px; height: 6px; object-fit: cover; }
 #muteAll, #admitAll { margin-top: 8px; }
 .check { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; cursor: pointer; }
 .check input { width: 20px; height: 20px; flex: none; }

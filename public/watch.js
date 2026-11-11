@@ -36,6 +36,7 @@
 
   const link = createLink({ name: store.get('regam.name') || '', room: cfg.room });
   const chat = mountChat($('#chat'), link, { askName });
+  mountWho(link);
 
   // -------------------------------------------------------------- player --
   function stopHls() {
@@ -91,9 +92,10 @@
     handBtn.hidden = !on || onStage;
     if (on) startHls(); else stopHls();
   }
-  function showGuest(g) {
-    guestLine.hidden = !g || !g.ready;
-    if (g) guestLine.textContent = T('{name} على المنصة مع {host}', { name: g.name, host: cfg.host });
+  function showGuests(list) {
+    const on = (list || []).filter((g) => g.ready).map((g) => g.name);
+    guestLine.hidden = on.length === 0;
+    if (on.length) guestLine.textContent = T('{name} على المنصة مع {host}', { name: on.join(LANG === 'ar' ? '، ' : ', '), host: cfg.host });
   }
   function setHand(on) {
     handUp = on;
@@ -117,25 +119,25 @@
 
   // ------------------------------------------------- on stage (the guest) --
   const inviteDlg = $('#inviteDlg'), inviteErr = $('#inviteErr'), stageBar = $('#stageBar'), micBtn = $('#micBtn');
-  let stage = null;   // { token, cam, pub, watch, voice }
+  let stage = null;   // { token, slot, cam, pub, watch, voice }
 
-  async function goOnStage(token) {
+  async function goOnStage(token, slot) {
     const cam = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 }, facingMode: 'user' },
+      video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 20 }, facingMode: 'user' },
     });
-    stage = { token, cam };
+    stage = { token, slot, cam };
     try {
       const pub = new RTCPeerConnection();
       stage.pub = pub;
       pub.addTransceiver(cam.getAudioTracks()[0], { direction: 'sendonly', streams: [cam] });
-      preferH264(pub.addTransceiver(cam.getVideoTracks()[0], { direction: 'sendonly', streams: [cam], sendEncodings: [{ maxBitrate: 900_000 }] }));
-      await rtcNegotiate(pub, 'whip', 'guest', token);
+      preferH264(pub.addTransceiver(cam.getVideoTracks()[0], { direction: 'sendonly', streams: [cam], sendEncodings: [{ maxBitrate: 500_000 }] }));
+      await rtcNegotiate(pub, 'whip', 'guest' + slot, token);
 
-      // Picture: the mixed broadcast. Sound: the host's microphone only,
-      // so the guest never hears their own voice coming back.
+      // Picture: the mixed broadcast. Sound: a mix made for this guest (the host and
+      // the other guests), so nobody hears their own voice coming back.
       stage.watch = await rtcWatch('studio', token);
-      stage.voice = await rtcWatch('backstage', token, { video: false });
+      stage.voice = await rtcWatch('backstage' + slot, token, { video: false });
     } catch (e) { leaveStage(false); throw e; }
 
     onStage = true;
@@ -155,9 +157,9 @@
     if (!stage) return;
     const s = stage; stage = null;
     s.cam.getTracks().forEach((t) => t.stop());
-    if (s.pub) rtcClose(s.pub, 'whip', 'guest', s.token);
+    if (s.pub) rtcClose(s.pub, 'whip', 'guest' + s.slot, s.token);
     if (s.watch) rtcClose(s.watch.pc, 'whep', 'studio', s.token);
-    if (s.voice) rtcClose(s.voice.pc, 'whep', 'backstage', s.token);
+    if (s.voice) rtcClose(s.voice.pc, 'whep', 'backstage' + s.slot, s.token);
     if (tellServer) link.send({ t: 'leave' });
     onStage = false;
     lockLang(false);
@@ -185,13 +187,13 @@
     setLive(d.live);
     $('#viewers').textContent = d.viewers;
     if (d.title) $('#title').textContent = d.title;
-    showGuest(d.guest); setHand(!!d.hand);
-    if (onStage && !(d.guest && d.guest.uid === link.uid)) leaveStage(false);
+    showGuests(d.guests); setHand(!!d.hand);
+    if (onStage && !(d.guests || []).some((g) => g.uid === link.uid)) leaveStage(false);
   })
     .on('live', (d) => setLive(d.on))
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
-    .on('guest', (d) => showGuest(d.guest))
+    .on('guests', (d) => showGuests(d.guests))
     .on('hand', (d) => { setHand(d.on); if (d.on) chat.say(T('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.'), 6000); })
     .on('invite', (d) => {
       setHand(false);
@@ -199,7 +201,7 @@
       $('#inviteYes').disabled = false;
       $('#inviteYes').onclick = async () => {
         $('#inviteYes').disabled = true;
-        try { await goOnStage(d.token); inviteDlg.close(); }
+        try { await goOnStage(d.token, d.slot); inviteDlg.close(); }
         catch (e) {
           $('#inviteYes').disabled = false;
           inviteErr.hidden = false;

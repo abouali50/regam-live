@@ -69,7 +69,18 @@ function mountChat(root, link, { askName } = {}) {
   const note = el('div', { class: 'note', hidden: true });
   const input = el('input', { type: 'text', maxlength: 300, placeholder: T('اكتب تعليق…'), autocomplete: 'off', enterkeyhint: 'send', 'aria-label': T('تعليق') });
   const form = el('form', { class: 'composer', onsubmit: submit }, input, el('button', { type: 'submit', class: 'btn primary' }, T('إرسال')));
-  root.append(el('div', { class: 'chat-head' }, T('التعليقات')), pinned, el('div', { class: 'msgs-wrap' }, list, more), note, form);
+  // The panel folds away so the picture keeps the room; a counter shows what arrived meanwhile.
+  const unread = el('span', { class: 'chat-unread', hidden: true }, '0');
+  const head = el('button', { class: 'chat-head', type: 'button', 'aria-expanded': 'false', onclick: () => setOpen(root.classList.contains('collapsed')) },
+    el('span', {}, T('التعليقات')), unread, el('span', { class: 'chat-chevron', 'aria-hidden': 'true' }));
+  root.append(head, pinned, el('div', { class: 'msgs-wrap' }, list, more), note, form);
+  let missed = 0;
+  function setOpen(open) {
+    root.classList.toggle('collapsed', !open);
+    head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    store.set('regam.chat', open ? 'open' : 'closed');
+    if (open) { missed = 0; unread.hidden = true; stick = true; requestAnimationFrame(scroll); }
+  }
 
   let stick = true, noteTimer = null;
   list.addEventListener('scroll', () => {
@@ -78,6 +89,7 @@ function mountChat(root, link, { askName } = {}) {
   });
   function scroll() { list.scrollTop = list.scrollHeight; more.hidden = true; }
   function say(text, ms = 4000) {
+    if (root.classList.contains('collapsed') && ms !== 0) setOpen(true);   // a message for this person: show it
     note.textContent = text; note.hidden = false;
     clearTimeout(noteTimer);
     if (ms) noteTimer = setTimeout(() => { note.hidden = true; }, ms);
@@ -97,6 +109,7 @@ function mountChat(root, link, { askName } = {}) {
     list.append(row(m));
     while (list.childElementCount > 300) list.firstElementChild.remove();
     if (stick) scroll(); else more.hidden = false;
+    if (root.classList.contains('collapsed')) { missed++; unread.textContent = missed > 99 ? '99+' : String(missed); unread.hidden = false; }
   }
 
   async function submit(e) {
@@ -126,7 +139,8 @@ function mountChat(root, link, { askName } = {}) {
       if (d.code === 'banned') say(T('تم حظرك من التعليق فهاد اللايف.'), 0);
     })
     .on('offline', () => say(T('الاتصال مقطوع، كنعاود نتصل…'), 0));
-  return { say, focus: () => input.focus() };
+  setOpen(store.get('regam.chat') === 'open');          // folded unless the person opened it before
+  return { say, focus: () => input.focus(), open: () => setOpen(true) };
 }
 
 // ---------------------------------------------------------------- webrtc --
@@ -251,3 +265,31 @@ function addPasswordEyes(root = document) {
   }
 }
 addPasswordEyes();
+
+// --------------------------------------------------------- who is watching --
+// The viewer counter is a button: it opens the list of names in the room.
+function mountWho(link) {
+  const counter = document.querySelector('.viewers');
+  if (!counter) return;
+  const btn = el('button', { type: 'button', class: 'viewers who-btn', title: T('شكون كيتفرج'), 'aria-label': T('شكون كيتفرج') });
+  btn.append(...counter.childNodes);
+  counter.replaceWith(btn);
+  const list = el('ul', { class: 'who-list' });
+  const extra = el('p', { class: 'muted' });
+  const dlg = el('dialog', { class: 'dlg who-dlg' }, el('h2', {}, T('شكون كيتفرج')), list, extra,
+    el('div', { class: 'dlg-actions' }, el('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, T('سد'))));
+  document.body.append(dlg);
+  let timer = null;
+  const ask = () => link.send({ t: 'who' });
+  btn.onclick = () => { ask(); if (!dlg.open) dlg.showModal(); clearInterval(timer); timer = setInterval(ask, 4000); };
+  dlg.addEventListener('close', () => clearInterval(timer));
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // a click outside closes it
+  link.on('who', (d) => {
+    list.replaceChildren(...d.people.sort((x, y) => (y.host ? 1 : 0) - (x.host ? 1 : 0) || x.name.localeCompare(y.name))
+      .map((p) => el('li', { class: p.host ? 'is-host' : '' }, el('span', {}, p.name), p.host ? el('span', { class: 'badge off' }, T('صاحب اللايف')) : null)));
+    const bits = [];
+    if (d.more) bits.push(T('و {n} آخرين', { n: d.more }));
+    if (d.anon) bits.push(T('{n} متابع بلا اسم', { n: d.anon }));
+    extra.textContent = bits.join(' · '); extra.hidden = bits.length === 0;
+  });
+}

@@ -67,4 +67,4 @@ paths:
     recordFormat: fmp4
     recordSegmentDuration: 6h
     recordDeleteAfter: 0s
-  "~^(guest|backstage)_[a-z0-9-]+$":
+  "~^(guest|backstage)([1-9]|1[0-2])_[a-z0-9-]+$":

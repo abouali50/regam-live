@@ -55,6 +55,7 @@
     const recUrl = (extra = '') => `/api/recordings?room=${mine.slug}${extra}`;
     const link = createLink({ token, room: mine.slug });
     mountChat($('#chat'), link);
+    mountWho(link);
     mountReactions($('#reactions'), $('#hearts'), link, { totalEl: $('#likes') });
 
     // --------------------------------------------------------- the mixer --
@@ -78,8 +79,9 @@
     let camTrack = null, screenTrack = null, micTrack = null, micOn = true;
     let audioCtx = null, mixOut = null, micGain = null;
     let pc = null, liveOn = false;             // main broadcast
-    let back = null;                           // host voice for the guest
-    let guestRx = null, guestNode = null, guest = null;
+    let guests = [], maxGuests = 12;           // who the server says is on stage
+    const onStage = new Map();                 // slot -> what we have set up for that guest
+    const buses = {};                          // slot -> the sound mix sent to that guest
 
     const press = (btn, on) => btn.setAttribute('aria-pressed', on ? 'true' : 'false');
 
@@ -163,7 +165,6 @@
     $('#micBtn').onclick = () => {
       micOn = !micOn;
       if (micGain) micGain.gain.value = micOn ? 1 : 0;
-      if (back && back.track) back.track.enabled = micOn;
       press($('#micBtn'), micOn);
     };
 
@@ -208,7 +209,7 @@
         $('#goBtn').classList.add('danger');
         $('#onAir').hidden = false;
         status(T('كنتصلو…'));
-        if (guest) syncGuest();
+        syncGuests();
       } catch (e) {
         if (pc) { pc.close(); pc = null; }
         status(T(e && e.status === 401 ? 'سالات الجلسة. عاود دخل.' : 'ما قدرناش نبداو اللايف. السيرفر ديال البث ما كيجاوبش.'));
@@ -216,8 +217,8 @@
       } finally { $('#goBtn').disabled = false; }
     }
     function stopLive() {
-      if (guest) link.send({ t: 'unstage' });
-      dropGuestMedia();
+      if (guests.length) link.send({ t: 'unstage' });
+      for (const slot of [...onStage.keys()]) dropGuest(slot);
       if (pc) { rtcClose(pc, 'whip', 'studio', token); pc = null; }
       liveOn = false;
       $('#goBtn').textContent = T('ابدأ اللايف');
@@ -228,57 +229,82 @@
     }
     $('#goBtn').onclick = () => (liveOn ? stopLive() : goLive());
 
-    // ------------------------------------------------------------- guest --
-    // 1) we publish our raw voice on "backstage" so the guest hears us without hearing themself
-    // 2) once the guest is publishing, we pull their camera + voice and add both to the mix
-    async function syncGuest() {
-      if (!guest || !liveOn) return;
-      try {
-        if (!back) {
-          const track = micTrack.clone();
-          track.enabled = micOn;
-          const bpc = new RTCPeerConnection();
-          back = { pc: bpc, track };
-          bpc.addTransceiver(track, { direction: 'sendonly' });
-          await rtcNegotiate(bpc, 'whip', 'backstage', token);
-        }
-        if (guest && guest.ready && !guestRx) {
-          const want = guest.uid;
-          const rx = await rtcWatch('guest', token);
-          if (!guest || guest.uid !== want || !liveOn) { rtcClose(rx.pc, 'whep', 'guest', token); return; }
-          guestRx = rx;
-          const attach = () => {
-            const v = rx.stream.getVideoTracks()[0], a = rx.stream.getAudioTracks()[0];
-            if (v) setInput('guest', v);
-            if (a && !guestNode) {
-              $('#guestAudio').srcObject = new MediaStream([a]);     // so we hear the guest
-              guestNode = audioCtx.createMediaStreamSource(new MediaStream([a]));
-              guestNode.connect(mixOut);                             // so the audience hears the guest
-            }
-          };
-          attach();
-          rx.pc.addEventListener('track', () => setTimeout(attach, 0));
-          status(T('{name} طلع معاك للمنصة. استعمل السماعات باش ما يكونش الصدى.', { name: guest.name }));
-        }
-      } catch { status(T('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.')); }
+    // ------------------------------------------------------------ guests --
+    // Up to twelve guests. For each one:
+    //  1) we publish a sound mix made for them on "backstage<n>": our voice and the
+    //     other guests, without their own voice, so they hear everybody but no echo
+    //  2) once they publish, we pull their camera + voice and add both to the broadcast
+    function busFor(slot) {
+      if (!buses[slot]) {
+        const gain = audioCtx.createGain(), dest = audioCtx.createMediaStreamDestination();
+        gain.connect(dest);
+        micGain.connect(gain);
+        for (const [other, st] of onStage) if (other !== slot && st.node) st.node.connect(gain);
+        buses[slot] = { gain, dest };
+      }
+      return buses[slot];
     }
-    function dropGuestMedia() {
-      setInput('guest', null);
-      if (guestNode) { guestNode.disconnect(); guestNode = null; }
-      $('#guestAudio').srcObject = null;
-      if (guestRx) { rtcClose(guestRx.pc, 'whep', 'guest', token); guestRx = null; }
-      if (back) { back.track.stop(); rtcClose(back.pc, 'whip', 'backstage', token); back = null; }
+    function dropGuest(slot) {
+      const st = onStage.get(slot);
+      if (!st) return;
+      onStage.delete(slot);
+      setInput('guest' + slot, null);
+      worker.postMessage({ type: 'guestName', slot, name: '' });
+      if (st.node) st.node.disconnect();
+      if (st.sink) { st.sink.pause(); st.sink.srcObject = null; }
+      if (st.rx) rtcClose(st.rx.pc, 'whep', 'guest' + slot, token);
+      if (st.back) rtcClose(st.back, 'whip', 'backstage' + slot, token);
     }
-    function showGuest(g) {
-      const changed = !!guest && (!g || g.uid !== guest.uid);
-      if (changed) dropGuestMedia();
-      guest = g;
-      $('#guestBox').hidden = !g;
-      if (g) $('#guestName').textContent = T(g.ready ? '{name} على المنصة' : 'كنتسناو {name} يدخل…', { name: g.name });
-      worker.postMessage({ type: 'guestName', name: g ? g.name : '' });
-      if (g) syncGuest();
+    async function syncGuests() {
+      for (const slot of [...onStage.keys()]) {                       // left, or replaced by someone else
+        const g = guests.find((x) => x.slot === slot);
+        if (!g || g.uid !== onStage.get(slot).uid) dropGuest(slot);
+      }
+      if (!liveOn) return;
+      for (const g of guests) {
+        let st = onStage.get(g.slot);
+        if (!st) { st = { uid: g.uid, rx: null, node: null, sink: null, back: null, busy: false }; onStage.set(g.slot, st); }
+        if (st.busy) continue;
+        st.busy = true;
+        try {
+          if (!st.back) {
+            const bpc = new RTCPeerConnection();
+            st.back = bpc;
+            bpc.addTransceiver(busFor(g.slot).dest.stream.getAudioTracks()[0], { direction: 'sendonly' });
+            await rtcNegotiate(bpc, 'whip', 'backstage' + g.slot, token);
+          }
+          if (g.ready && !st.rx) {
+            const rx = await rtcWatch('guest' + g.slot, token);
+            if (onStage.get(g.slot) !== st || !liveOn) { rtcClose(rx.pc, 'whep', 'guest' + g.slot, token); continue; }
+            st.rx = rx;
+            const attach = () => {
+              const v = rx.stream.getVideoTracks()[0], a = rx.stream.getAudioTracks()[0];
+              if (v) setInput('guest' + g.slot, v);
+              if (a && !st.node) {
+                st.sink = new Audio(); st.sink.autoplay = true;          // so we hear the guest
+                st.sink.srcObject = new MediaStream([a]); st.sink.play().catch(() => {});
+                st.node = audioCtx.createMediaStreamSource(new MediaStream([a]));
+                st.node.connect(mixOut);                                  // the audience hears the guest
+                for (const [other, bus] of Object.entries(buses)) if (Number(other) !== g.slot) st.node.connect(bus.gain);   // and so do the other guests
+              }
+            };
+            attach();
+            rx.pc.addEventListener('track', () => setTimeout(attach, 0));
+            status(T('{name} طلع معاك للمنصة. استعمل السماعات باش ما يكونش الصدى.', { name: g.name }));
+          }
+        } catch { status(T('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.')); }
+        st.busy = false;
+      }
     }
-    $('#unstageBtn').onclick = () => link.send({ t: 'unstage' });
+    function showGuests(list) {
+      guests = list || [];
+      $('#noGuests').hidden = guests.length > 0;
+      $('#onStage').replaceChildren(...guests.map((g) => el('li', { class: 'guest-box' },
+        el('span', {}, T(g.ready ? '{name} على المنصة' : 'كنتسناو {name} يدخل…', { name: g.name })),
+        el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'unstage', uid: g.uid }) }, T('نزلو من المنصة')))));
+      for (const g of guests) worker.postMessage({ type: 'guestName', slot: g.slot, name: g.name });
+      syncGuests();
+    }
 
     function showHands(list) {
       $('#noHands').hidden = list.length > 0;
@@ -286,6 +312,7 @@
         el('span', {}, h.name),
         el('button', { class: 'btn primary', type: 'button', onclick: () => {
           if (!liveOn) return status(T('بدا اللايف أولا، عاد قبل الطلبات.'));
+          if (guests.length >= maxGuests) return status(T('المنصة عامرة. نزل شي واحد أولا.'));
           link.send({ t: 'stage', uid: h.uid });
         } }, T('قبول')))));
     }
@@ -301,12 +328,14 @@
       $('#titleInput').value = d.title || '';
       $('#pinInput').value = d.pinned || '';
       $('#slowSel').value = String(d.slow);
-      setBadge(d.live); showHands(d.hands || []); showGuest(d.guest);
+      maxGuests = d.maxGuests || 12;
+      setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
     })
       .on('live', (d) => setBadge(d.on))
       .on('viewers', (d) => { $('#viewers').textContent = d.n; })
       .on('hands', (d) => showHands(d.list))
-      .on('guest', (d) => showGuest(d.guest))
+      .on('guests', (d) => showGuests(d.guests))
+      .on('err', (d) => { if (d.code === 'stagefull') status(T('المنصة عامرة. نزل شي واحد أولا.')); })
       .on('slow', (d) => { $('#slowSel').value = String(d.sec); });
     // -------------------------------------------------------- recordings --
     const fmtSize = (n) => (n >= 1e9 ? (n / 1e9).toFixed(1) + ' GB' : Math.max(1, Math.round(n / 1e6)) + ' MB');
@@ -342,7 +371,7 @@
 
     addEventListener('pagehide', () => { if (liveOn) stopLive(); });
     addEventListener('beforeunload', (e) => { if (liveOn) e.preventDefault(); });
-    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board };   // for diagnostics
+    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board, stage: onStage };   // for diagnostics
     camOn();
   }
 })();

@@ -309,3 +309,28 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .foot { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; padding: 22px 16px calc(22px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); margin-top: 30px; font-size: 14px; }
 .foot a { color: var(--muted); }
 @media (max-width: 600px) { .home .top, .watch .top { flex-wrap: wrap; row-gap: 6px; } }
+
+/* reactions folded into one button; the box of seven opens above it */
+.react-wrap { position: relative; display: inline-flex; }
+.react-open { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.react-open:hover { border-color: #3a4556; }
+.react-open:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.react-open[aria-expanded="true"] { border-color: var(--gold); }
+.react-open .react-e { font-size: 20px; }
+.react-open .react-e2 { margin-inline-start: -8px; }
+.react-open .react-n { font-size: 14px; color: var(--text); margin-inline-start: 4px; }
+.react-row.react-box { position: absolute; z-index: 30; bottom: calc(100% + 8px); inset-inline-start: 0; width: max-content; max-width: min(92vw, 420px); flex: none;
+  display: grid; grid-template-columns: repeat(7, 46px); gap: 6px; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.5); }
+.react-row.react-box[hidden] { display: none; }
+@media (max-width: 420px) { .react-row.react-box { grid-template-columns: repeat(4, 46px); } }
+
+/* the offline picture: the reef, drifting slowly, with moving light, fish and bubbles drawn over it */
+.watch .offline { background: #073a58; overflow: hidden; color: #eaf7ff; text-shadow: 0 1px 6px rgba(0,20,40,.9); }
+.watch .offline::before { content: ""; position: absolute; inset: -5%; background: url("/sea.webp") center / cover no-repeat; animation: reef-drift 24s ease-in-out infinite alternate; }
+.watch .offline::after { content: ""; position: absolute; inset: 0; background: radial-gradient(70% 60% at 50% 50%, rgba(2,16,30,.62), rgba(2,16,30,.18) 70%, rgba(2,16,30,.38)); }
+@keyframes reef-drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.07) translate(-1.2%, 1%); } }
+@media (prefers-reduced-motion: reduce) { .watch .offline::before { animation: none; } }
+.sea { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; }
+.watch .offline > :not(.sea) { position: relative; z-index: 2; }
+.watch .offline-mark { text-shadow: 0 2px 14px rgba(0,20,40,.8); }
+.watch .offline-mark b { background: rgba(2,20,36,.7); color: #d7efff; }

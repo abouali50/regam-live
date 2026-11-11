@@ -638,7 +638,11 @@ setInterval(() => {
     for (const ws of room.clients) if (ws.readyState === 1) ws.send(frame);
   }
 }, 200);
-const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws, obj); };
+const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod || ws.helper) tx(ws, obj); };
+// Assistants: members the host chose to help in a room. They can accept or refuse people, bring guests
+// up or down, close a microphone, delete comments and ban; nothing else (no broadcast, no settings).
+const HELPER_ACTS = new Set(['del', 'ban', 'admit', 'stage', 'unstage', 'mute']);
+const helpersOf = (room) => (room.cfg.helpers || []).map((id) => acct.byId(id)).filter(Boolean).map((m) => ({ id: m.id, name: m.name, email: m.email }));
 const toUid = (room, uid, obj) => { for (const ws of room.byUid.get(uid) || []) tx(ws, obj); };
 const viewersOf = (room) => { let n = 0; for (const ws of room.clients) if (!ws.mod) n++; return n; };
 // People at the door of a room with a waiting room (one line per person, whatever their number of tabs).
@@ -703,7 +707,8 @@ wss.on('connection', (ws, req) => {
       const host = canHost(user, room);
       const member = host ? null : acct.memberOf(d.mt);
       if (!host && !member && acct.access() === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
-      if (!host && room.cfg.code) {             // the room has an entry code
+      const helper = !!member && (room.cfg.helpers || []).includes(member.id);
+      if (!host && !helper && room.cfg.code) {             // the room has an entry code
         const wrong = !codeOk(room, d.code);
         if (!codeAllowed(ws.ip, wrong && !!d.code)) return tx(ws, { t: 'code', wait: true });
         if (wrong) return tx(ws, { t: 'code', bad: !!d.code });
@@ -712,7 +717,7 @@ wss.on('connection', (ws, req) => {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full
         return ws.close();
       }
-      if (!host && room.cfg.gate && !room.admitted.has(String(d.uid))) {      // waiting room: the host lets people in one by one
+      if (!host && !helper && room.cfg.gate && !room.admitted.has(String(d.uid))) {      // waiting room: the host lets people in one by one
         ws.uid = String(d.uid);
         if (room.refused.has(ws.uid)) return tx(ws, { t: 'refused' });
         if (room.waiters.size >= 2000) { tx(ws, { t: 'full', capacity: 0 }); return ws.close(); }
@@ -724,6 +729,7 @@ wss.on('connection', (ws, req) => {
       }
       ws.room = room; ws.uid = d.uid;
       ws.mod = host;
+      ws.helper = helper;
       ws.userId = ws.mod ? user.id : null;
       ws.member = member ? member.id : null;
       ws.name = ws.mod ? user.name : member ? member.name : clean(d.name, MAX_NAME);
@@ -734,10 +740,10 @@ wss.on('connection', (ws, req) => {
       return tx(ws, {
         t: 'init', live: room.live, likes: room.likes, reacts: room.totals, viewers: room.clients.size,
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
-        history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod, banned: !!room.cfg.banned[ws.uid],
-        hands: ws.mod ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
+        history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
+        hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
         code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room),
-        rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod ? waitingList(room) : undefined,
+        rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
       });
     }
     if (ws.waitRoom) {                      // at the door: the only thing to say is one's name
@@ -812,8 +818,9 @@ wss.on('connection', (ws, req) => {
       }
     }
 
-    // ---- moderator actions (the room's host)
-    if (!ws.mod) return;
+    // ---- moderator actions (the room's host, and for a few of them the assistants)
+    if (!ws.mod && !(ws.helper && HELPER_ACTS.has(d.t))) return;
+    if (ws.helper && d.t === 'stage' && !room.live) return tx(ws, { t: 'err', code: 'notlive' });
     switch (d.t) {
       case 'del': {
         const i = room.history.findIndex((m) => m.id === d.id);
@@ -878,6 +885,17 @@ wss.on('connection', (ws, req) => {
         cfg.next = at > Date.now() - 3600e3 && at < Date.now() + 366 * 24 * 3600e3 ? { at, title: clean(d.title, 80) } : null;
         save();
         return broadcast(room, { t: 'next', next: nextOf(room) });
+      }
+      case 'helper': {                     // the host names an assistant (by the e-mail of their account) or removes one
+        const list = (cfg.helpers = cfg.helpers || []);
+        const m = d.id ? acct.byId(String(d.id)) : acct.find(d.email);
+        if (!m) return tx(ws, { t: 'helpers', list: helpersOf(room), err: 'unknown' });
+        const on = d.on !== false;
+        if (on && !list.includes(m.id) && list.length < 20) list.push(m.id);
+        if (!on) cfg.helpers = list.filter((id) => id !== m.id);
+        save();
+        for (const c of room.clients) if (c.member === m.id) tx(c, { t: 'helper', on });      // their page takes the new role at once
+        return toMods(room, { t: 'helpers', list: helpersOf(room) });
       }
       case 'rec':                          // record this live, or stop recording it
         if (d.on && !room.live) return tx(ws, { t: 'rec', on: false, err: 'offline' });

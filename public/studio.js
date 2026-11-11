@@ -59,20 +59,48 @@
     mountReactions($('#reactions'), $('#hearts'), link, { totalEl: $('#likes') });
 
     // --------------------------------------------------------- the mixer --
-    const supported = 'MediaStreamTrackProcessor' in window && 'MediaStreamTrackGenerator' in window;
-    if (!supported) {
-      status(T('الاستوديو كيخدم على Google Chrome ولا Edge فالحاسوب. حل هاد الصفحة فواحد منهم.'));
+    // Computers (Chrome, Edge): the picture is mixed in a worker, which keeps going while
+    // another window is in front (needed for screen sharing). Phones, tablets and Safari:
+    // a simple mixer on the page itself, which works as long as the page stays on screen.
+    const fast = 'MediaStreamTrackProcessor' in window && 'MediaStreamTrackGenerator' in window && new URLSearchParams(location.search).get('mixer') !== 'simple';
+    const simple = !fast && !!HTMLCanvasElement.prototype.captureStream && !!window.RTCPeerConnection;
+    if (!fast && !simple) {
+      status(T('هاد المتصفح ما كيقدرش يبث. جرب Chrome ولا Safari محدث.'));
       $('#goBtn').disabled = true;
       return;
     }
-    const worker = new Worker('/compositor.worker.js');
-    const mixed = new MediaStreamTrackGenerator({ kind: 'video' });
-    worker.postMessage({ type: 'init', writable: mixed.writable, brand: cfg.title }, [mixed.writable]);
-    const setInput = (name, track) => {
-      if (!track) return worker.postMessage({ type: 'remove', name });
-      const proc = new MediaStreamTrackProcessor({ track, maxBufferSize: 2 });
-      worker.postMessage({ type: 'input', name, readable: proc.readable }, [proc.readable]);
-    };
+    let worker, mixed, setInput;
+    if (fast) {
+      worker = new Worker('/compositor.worker.js');
+      mixed = new MediaStreamTrackGenerator({ kind: 'video' });
+      worker.postMessage({ type: 'init', writable: mixed.writable, brand: cfg.title }, [mixed.writable]);
+      setInput = (name, track) => {
+        if (!track) return worker.postMessage({ type: 'remove', name });
+        const proc = new MediaStreamTrackProcessor({ track, maxBufferSize: 2 });
+        worker.postMessage({ type: 'input', name, readable: proc.readable }, [proc.readable]);
+      };
+    } else {
+      const cv = el('canvas', { width: 1280, height: 720 });
+      const painter = createPainter(cv, { brand: cfg.title, fixed: true });
+      const holder = el('div', { class: 'mix-sources', 'aria-hidden': 'true' });
+      document.body.append(holder);
+      const vids = {};
+      setInput = (name, track) => {
+        if (vids[name]) { vids[name].srcObject = null; vids[name].remove(); delete vids[name]; }
+        if (!track) return;
+        const v = el('video', { playsinline: '', autoplay: '' });
+        v.muted = true; v.srcObject = new MediaStream([track]);
+        holder.append(v); v.play().catch(() => {});
+        vids[name] = v;
+      };
+      worker = { postMessage(d) { if (d.type === 'guestName') painter.state.names[d.slot] = d.name || ''; else if (d.type === 'guestCam') painter.state.off[d.slot] = !d.on; } };
+      const frameOf = (name) => { const v = vids[name]; return v && v.readyState >= 2 && v.videoWidth ? v : null; };
+      painter.paint(frameOf);
+      setInterval(() => painter.paint(frameOf), 40);
+      mixed = cv.captureStream(25).getVideoTracks()[0];
+      document.addEventListener('visibilitychange', () => { if (document.hidden && liveOn) status(T('خلي هاد الصفحة مفتوحة قدامك: إلا خرجتي منها اللايف كيوقف.')); });
+    }
+    $('#screenBtn').hidden = !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);   // phones cannot share their screen from a web page
     $('#preview').srcObject = new MediaStream([mixed]);
 
     // ----------------------------------------------------------- sources --
@@ -87,7 +115,7 @@
 
     async function camOn() {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 25 } } });
+        const s = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 25 }, facingMode: 'user' } });
         camTrack = s.getVideoTracks()[0];
         camTrack.onended = camOff;
         setInput('cam', camTrack);

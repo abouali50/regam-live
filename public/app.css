@@ -217,6 +217,8 @@ a.btn.primary { color: #1b1405; }
 .sub { font-size: 14px; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
 li.guest-box { list-style: none; flex-wrap: wrap; }
 .guest-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.mix-sources { position: fixed; left: 0; bottom: 0; width: 2px; height: 2px; overflow: hidden; opacity: 0; pointer-events: none; }
+.mix-sources video { width: 2px; height: 2px; }
 #muteAll, #admitAll { margin-top: 8px; }
 .check { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; cursor: pointer; }
 .check input { width: 20px; height: 20px; flex: none; }
@@ -272,3 +274,14 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .mic-btn { width: 40px; flex: none; display: grid; place-items: center; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 10px; cursor: pointer; padding: 0; }
 .mic-btn[aria-pressed="true"] { background: var(--live); border-color: var(--live); color: #fff; }
 .composer { gap: 6px; }
+/* the studio on a phone: one column that scrolls as a normal page */
+@media (max-width: 900px) {
+  body.studio { height: auto; min-height: 100dvh; overflow: auto; }
+  .studio .top { flex-wrap: wrap; row-gap: 6px; }
+  .studio .layout, .studio .layout:has(> .chat.collapsed) { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+  .studio .stage { overflow: visible; }
+  .studio .chat { min-height: 0; }
+  .studio .chat.collapsed { align-self: stretch; }
+  .studio .chat:not(.collapsed) { height: 70dvh; }
+  .studio .guest-box, .studio .hands li { flex-wrap: wrap; }
+}

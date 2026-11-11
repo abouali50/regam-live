@@ -539,7 +539,7 @@ const server = http.createServer(async (req, res) => {
         access: acct.access(), accounts: acct.mailReady(),
       });
     }
-    if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady() });
+    if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady(), build: BUILD });
     if (p.startsWith('/api/member/')) return await acct.handle(req, res, p.slice(12));
     if (p === '/api/sound') return handleSound(req, res, url);
     if (p === '/api/pics') return handlePics(req, res, url);
@@ -968,6 +968,9 @@ setInterval(() => {
     }
   }
 }, 60e3);
+
+// When the pages on this server were last changed: shown in the studio, to tell which version is running.
+const BUILD = (() => { try { return new Date(Math.max(...fs.readdirSync(PUBLIC_DIR).map((f) => fs.statSync(path.join(PUBLIC_DIR, f)).mtimeMs))).toISOString().slice(0, 16).replace('T', ' '); } catch { return ''; } })();
 
 // Translation of the host's words (a LibreTranslate service next to the app; nothing leaves the server).
 const TRANSLATE_URL = (env.TRANSLATE_URL || '').replace(/\/$/, '');

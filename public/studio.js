@@ -4,6 +4,10 @@
   const TOKEN_KEY = 'regam.studio';
   let token = sessionStorage.getItem(TOKEN_KEY) || '';
   const status = (t) => { $('#status').textContent = t; };
+  // A fault in the page itself is shown on the page (with where it happened), so it can be reported from a phone.
+  const fault = (what) => { const box = $('#fault'); box.hidden = false; box.textContent = (box.textContent ? box.textContent + '\n' : '') + what; };
+  addEventListener('error', (e) => fault(`[page] ${e.message} (${String(e.filename || '').split('/').pop()}:${e.lineno})`));
+  addEventListener('unhandledrejection', (e) => fault(`[page] ${String((e.reason && (e.reason.message || e.reason.name)) || e.reason).slice(0, 160)}`));
 
   // --------------------------------------------------------------- login --
   $('#loginForm').onsubmit = async (e) => {
@@ -34,7 +38,7 @@
     $('#app').hidden = false;
     $('#logoutBtn').onclick = logout;
     $('#adminLink').hidden = me.user.role !== 'admin';
-    fetch('/api/site').then((r) => r.json()).then((site) => { $('#setupNote').hidden = me.user.role !== 'admin' || site.accounts; }).catch(() => {});
+    fetch('/api/site').then((r) => r.json()).then((site) => { $('#setupNote').hidden = me.user.role !== 'admin' || site.accounts; $('#build').textContent = 'v ' + site.build + ' UTC · ' + (('MediaStreamTrackProcessor' in window) ? 'A' : 'B'); }).catch(() => {});
     if (!me.rooms.length) {
       status(T('ما عندك حتى قاعة. طلب من المدير يعطيك قاعة.'));
       $('#goBtn').disabled = true;
@@ -267,6 +271,9 @@
         $('#goBtn').classList.add('danger');
         $('#onAir').hidden = false;
         status(T('كنتصلو…'));
+        // a live that never connects is told so, with what the connection reported
+        const mine = pc;
+        setTimeout(() => { if (pc === mine && liveOn && mine.connectionState !== 'connected') status(T('اللايف ما قدرش يتصل بالسيرفر.') + ` [link: ${mine.connectionState}/${mine.iceConnectionState}]`); }, 15000);
         syncGuests();
       } catch (e) {
         if (pc) { pc.close(); pc = null; }

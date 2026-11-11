@@ -156,7 +156,8 @@ function createLink({ name = '', token = '', room = '' } = {}) {
       let d; try { d = JSON.parse(e.data); } catch { return; }
       if (d.t === 'batch') d.ev.forEach(emit);
       else {
-        if (d.t === 'init') link.ready = true;
+        if (d.t === 'init') { link.ready = true; link.door = ''; }
+        if (['wait', 'signin', 'code', 'refused'].includes(d.t)) link.door = d.t;       // at the door, not in the room yet
         if (d.t === 'full') delay = 30000;          // the room is full: try again later, not at once
         emit(d);
       }
@@ -250,6 +251,7 @@ function mountChat(root, link, { askName } = {}) {
     if (!text) return;
     if (banned) return say(T('تم حظرك من التعليق فهاد اللايف.'));
     if (!link.name && askName) { const n = await askName(); if (!n) return; }
+    if (link.door) return say(T('تقدر تعلق ملي تدخل للقاعة.'));
     if (!link.ready) return say(T('الاتصال مقطوع، كنعاود نتصل…'));
     if (voice) voice.stop();
     link.send({ t: 'msg', text });

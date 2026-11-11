@@ -8,6 +8,7 @@ services:
       MTX_RTC: http://mediamtx:8889
       MTX_HLS: http://mediamtx:8888
       MTX_API: http://mediamtx:9997
+      TRANSLATE_URL: http://translate:5000
     volumes:
       - ./data:/app/data
       - ./recordings:/app/recordings
@@ -25,6 +26,18 @@ services:
       - "8189:8189/udp"     # live video/audio from the studio and the guest
       - "8189:8189/tcp"     # same, for networks that block UDP
 
+  # Translates what the host says (Arabic, French, English). Runs on this server only:
+  # nothing is sent outside. The first start downloads the language models (a few minutes).
+  translate:
+    image: libretranslate/libretranslate:latest
+    restart: unless-stopped
+    environment:
+      LT_LOAD_ONLY: ar,en,fr
+      LT_DISABLE_WEB_UI: "true"
+      LT_UPDATE_MODELS: "true"
+    volumes:
+      - lt_models:/home/libretranslate/.local
+
   # Only used when nothing else on the server owns ports 80/443 ("direct" mode).
   caddy:
     image: caddy:2
@@ -38,3 +51,4 @@ services:
 
 volumes:
   caddy_data:
+  lt_models:

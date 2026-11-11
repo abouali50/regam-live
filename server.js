@@ -861,10 +861,17 @@ wss.on('connection', (ws, req) => {
         const now = Date.now();
         if (now - (ws.lastCap || 0) < 150 || !['ar', 'fr', 'en'].includes(d.src) || !d.tx || typeof d.tx !== 'object') return;
         ws.lastCap = now;
-        const tx = {};
-        for (const l of ['ar', 'fr', 'en']) { const v = clean(d.tx[l], 400); if (v) tx[l] = v; }
-        if (!tx[d.src]) return;
-        return broadcast(room, { t: 'cap', src: d.src, tx });
+        const words = {}, src = d.src;
+        for (const l of ['ar', 'fr', 'en']) { const v = clean(d.tx[l], 400); if (v) words[l] = v; }
+        if (!words[src]) return;
+        // languages the host's browser did not translate are done here, one sentence after the other
+        room.capChain = (room.capChain || Promise.resolve()).then(async () => {
+          const missing = ['ar', 'fr', 'en'].filter((l) => !words[l]);
+          if (TRANSLATE_URL) await Promise.all(missing.map(async (l) => { try { const v = await translate(words[src], src, l); if (v) words[l] = v; } catch { /* that language is left out */ } }));
+          broadcast(room, { t: 'cap', src, tx: words });
+          tx(ws, { t: 'capinfo', tx: words });
+        });
+        return;
       }
       case 'next': {                       // announce the next session (or clear it)
         const at = Number(d.at);
@@ -943,6 +950,17 @@ setInterval(() => {
     }
   }
 }, 60e3);
+
+// Translation of the host's words (a LibreTranslate service next to the app; nothing leaves the server).
+const TRANSLATE_URL = (env.TRANSLATE_URL || '').replace(/\/$/, '');
+async function translate(q, source, target) {
+  const r = await fetch(`${TRANSLATE_URL}/translate`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q, source, target, format: 'text' }), signal: AbortSignal.timeout(6000),
+  });
+  if (!r.ok) throw new Error('translate ' + r.status);
+  return clean((await r.json()).translatedText, 400);
+}
 
 // Recording is the host's choice, live by live. The media server writes the file; we only
 // switch "record" on that room's air path (a change it applies without cutting the live).

@@ -301,18 +301,29 @@ async function until(fn, ms = 15000, step = 250) {
         && lastMail().to === 'samira@example.com' && /^\d{6}$/.test(codeIn(lastMail())) && /Samira/.test(lastMail().text));
       const early = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'samira@example.com', password: 'motdepasse1' }) });
       await a.fill('#accountDlg .acc-code', '000000'); await a.click('#accountDlg button[type=submit]');
+      const linkIn = (lastMail().text.match(/https?:\/\/\S+/) || [''])[0];
       check('nothing opens before the right code: sign-in refused, wrong code refused', early.status === 403 && (await until(() => a.locator('#accountDlg .err').isVisible())) !== null);
       await a.fill('#accountDlg .acc-code', codeIn(lastMail())); await a.click('#accountDlg button[type=submit]');
       check('the right code activates the account and signs the person in', (await until(() => a.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null && await a.locator('#heroHello').isVisible());
       const dup = await fetch(BASE + '/api/member/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'X', email: 'samira@example.com', password: 'autrechose1' }) });
       check('an address cannot be registered twice', dup.status === 409);
 
+      // the link in the e-mail validates in one tap
+      await fetch(BASE + '/api/member/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Yassine', email: 'yassine@example.com', password: 'motdepasse1', lang: 'fr' }) });
+      const tap = (lastMail().text.match(/https?:\/\/\S+/) || [''])[0];
+      const lp = await (await browser.newContext({ locale: 'fr-FR' })).newPage();
+      await lp.goto(tap);
+      check('the e-mail also carries a link that validates the account in one tap', /\/rooms\?e=samira%40example\.com&v=\d{6}$/.test(linkIn) && tap.startsWith(BASE + '/rooms?e=') && /Ou cliquez/.test(lastMail().text)
+        && (await until(() => lp.locator('.acc-name', { hasText: 'Yassine' }).isVisible(), 8000)) !== null && !/[?&]v=/.test(lp.url()));
+      await lp.context().close();
+      const tested = await fetch(BASE + '/api/admin/mailtest', { method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ to: 'pro@example.com' }) });
+      check('once the test message is sent, an account becomes compulsory by itself', tested.status === 200 && (await (await fetch(BASE + '/api/site')).json()).access === 'watch');
       // members only: without an account, no stream and no room
       const locked = await adminSet({ access: 'watch' });
       const anon = await (await browser.newContext({ locale: 'ar-MA' })).newPage();
       await anon.goto(BASE + '/r/main');
       check('with "account needed to watch", a visitor without one is shown the way in and gets no stream', locked.status === 200 && (await until(() => anon.locator('#signBtns').isVisible())) !== null
-        && (await anon.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && (await anon.evaluate(async () => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa')).status)) === 401);
+        && (await anon.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && (await anon.evaluate(async () => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa')).status)) === 401 && await anon.locator('#soundBtn').isHidden());
       await a.goto(BASE + '/r/main');
       check('a signed-in member enters, under the name of the account', (await until(() => a.locator('#liveBadge.on').isVisible())) !== null
         && (await until(() => a.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null
@@ -333,7 +344,11 @@ async function until(fn, ms = 15000, step = 250) {
       // administration
       const adminData = await (await fetch(BASE + '/api/admin', { headers: { Authorization: 'Bearer ' + tok } })).json();
       const noMailLock = await (await fetch(BASE + '/api/member/me')).status;
-      check('the administrator sees the members, never their password', adminData.accounts.members.total === 1 && adminData.accounts.members.list[0].email === 'samira@example.com' && !JSON.stringify(adminData).includes('hash') && adminData.accounts.mail.hasPass === true && !JSON.stringify(adminData).includes('secret-pass') && noMailLock === 401);
+      check('the administrator sees the members, never their password', adminData.accounts.members.total === 2 && adminData.accounts.members.list.some((m) => m.email === 'samira@example.com') && !JSON.stringify(adminData).includes('hash') && adminData.accounts.mail.hasPass === true && !JSON.stringify(adminData).includes('secret-pass') && noMailLock === 401);
+      const yas = adminData.accounts.members.list.find((m) => m.email === 'yassine@example.com');
+      const gone = await fetch(BASE + '/api/admin/member?id=' + yas.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
+      const after = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'yassine@example.com', password: 'motdepasse1' }) });
+      check('the administrator can delete an account, which then cannot sign in', gone.status === 200 && after.status === 401);
       await adminSet({ access: 'open', mail: { host: '', port: 465, user: '', from: '' } });       // the rest of the run is without accounts, as on a fresh install
       await anon.context().close(); await actx.close();
     }

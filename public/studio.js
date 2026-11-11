@@ -34,6 +34,7 @@
     $('#app').hidden = false;
     $('#logoutBtn').onclick = logout;
     $('#adminLink').hidden = me.user.role !== 'admin';
+    fetch('/api/site').then((r) => r.json()).then((site) => { $('#setupNote').hidden = me.user.role !== 'admin' || site.accounts; }).catch(() => {});
     if (!me.rooms.length) {
       status(T('ما عندك حتى قاعة. طلب من المدير يعطيك قاعة.'));
       $('#goBtn').disabled = true;

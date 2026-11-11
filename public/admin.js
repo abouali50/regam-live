@@ -106,7 +106,8 @@
     say(T('كنصيفطو…'));
     const r = await api('/mailtest', { method: 'POST', body: JSON.stringify({ to: e.target.elements.to.value }) });
     const d = await r.json().catch(() => ({}));
-    say(r.ok ? T('تصيفطات الرسالة. شوف الإيميل ديالك (وحتى Spam).') : T('ما تصيفطاتش الرسالة. تأكد من العنوان وكلمة السر ديال الإيميل.') + (d.error ? ' — ' + d.error : ''));
+    if (r.ok) await load();
+    say(r.ok ? T('تصيفطات الرسالة. شوف الإيميل ديالك (وحتى Spam).') + ($('#accessSel').value === 'watch' ? ' ' + T('من دابا، خاص كل واحد يسجل باش يدخل.') : '') : T('ما تصيفطاتش الرسالة. تأكد من العنوان وكلمة السر ديال الإيميل.') + (d.error ? ' — ' + d.error : ''));
   };
   addPasswordEyes($('#mailForm'));
 

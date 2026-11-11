@@ -106,9 +106,10 @@
   const waitSound = cfg.sound ? new Audio(cfg.sound) : null;
   let soundWanted = true;                       // the person has not paused it
   if (waitSound) { waitSound.loop = true; waitSound.preload = 'none'; }
+  let doorShut = false;                         // waiting for an account, a code or the host's yes
   function syncSound() {
     if (!waitSound) return;
-    const idle = !live && !onStage;
+    const idle = !live && !onStage && !doorShut;      // nothing for people who are not let in yet
     soundBtn.hidden = !idle;
     if (idle && soundWanted) waitSound.play().catch(() => {});      // browsers start it only after a first tap
     else waitSound.pause();
@@ -119,7 +120,7 @@
     waitSound.onplay = waitSound.onpause = paintSound;
     soundBtn.onclick = () => { soundWanted = waitSound.paused; if (soundWanted) waitSound.play().catch(() => {}); else waitSound.pause(); };
     // the first tap anywhere on the page lets the sound start
-    addEventListener('pointerdown', (e) => { if (e.target !== soundBtn && soundWanted && !live && !onStage) waitSound.play().catch(() => {}); }, { once: true });
+    addEventListener('pointerdown', (e) => { if (e.target !== soundBtn && soundWanted && !live && !onStage && !doorShut) waitSound.play().catch(() => {}); }, { once: true });
   }
 
   const sea = createSea($('#sea'));             // light, fish and bubbles over the picture shown while nothing is live
@@ -328,7 +329,7 @@
     .on('gate', (d) => { if (d.on) pass(); })
     .on('next', (d) => showNext(d.next))
     .on('code', (d) => {                      // the room asks for its entry code
-      setLive(false); knockBtn.hidden = true;
+      doorShut = true; setLive(false); knockBtn.hidden = true;
       $('#offlineText').textContent = T('هاد القاعة كيدخلو ليها بكود الدخول.');
       const dlg = $('#codeDlg'), err = $('#codeErr');
       err.hidden = !d.bad && !d.wait;
@@ -344,8 +345,8 @@
       $('#codeInput').focus();
     })
     .on('signin', () => {                     // the site is for signed-in people: show the way in
-      setLive(false); knockBtn.hidden = true;
-      $('#offlineText').textContent = T('خاصك حساب باش تتفرج. سجل ولا دخل بالحساب ديالك.');
+      doorShut = true; setLive(false); knockBtn.hidden = true;
+      $('#offlineText').textContent = T('مرحبا بك. عندك حساب؟ دخل. ما عندكش؟ سجل بالإيميل ديالك وغادي يوصلك كود التفعيل.');
       if (account.token) { account.clear(); location.reload(); return; }
       $('#signBtns').hidden = false;
     })
@@ -353,6 +354,7 @@
   $('#signIn').onclick = () => openAccount('login');
   $('#signUp').onclick = () => openAccount('signup');
   link.on('init', async (d) => {
+    doorShut = false; $('#signBtns').hidden = true;
     knockBtn.hidden = true;
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
     if ($('#codeDlg').open) $('#codeDlg').close();

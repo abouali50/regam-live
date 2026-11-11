@@ -595,7 +595,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { user: me, rooms: [...rooms.values()].filter((r) => canHost(me, r)).map(publicRoom) });
     }
     if (p === '/api/recordings') return handleRecordings(req, res, url);
-    const a = p.match(/^\/api\/admin(?:\/(user|room|settings))?$/);
+    const a = p.match(/^\/api\/admin(?:\/(user|room|settings|mailtest|member))?$/);
     if (a) return handleAdmin(req, res, url, a[1]);
     const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+(?:[1-9]|1[0-2])?)$/);
     if (m) return handleRtc(req, res, url, m[1], m[2]);

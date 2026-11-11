@@ -345,3 +345,6 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .next-line { background: rgba(2,20,36,.72); color: #ffe7a8; font-weight: 700; padding: 6px 14px; border-radius: 999px; margin: 0; }
 #codeForm { display: grid; gap: 10px; }
 #codeForm input { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+
+.setup-note { margin: 10px 16px 0; padding: 10px 14px; border-radius: 10px; background: #3a2c0a; border: 1px solid var(--gold); color: #ffe7a8; }
+.setup-note a { color: #fff; font-weight: 700; }

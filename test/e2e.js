@@ -219,11 +219,46 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.click('.who-btn');
     check('a click on the viewer count lists who is watching, the host first', (await until(async () => { const t = await studio.locator('.who-list li').allTextContents(); return t.length >= 3 && t[0].startsWith('Pro') && t.some((x) => x === 'كريم') && t.some((x) => x === 'سلمى'); }, 8000)) !== null, (await studio.locator('.who-list li').allTextContents()).join(' | '));
     await studio.click('.who-dlg .btn');
+    // ---- three more people are accepted one after the other, before any of them has joined
+    const extra = [];
+    for (const name of ['يوسف', 'هدى', 'عمر']) {
+      const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 700, height: 600 }, permissions: ['camera', 'microphone'] });
+      const p = await c.newPage();
+      p.on('pageerror', (e) => errors.push('guest ' + name + ': ' + e.message));
+      await p.goto(BASE + '/');
+      await until(() => p.locator('#liveBadge.on').isVisible());
+      await p.click('#handBtn'); await p.fill('#nameInput', name); await p.click('#nameForm button[type=submit]');
+      extra.push(p);
+    }
+    await until(async () => (await studio.locator('#hands li').count()) === 3);
+    for (let i = 0; i < 3; i++) { await studio.locator('#hands li button').first().click(); await sleep(150); }
+    for (const p of extra) await until(() => p.locator('#inviteDlg[open]').isVisible());
+    await Promise.all(extra.map((p) => p.click('#inviteYes')));
+    check('five guests are on stage at once, each heard by the audience', (await until(() => studio.evaluate(() => [1, 2, 3, 4, 5].every((n) => { const s = window.__studio.stage.get(n); return !!(s && s.node); })), 40000)) !== null
+      && (await studio.locator('#onStage li').count()) === 5, await studio.evaluate(() => JSON.stringify([...window.__studio.stage].map(([n, s]) => [n, !!s.rx, !!s.node, !!s.back]))));
+    check('every one of the five sees the stage and hears the others', (await until(async () => { for (const p of [viewer, g2, ...extra]) if (!(await p.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.srcObject.getAudioTracks().length === 1 && v.videoWidth > 0; }))) return false; return true; }, 30000)) !== null);
+    await studio.screenshot({ path: path.join(OUT, 'studio-5-guests.png') });
+    // the host closes one guest's microphone, then opens it again
+    await studio.locator('#onStage li', { hasText: 'هدى' }).locator('button').first().click();
+    const huda = extra[1];
+    check('the host can close a guest microphone: the guest is cut and cannot reopen it', (await until(() => huda.evaluate(() => document.querySelector('#micBtn').disabled), 6000)) !== null
+      && (await until(() => studio.evaluate(() => [...window.__studio.stage.values()].filter((s) => s.audio && !s.audio.enabled).length === 1), 6000)) !== null
+      && (await studio.locator('#onStage li', { hasText: '🔇' }).count()) === 1);
+    await studio.locator('#onStage li', { hasText: 'هدى' }).locator('button').first().click();
+    check('the host opens it again and the guest can speak', (await until(() => huda.evaluate(() => !document.querySelector('#micBtn').disabled), 6000)) !== null
+      && (await until(() => studio.evaluate(() => [...window.__studio.stage.values()].every((s) => !s.audio || s.audio.enabled)), 6000)) !== null);
+    await studio.click('#muteAll');
+    check('one button closes every guest microphone', (await until(() => studio.evaluate(() => [...window.__studio.stage.values()].every((s) => s.audio && !s.audio.enabled)), 6000)) !== null);
+    await studio.click('#muteAll');
+    await until(() => studio.evaluate(() => [...window.__studio.stage.values()].every((s) => s.audio && s.audio.enabled)), 6000);
+    for (const name of ['يوسف', 'هدى', 'عمر']) await studio.locator('#onStage li', { hasText: name }).locator('button.danger').click();
+    check('the three leave and the first two stay', (await until(async () => (await studio.locator('#onStage li').count()) === 2 && await studio.evaluate(() => window.__studio.stage.size === 2), 10000)) !== null);
+    for (const p of extra) await p.context().close();
     check('paths beyond the twelve stage slots are refused', (await fetch(BASE + '/api/rtc/whep/guest13', { method: 'POST', body: 'x', headers: { Authorization: 'Bearer ' + await studio.evaluate(() => sessionStorage.getItem('regam.studio')) } })).status >= 404);
     await sleep(1200);
     await studio.screenshot({ path: path.join(OUT, 'studio-3-people.png') });
     await g2.screenshot({ path: path.join(OUT, 'guest-phone-stage.png') });
-    await studio.locator('#onStage li', { hasText: 'سلمى' }).locator('button').click();
+    await studio.locator('#onStage li', { hasText: 'سلمى' }).locator('button.danger').click();
     const gone = [
       (await until(() => g2.evaluate(() => !document.querySelector('#video').srcObject), 10000)) !== null,
       (await until(() => sfu.evaluate(() => !window.paths.guest2_main && !!window.paths.guest1_main))) !== null,
@@ -285,7 +320,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('back to the camera after both are off', (await until(async () => (await dim()) === '1280x720')) !== null);
 
     // ---- host removes the guest -------------------------------------------------
-    await studio.locator('#onStage li button').first().click();
+    await studio.locator('#onStage li button.danger').first().click();
     check('guest is taken off stage and returns to the normal player', (await until(() => viewer.evaluate(() => !document.querySelector('#video').srcObject && document.querySelector('#stageBar').hidden))) !== null);
     check('guest media session is closed on the relay', (await until(() => sfu.evaluate(() => !window.paths.guest1_main && !window.paths.backstage1_main))) !== null);
     check('a removed guest can no longer use the stage token', (await viewer.evaluate(() => fetch('/api/rtc/whip/guest1', { method: 'POST', body: 'x', headers: { Authorization: 'Bearer stage.x.1.y' } }).then((r) => r.status))) === 401);

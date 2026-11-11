@@ -215,7 +215,9 @@ a.btn.primary { color: #1b1405; }
 /* stage controls sit under the picture, not on it */
 .onstage { position: static; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; }
 .sub { font-size: 14px; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
-li.guest-box { list-style: none; }
+li.guest-box { list-style: none; flex-wrap: wrap; }
+.guest-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+#muteAll { margin-top: 8px; }
 /* comments fold away */
 .chat-head { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; text-align: start; }
 .chat-head:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }

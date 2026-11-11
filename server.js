@@ -495,7 +495,7 @@ const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws
 const toUid = (room, uid, obj) => { for (const ws of room.byUid.get(uid) || []) tx(ws, obj); };
 const viewersOf = (room) => { let n = 0; for (const ws of room.clients) if (!ws.mod) n++; return n; };
 const handsList = (room) => [...room.hands].map(([uid, h]) => ({ uid, name: h.name })).slice(0, 50);
-const guestsPublic = (room) => [...room.guests].map(([slot, g]) => ({ slot, uid: g.uid, name: g.name, ready: g.ready }));
+const guestsPublic = (room) => [...room.guests].map(([slot, g]) => ({ slot, uid: g.uid, name: g.name, ready: g.ready, muted: !!g.muted }));
 const slotOf = (room, uid) => { for (const [slot, g] of room.guests) if (g.uid === uid) return slot; return 0; };
 
 // Take one guest (or, without a slot, everybody) off the stage.
@@ -653,6 +653,17 @@ wss.on('connection', (ws, req) => {
         toUid(room, uid, { t: 'invite', slot, token: sign('stage', `${cfg.slug}_${uid}_${slot}_${g.nonce}`, 4 * 3600e3) });
         broadcast(room, { t: 'guests', guests: guestsPublic(room) });
         return toMods(room, { t: 'hands', list: handsList(room) });
+      }
+      case 'mute': {                       // the host closes or opens a guest's microphone (no uid: every guest)
+        let changed = false;
+        for (const [, g] of room.guests) {
+          if (d.uid && g.uid !== String(d.uid)) continue;
+          if (!!g.muted === (d.on !== false)) continue;
+          g.muted = d.on !== false; changed = true;
+          toUid(room, g.uid, { t: 'muted', on: g.muted });
+        }
+        if (changed) broadcast(room, { t: 'guests', guests: guestsPublic(room) });
+        return;
       }
       case 'unstage':                      // one guest (by uid), or everybody
         if (!d.uid) return endStage(room, 'removed');

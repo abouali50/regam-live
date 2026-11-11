@@ -91,6 +91,24 @@
       <ul id="hands" class="hands"></ul>
     </div>
 
+    <div class="panel" id="invitePanel">
+      <h2>الدعوة والدخول بالكود</h2>
+      <label class="check"><input id="codeChk" type="checkbox"> <span>الدخول غير بالكود (بحال Zoom): صيفط الكود للناس اللي بغيتي</span></label>
+      <p id="codeShow" class="code-show" hidden dir="ltr"></p>
+      <div class="row">
+        <label for="nextAt">وقت اللايف الجاي</label>
+        <input id="nextAt" type="datetime-local">
+        <button id="nextSave" class="btn" type="button">حفظ</button>
+      </div>
+      <div class="row">
+        <label for="nextTitle">الموضوع</label>
+        <input id="nextTitle" type="text" maxlength="80">
+        <button id="nextClear" class="btn" type="button">حيد الموعد</button>
+      </div>
+      <button id="inviteCopy" class="btn primary" type="button">نسخ الدعوة</button>
+      <textarea id="inviteText" class="invite-text" rows="6" readonly dir="auto"></textarea>
+    </div>
+
     <div class="panel" id="gatePanel">
       <h2>قاعة الانتظار</h2>
       <label class="check"><input id="gateChk" type="checkbox"> <span>اللي بغا يدخل يكتب سميتو، وأنا اللي نقبلو (بحال Zoom)</span></label>

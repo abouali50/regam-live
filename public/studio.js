@@ -367,6 +367,31 @@
       syncGuests();
     }
 
+    // ---- invitation: entry code and the time of the next session, as one text to send
+    let roomCode = '', roomNext = null;
+    const pad = (n) => String(n).padStart(2, '0');
+    function showInvite() {
+      $('#codeChk').checked = !!roomCode;
+      $('#codeShow').hidden = !roomCode;
+      $('#codeShow').textContent = roomCode ? roomCode.slice(0, 3) + ' ' + roomCode.slice(3) : '';
+      if (roomNext && document.activeElement !== $('#nextAt')) { const d = new Date(roomNext.at); $('#nextAt').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+      if (!roomNext && document.activeElement !== $('#nextAt')) $('#nextAt').value = '';
+      if (document.activeElement !== $('#nextTitle')) $('#nextTitle').value = roomNext ? roomNext.title : '';
+      const when = roomNext ? new Date(roomNext.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      $('#inviteText').value = [
+        T('دعوة للايف: {room}', { room: mine.title }) + (roomNext && roomNext.title ? ' - ' + roomNext.title : ''),
+        when ? T('الوقت: {when}', { when }) : '',
+        T('الرابط: {url}', { url: viewerUrl + (roomCode ? '?code=' + roomCode : '') }),
+        roomCode ? T('كود الدخول: {code}', { code: roomCode.slice(0, 3) + ' ' + roomCode.slice(3) }) : '',
+        cfg.access === 'watch' ? T('خاصك تسجل بالإيميل ديالك فالموقع قبل ما تدخل.') : '',
+      ].filter(Boolean).join('\n');
+    }
+    $('#codeChk').onchange = () => link.send({ t: 'code', on: $('#codeChk').checked });
+    $('#nextSave').onclick = () => { const v = $('#nextAt').value; if (v) link.send({ t: 'next', at: new Date(v).getTime(), title: $('#nextTitle').value }); };
+    $('#nextClear').onclick = () => link.send({ t: 'next', at: 0 });
+    $('#inviteCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#inviteText').value); status(T('تنسخات الدعوة. لصقها فواتساب ولا فالإيميل.')); } catch { $('#inviteText').select(); } };
+    link.on('code', (d) => { roomCode = d.code || ''; showInvite(); }).on('next', (d) => { roomNext = d.next; showInvite(); });
+
     // ---- waiting room: people give their name and wait for the host to let them in
     let waitingN = 0;
     function showWaiting(gate, list) {
@@ -466,6 +491,7 @@
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
       showWaiting(!!d.gate, d.waiting || []);
       recOn = !!d.rec; showRec();
+      roomCode = d.code || ''; roomNext = d.next || null; showInvite();
     })
       .on('waiting', (d) => showWaiting(d.gate, d.list))
       .on('live', (d) => setBadge(d.on))

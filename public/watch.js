@@ -39,6 +39,19 @@
 
   const link = createLink({ name: account.name || store.get('regam.name') || '', room: cfg.room });
   mountAccount(document.querySelector('.top .meta'), cfg);
+  // the room's entry code: from the invitation link (?code=...), or typed once and remembered
+  const codeKey = 'regam.code.' + cfg.room;
+  link.code = (new URLSearchParams(location.search).get('code') || store.get(codeKey) || '').replace(/\D/g, '');
+  if (new URLSearchParams(location.search).get('code')) { store.set(codeKey, link.code); history.replaceState(null, '', location.pathname); }
+  // the session the host announced
+  function showNext(next) {
+    const line = $('#nextLine');
+    line.hidden = !next;
+    if (!next) return;
+    const when = new Date(next.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    line.textContent = T('اللايف الجاي: {when}', { when }) + (next.title ? ' · ' + next.title : '');
+  }
+  showNext(cfg.next);
   const chat = mountChat($('#chat'), link, { askName });
   mountWho(link);
 
@@ -298,7 +311,7 @@
   });
   // ---- waiting room: the person gives a name, the host lets them in (or not)
   const knockBtn = $('#knockBtn');
-  const pass = () => fetch(`/api/pass?room=${encodeURIComponent(cfg.room)}&uid=${link.uid}`, { headers: account.token ? { Authorization: 'Bearer ' + account.token } : {} }).catch(() => {});
+  const pass = () => fetch(`/api/pass?room=${encodeURIComponent(cfg.room)}&uid=${link.uid}&code=${link.code}`, { headers: account.token ? { Authorization: 'Bearer ' + account.token } : {} }).catch(() => {});
   async function knock() {
     const n = link.name || await askName();
     if (n) link.send({ t: 'knock', name: n });
@@ -313,6 +326,23 @@
     .on('admitted', () => { knockBtn.hidden = true; link.hello(); })
     .on('refused', () => { setLive(false); knockBtn.hidden = true; $('#offlineText').textContent = T('صاحب اللايف ما قبلش الدخول ديالك.'); })
     .on('gate', (d) => { if (d.on) pass(); })
+    .on('next', (d) => showNext(d.next))
+    .on('code', (d) => {                      // the room asks for its entry code
+      setLive(false); knockBtn.hidden = true;
+      $('#offlineText').textContent = T('هاد القاعة كيدخلو ليها بكود الدخول.');
+      const dlg = $('#codeDlg'), err = $('#codeErr');
+      err.hidden = !d.bad && !d.wait;
+      err.textContent = T(d.wait ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط. شوف الدعوة وعاود.');
+      $('#codeForm').onsubmit = (e) => {
+        e.preventDefault();
+        link.code = $('#codeInput').value.replace(/\D/g, '');
+        store.set(codeKey, link.code);
+        dlg.close(); link.hello();
+      };
+      $('#codeInput').value = '';
+      if (!dlg.open) dlg.showModal();
+      $('#codeInput').focus();
+    })
     .on('signin', () => {                     // the site is for signed-in people: show the way in
       setLive(false); knockBtn.hidden = true;
       $('#offlineText').textContent = T('خاصك حساب باش تتفرج. سجل ولا دخل بالحساب ديالك.');
@@ -325,6 +355,8 @@
   link.on('init', async (d) => {
     knockBtn.hidden = true;
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
+    if ($('#codeDlg').open) $('#codeDlg').close();
+    showNext(d.next);
     if (d.needPass) await pass();                 // lets the player fetch the stream
     setLive(d.live);
     $('#viewers').textContent = d.viewers;

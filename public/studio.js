@@ -138,6 +138,7 @@
     }
     function boardOff() {
       boardOn = false;
+      if (boardVoice) boardVoice.stop();
       board.stop();
       setInput('screen', null);
       $('#board').hidden = true; $('#boardBar').hidden = true; $('#boardCam').hidden = true;
@@ -152,6 +153,10 @@
     colorBtns.forEach((b) => { b.onclick = () => { board.setColor(b.dataset.color); pick(colorBtns, b); }; });
     $('#boardSize').onchange = () => board.setSize(Number($('#boardSize').value));
     $('#boardUndo').onclick = () => board.undo();
+    // speak, and the words are written on the board
+    const boardVoice = makeDictation((fin, interim) => board.voice(fin, interim), (on) => { press($('#boardVoice'), on); board.voiceState(on); });
+    $('#boardVoice').hidden = !boardVoice;
+    $('#boardVoice').onclick = () => boardVoice && boardVoice.toggle();
     $('#boardClear').onclick = () => { if (confirm(T('تمسح السبورة كاملة؟'))) board.clear(); };
 
     async function ensureMic() {
@@ -335,7 +340,10 @@
       .on('viewers', (d) => { $('#viewers').textContent = d.n; })
       .on('hands', (d) => showHands(d.list))
       .on('guests', (d) => showGuests(d.guests))
-      .on('err', (d) => { if (d.code === 'stagefull') status(T('المنصة عامرة. نزل شي واحد أولا.')); })
+      .on('err', (d) => {
+        if (d.code === 'stagefull') status(T('المنصة عامرة. نزل شي واحد أولا.'));
+        if (d.code === 'onstage') status(T('هاد الشخص راه على المنصة.'));
+      })
       .on('slow', (d) => { $('#slowSel').value = String(d.sec); });
     // -------------------------------------------------------- recordings --
     const fmtSize = (n) => (n >= 1e9 ? (n / 1e9).toFixed(1) + ' GB' : Math.max(1, Math.round(n / 1e6)) + ' MB');

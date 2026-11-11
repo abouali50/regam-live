@@ -12,6 +12,7 @@ function createBoard(canvas, typer) {
   let stroke = null;                // line being drawn
   let text = null;                  // text being typed { x, y, value, color, px }
   let caretOn = true;
+  let voiceOn = false, nextY = 90;    // dictation in progress; where the next spoken line starts
 
   const PEN = { 1: 4, 2: 8, 3: 14 };
   const MARK = { 1: 24, 2: 38, 3: 56 };
@@ -65,7 +66,11 @@ function createBoard(canvas, typer) {
   };
   function commitText() {
     if (!text) return;
-    if (text.value.trim()) items.push({ kind: 'text', x: text.x, y: text.y, value: text.value.replace(/\s+$/, ''), color: text.color, px: text.px });
+    if (text.value.trim()) {
+      items.push({ kind: 'text', x: text.x, y: text.y, value: text.value.replace(/\s+$/, ''), color: text.color, px: text.px });
+      nextY = text.y + text.value.split('\n').length * text.px * 1.3 + 14;
+      if (nextY > H - 160) nextY = 90;
+    }
     text = null; typer.value = ''; typer.blur();
     render();
   }
@@ -103,9 +108,9 @@ function createBoard(canvas, typer) {
 
   // ---- typing: a real (invisible) text field receives the keys, so accents,
   // Arabic and every keyboard layout work; the canvas mirrors what is typed.
-  typer.addEventListener('input', () => { if (text) { text.value = typer.value; caretOn = true; render(); } });
+  typer.addEventListener('input', () => { if (text) { text.value = typer.value; text.fixed = typer.value; caretOn = true; render(); } });
   typer.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); commitText(); } });
-  typer.addEventListener('blur', () => setTimeout(() => { if (text && document.activeElement !== typer) commitText(); }, 150));
+  typer.addEventListener('blur', () => setTimeout(() => { if (text && !voiceOn && document.activeElement !== typer) commitText(); }, 150));
 
   let ticker = null, track = null;
   return {
@@ -126,6 +131,22 @@ function createBoard(canvas, typer) {
     setTool(t) { commitText(); tool = t; canvas.style.cursor = t === 'text' ? 'text' : 'crosshair'; },
     setColor(c) { color = c; if (text) { text.color = c; render(); } },
     setSize(n) { size = n; if (text) { text.px = FONT[n]; render(); } },
+    // Dictation: spoken words land in the text being typed, or start a new line of text.
+    voiceState(on) {
+      voiceOn = on;
+      if (on) {
+        if (!text) text = { x: 110, y: nextY, value: '', color, px: FONT[size] };
+        text.fixed = text.value ? text.value.replace(/\s+$/, '') + ' ' : '';
+      } else if (text) typer.focus();                      // keep typing, or press Escape to finish
+      render();
+    },
+    voice(fin, interim) {
+      if (!text) return;
+      if (fin) text.fixed = (text.fixed || '') + fin.trim() + ' ';
+      text.value = (text.fixed || '') + interim;
+      typer.value = text.value; caretOn = true;
+      render();
+    },
     undo() { if (text) { text = null; typer.value = ''; } else items.pop(); render(); },
     clear() { text = null; typer.value = ''; items.length = 0; render(); },
     get count() { return items.length; },

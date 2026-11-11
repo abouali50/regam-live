@@ -40,7 +40,7 @@ function createLink({ name = '', token = '', room = '' } = {}) {
   function connect() {
     const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
     link.ws = ws;
-    ws.onopen = () => { delay = 1000; ws.send(JSON.stringify({ t: 'hello', uid: link.uid, name: link.name, token: link.token, room })); };
+    ws.onopen = () => { delay = 1000; ws.send(JSON.stringify({ t: 'hello', uid: link.uid, name: link.name, token: link.token, room, color: Number(store.get('regam.color')) || 0 })); };
     ws.onmessage = (e) => {
       let d; try { d = JSON.parse(e.data); } catch { return; }
       if (d.t === 'batch') d.ev.forEach(emit);
@@ -68,12 +68,33 @@ function mountChat(root, link, { askName } = {}) {
   const more = el('button', { class: 'more', hidden: true, type: 'button', onclick: () => { stick = true; scroll(); } }, T('رسائل جديدة ↓'));
   const note = el('div', { class: 'note', hidden: true });
   const input = el('input', { type: 'text', maxlength: 300, placeholder: T('اكتب تعليق…'), autocomplete: 'off', enterkeyhint: 'send', 'aria-label': T('تعليق') });
-  const form = el('form', { class: 'composer', onsubmit: submit }, input, el('button', { type: 'submit', class: 'btn primary' }, T('إرسال')));
+  // each person may pick the colour of their own comments
+  let myColor = Number(store.get('regam.color')) || 0;
+  const swatches = el('div', { class: 'swatches', hidden: true, role: 'group', 'aria-label': T('لون الكتابة') });
+  const colorBtn = el('button', { type: 'button', class: 'color-btn c' + myColor, title: T('لون الكتابة'), 'aria-label': T('لون الكتابة'), 'aria-expanded': 'false',
+    onclick: () => { swatches.hidden = !swatches.hidden; colorBtn.setAttribute('aria-expanded', String(!swatches.hidden)); } });
+  for (let c = 0; c < 9; c++) {
+    swatches.append(el('button', { type: 'button', class: 'swatch c' + c, 'aria-label': `${T('لون الكتابة')} ${c + 1}`, 'aria-pressed': String(c === myColor), onclick: () => {
+      myColor = c; store.set('regam.color', String(c));
+      link.send({ t: 'color', c });
+      colorBtn.className = 'color-btn c' + c;
+      swatches.querySelectorAll('.swatch').forEach((b, i) => b.setAttribute('aria-pressed', String(i === c)));
+      swatches.hidden = true; colorBtn.setAttribute('aria-expanded', 'false');
+      input.focus();
+    } }));
+  }
+  // dictation: speak instead of typing (where the browser can do it)
+  let spoken = '';
+  const voice = makeDictation((fin, interim) => { if (fin) spoken += fin.trim() + ' '; input.value = (spoken + interim).slice(0, 300); },
+    (on) => { micBtn.setAttribute('aria-pressed', String(on)); if (on) spoken = input.value ? input.value.trim() + ' ' : ''; else input.focus(); });
+  const micBtn = el('button', { type: 'button', class: 'mic-btn', hidden: !voice, title: T('الكتابة بالصوت'), 'aria-label': T('الكتابة بالصوت'), 'aria-pressed': 'false', onclick: () => voice && voice.toggle() });
+  micBtn.innerHTML = MIC_ICON;
+  const form = el('form', { class: 'composer', onsubmit: submit }, colorBtn, input, micBtn, el('button', { type: 'submit', class: 'btn primary' }, T('إرسال')));
   // The panel folds away so the picture keeps the room; a counter shows what arrived meanwhile.
   const unread = el('span', { class: 'chat-unread', hidden: true }, '0');
   const head = el('button', { class: 'chat-head', type: 'button', 'aria-expanded': 'false', onclick: () => setOpen(root.classList.contains('collapsed')) },
     el('span', {}, T('التعليقات')), unread, el('span', { class: 'chat-chevron', 'aria-hidden': 'true' }));
-  root.append(head, pinned, el('div', { class: 'msgs-wrap' }, list, more), note, form);
+  root.append(head, pinned, el('div', { class: 'msgs-wrap' }, list, more), note, swatches, form);
   let missed = 0;
   function setOpen(open) {
     root.classList.toggle('collapsed', !open);
@@ -97,7 +118,7 @@ function mountChat(root, link, { askName } = {}) {
 
   function row(m) {
     const r = el('div', { class: 'msg' + (m.mod ? ' host' : '') + (m.uid === link.uid ? ' mine' : ''), 'data-id': m.id, 'data-uid': m.uid },
-      el('span', { class: 'who' }, m.name), el('span', { class: 'txt' }, m.text));
+      el('span', { class: 'who' }, m.name), ' ', el('span', { class: 'txt' + (m.c ? ' c' + m.c : '') }, m.text));
     if (mod && !m.mod) {
       r.append(el('span', { class: 'tools' },
         el('button', { type: 'button', title: T('حذف التعليق'), onclick: () => link.send({ t: 'del', id: m.id }) }, T('حذف')),
@@ -119,8 +140,9 @@ function mountChat(root, link, { askName } = {}) {
     if (banned) return say(T('تم حظرك من التعليق فهاد اللايف.'));
     if (!link.name && askName) { const n = await askName(); if (!n) return; }
     if (!link.ready) return say(T('الاتصال مقطوع، كنعاود نتصل…'));
+    if (voice) voice.stop();
     link.send({ t: 'msg', text });
-    input.value = '';
+    input.value = ''; spoken = '';
   }
 
   link.on('init', (d) => {
@@ -141,6 +163,30 @@ function mountChat(root, link, { askName } = {}) {
     .on('offline', () => say(T('الاتصال مقطوع، كنعاود نتصل…'), 0));
   setOpen(store.get('regam.chat') === 'open');          // folded unless the person opened it before
   return { say, focus: () => input.focus(), open: () => setOpen(true) };
+}
+
+// ------------------------------------------------------------- dictation --
+// Speech to text, provided by the browser (Chrome, Edge, Safari). Returns null
+// where it does not exist, so the buttons can stay hidden.
+const MIC_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+function makeDictation(onText, onState) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  let rec = null, on = false;
+  function start() {
+    rec = new SR();
+    rec.lang = { ar: 'ar-MA', fr: 'fr-FR', en: 'en-US' }[LANG] || 'ar-MA';
+    rec.interimResults = true; rec.continuous = true;
+    rec.onresult = (e) => {
+      let fin = '', interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) (e.results[i].isFinal ? (fin += e.results[i][0].transcript) : (interim += e.results[i][0].transcript));
+      onText(fin, interim);
+    };
+    rec.onend = () => { on = false; onState(false); };
+    rec.onerror = () => {};                    // "onend" follows and resets the button
+    try { rec.start(); on = true; onState(true); } catch { on = false; onState(false); }
+  }
+  return { toggle() { if (on) rec.stop(); else start(); }, stop() { if (on) rec.stop(); }, get on() { return on; } };
 }
 
 // ---------------------------------------------------------------- webrtc --

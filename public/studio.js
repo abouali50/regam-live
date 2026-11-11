@@ -297,6 +297,7 @@
               const v = rx.stream.getVideoTracks()[0], a = rx.stream.getAudioTracks()[0];
               if (v) setInput('guest' + slot, v);
               if (a && !st.node) {
+                st.audio = a; a.enabled = !((now() || {}).muted);
                 st.sink = new Audio(); st.sink.autoplay = true;          // so we hear the guest
                 st.sink.srcObject = new MediaStream([a]); st.sink.play().catch(() => {});
                 st.node = audioCtx.createMediaStreamSource(new MediaStream([a]));
@@ -319,9 +320,18 @@
       guests = list || [];
       $('#noGuests').hidden = guests.length > 0;
       $('#onStage').replaceChildren(...guests.map((g) => el('li', { class: 'guest-box' },
-        el('span', {}, T(g.ready ? '{name} على المنصة' : 'كنتسناو {name} يدخل…', { name: g.name })),
-        el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'unstage', uid: g.uid }) }, T('نزلو من المنصة')))));
-      for (const g of guests) worker.postMessage({ type: 'guestName', slot: g.slot, name: g.name });
+        el('span', {}, T(g.ready ? '{name} على المنصة' : 'كنتسناو {name} يدخل…', { name: g.name }) + (g.muted ? ' 🔇' : '')),
+        el('span', { class: 'guest-acts' },
+          el('button', { class: 'btn', type: 'button', onclick: () => link.send({ t: 'mute', uid: g.uid, on: !g.muted }) }, T(g.muted ? 'حل ليه الميكرو' : 'سد ليه الميكرو')),
+          el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'unstage', uid: g.uid }) }, T('نزلو من المنصة'))))));
+      $('#muteAll').hidden = guests.length < 2;
+      $('#muteAll').textContent = T(guests.every((g) => g.muted) ? 'حل الميكرو للجميع' : 'سد الميكرو للجميع');
+      $('#muteAll').onclick = () => link.send({ t: 'mute', on: !guests.every((g) => g.muted) });
+      for (const g of guests) {
+        worker.postMessage({ type: 'guestName', slot: g.slot, name: g.name });
+        const st = onStage.get(g.slot);                       // a closed microphone is cut here too, whatever the guest's page does
+        if (st && st.uid === g.uid && st.audio) st.audio.enabled = !g.muted;
+      }
       syncGuests();
     }
 

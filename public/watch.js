@@ -136,21 +136,29 @@
       preferH264(pub.addTransceiver(cam.getVideoTracks()[0], { direction: 'sendonly', streams: [cam], sendEncodings: [{ maxBitrate: 500_000 }] }));
       await rtcNegotiate(pub, 'whip', 'guest' + slot, token);
 
-      // Picture: the mixed broadcast. Sound: a mix made for this guest (the host and
-      // the other guests), so nobody hears their own voice coming back.
-      step = 'picture';
-      stage.watch = await rtcWatch('studio', token);
-      step = 'sound';
-      stage.voice = await rtcWatch('backstage' + slot, token, { video: false, tries: 20 });
     } catch (e) { leaveStage(false); if (e) e.step = `${step}${slot} ${e.status || e.name || ''}`.trim(); throw e; }
 
     onStage = true;
     stopHls();
-    const mixed = new MediaStream([...stage.watch.stream.getVideoTracks(), ...stage.voice.stream.getAudioTracks()]);
-    video.srcObject = mixed; video.muted = false;
-    video.play().catch(() => {});
+    // The guest is on stage as soon as their camera is sent. What they see and hear comes
+    // right after and never holds them back. Picture: the mixed broadcast. Sound: a mix made
+    // for this guest (the host and the other guests), so nobody hears their own voice back.
+    const mine = stage;
+    const show = () => {
+      if (stage !== mine) return;
+      video.srcObject = new MediaStream([...(mine.watch ? mine.watch.stream.getVideoTracks() : []), ...(mine.voice ? mine.voice.stream.getAudioTracks() : [])]);
+      video.muted = false;
+      video.play().catch(() => {});
+    };
+    const join = (key, path, opts, failText) => rtcWatch(path, token, opts).then((v) => {
+      if (stage !== mine) { rtcClose(v.pc, 'whep', path, token); return; }
+      mine[key] = v; show();
+      v.pc.addEventListener('track', () => setTimeout(show, 0));
+    }).catch((e) => { if (stage === mine) chat.say(failText + ` [${key}${slot} ${(e && (e.status || e.name)) || ''}]`, 9000); });
+    join('watch', 'studio', { tries: 40 }, T('ما وصلاتش الصورة ديال الاستوديو، ولكن راك على المنصة.'));
+    join('voice', 'backstage' + slot, { video: false, tries: 50 }, T('ما وصلش الصوت ديال الاستوديو. نزل من المنصة وعاود طلب الطلوع.'));
     unmute.hidden = true; stageBar.hidden = false; handBtn.hidden = true;
-    micBtn.textContent = T('سد الميكرو');
+    setMuted(false);
     lockLang(true);
     link.send({ t: 'onstage' });
     stage.pub.onconnectionstatechange = () => {
@@ -173,9 +181,18 @@
     setHand(false);
     if (live) startHls();
   }
+  // The host can close a guest's microphone; the guest cannot reopen it until the host does.
+  let hostMuted = false;
+  function setMuted(on) {
+    hostMuted = on;
+    const t = stage && stage.cam.getAudioTracks()[0];
+    if (t) t.enabled = !on;
+    micBtn.disabled = on;
+    micBtn.textContent = T(on ? 'صاحب اللايف سد ليك الميكرو' : 'سد الميكرو');
+  }
   micBtn.onclick = () => {
     const t = stage && stage.cam.getAudioTracks()[0];
-    if (!t) return;
+    if (!t || hostMuted) return;
     t.enabled = !t.enabled;
     micBtn.textContent = T(t.enabled ? 'سد الميكرو' : 'حل الميكرو');
   };
@@ -203,11 +220,15 @@
       setHand(false);
       inviteErr.hidden = true;
       $('#inviteYes').disabled = false;
+      $('#inviteYes').textContent = T('طلع دابا');
       $('#inviteYes').onclick = async () => {
         $('#inviteYes').disabled = true;
+        $('#inviteYes').textContent = T('كنتصلو…');
+        inviteErr.hidden = true;
         try { await goOnStage(d.token, d.slot); inviteDlg.close(); }
         catch (e) {
           $('#inviteYes').disabled = false;
+          $('#inviteYes').textContent = T('طلع دابا');
           inviteErr.hidden = false;
           inviteErr.textContent = e && e.name === 'NotAllowedError'
             ? T('خاصك تسمح للمتصفح باستعمال الكاميرا والميكرو، ومن بعد عاود.')
@@ -218,6 +239,7 @@
       inviteDlg.oncancel = () => link.send({ t: 'leave' });
       inviteDlg.showModal();
     })
+    .on('muted', (d) => { if (stage) { setMuted(!!d.on); chat.say(T(d.on ? 'صاحب اللايف سد ليك الميكرو.' : 'صاحب اللايف حل ليك الميكرو. تقدر تهضر.'), 5000); } })
     .on('kick', (d) => {
       if (inviteDlg.open) inviteDlg.close();
       const was = onStage;

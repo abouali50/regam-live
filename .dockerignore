@@ -5,3 +5,4 @@ test
 .env.*
 .git
 .DS_Store
+recordings

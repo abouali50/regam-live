@@ -69,11 +69,12 @@ fi
 
 # ------------------------------------------------------------------- files --
 say "Copying the application to $BASE"
-rsync -a --delete --exclude .git --exclude node_modules --exclude data --exclude .env --exclude .mode \
+rsync -a --delete --exclude .git --exclude node_modules --exclude data --exclude recordings --exclude .env --exclude .mode \
       --exclude 'deploy/mediamtx.yml' --exclude 'deploy/Caddyfile' --exclude 'test/out' "$SRC"/ "$BASE"/
 cd "$BASE"
-mkdir -p data deploy
+mkdir -p data deploy recordings/air
 chown -R 1000:1000 data
+chown 1000:1000 recordings recordings/air
 
 GENERATED=0
 if [ ! -f .env ]; then

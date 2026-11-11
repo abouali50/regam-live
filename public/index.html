@@ -24,6 +24,7 @@
         <div class="offline-mark">REGAM<b>Live</b></div>
         <p id="offlineText">اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.</p>
       </div>
+      <div id="hearts" class="hearts" aria-hidden="true"></div>
       <button id="unmute" class="unmute" type="button" hidden>شغّل الصوت</button>
       <div class="onstage" id="stageBar" hidden>
         <span class="onstage-tag">نتا على المنصة</span>
@@ -36,7 +37,11 @@
         <h1 id="title">REGAM Live</h1>
         <p id="guestLine" class="guest-line" hidden></p>
       </div>
-      <button id="handBtn" class="btn" type="button">طلب الطلوع</button>
+      <div class="actions">
+        <button id="likeBtn" class="btn like" type="button" aria-label="إعجاب"><span class="heart" aria-hidden="true">♥</span><span id="likes">0</span></button>
+        <button id="shareBtn" class="btn" type="button">شارك</button>
+        <button id="handBtn" class="btn" type="button">طلب الطلوع</button>
+      </div>
     </div>
   </section>
   <aside class="chat" id="chat" aria-label="التعليقات"></aside>

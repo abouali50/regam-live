@@ -92,9 +92,12 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
+  fs.mkdirSync(path.join(OUT, 'rec', 'air'), { recursive: true });
+  fs.writeFileSync(path.join(OUT, 'rec', 'air', '2026-11-10_20-30-00-000000.mp4'), Buffer.alloc(2_500_000, 7));
+  fs.writeFileSync(path.join(OUT, 'rec', 'air', 'notes.txt'), 'x');
   await until(() => fetch(BASE + '/healthz').then((r) => r.ok));
 
   try {
@@ -148,6 +151,11 @@ async function until(fn, ms = 15000, step = 250) {
     await sleep(700);
     check('a forged moderator token cannot pin a message', (await viewer.textContent('.pinned')) === 'التكوين كيبدا دابا');
 
+    // ---- hearts ------------------------------------------------------------------
+    for (let i = 0; i < 3; i++) { await viewer.click('#likeBtn'); await sleep(260); }
+    await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'spammerbbbbbbbbb', name: 'x' })); for (let i = 0; i < 200; i++) w.send(JSON.stringify({ t: 'like' })); }; });
+    check('hearts are counted for everyone, and flooding is limited', (await until(async () => Number(await studio.textContent('#likes')) === 4, 6000)) !== null, 'studio shows ' + await studio.textContent('#likes'));
+
     // ---- guest on stage -------------------------------------------------------
     await viewer.click('#handBtn');
     check('stage request appears in the studio', (await until(() => studio.locator('#hands li', { hasText: 'كريم' }).isVisible())) !== null);
@@ -182,17 +190,23 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- whiteboard ---------------------------------------------------------------
     await studio.click('#boardBtn');
     check('whiteboard switches the broadcast to 1920x1080', (await until(async () => (await dim()) === '1920x1080')) !== null, await dim());
-    const box = await studio.locator('#board').boundingBox();
+    await studio.evaluate(() => { document.querySelector('.stage').scrollTop = 0; });
+    let box = await studio.locator('#board').boundingBox();
     await studio.mouse.move(box.x + box.width * 0.15, box.y + box.height * 0.6);
     await studio.mouse.down();
     for (let i = 1; i <= 12; i++) await studio.mouse.move(box.x + box.width * (0.15 + i * 0.03), box.y + box.height * (0.6 + 0.12 * Math.sin(i / 2)));
     await studio.mouse.up();
     await studio.click('#boardBar [data-tool="text"]');
     await studio.click('#boardBar [data-color="#d92d2d"]');
+    await studio.locator('#board').scrollIntoViewIfNeeded();
+    await studio.evaluate(() => { document.querySelector('.stage').scrollTop = 0; });
+    box = await studio.locator('#board').boundingBox();   // the toolbar click may have scrolled the page
     await studio.mouse.click(box.x + box.width * 0.12, box.y + box.height * 0.2);
+    await studio.waitForFunction(() => document.activeElement && document.activeElement.id === 'boardTyper');
     await studio.keyboard.type('MetaMask : étape 1');
     await studio.keyboard.press('Escape');
     await studio.mouse.click(box.x + box.width * 0.7, box.y + box.height * 0.38);
+    await studio.waitForFunction(() => document.activeElement && document.activeElement.id === 'boardTyper');
     await studio.keyboard.type('الدرس الأول');
     await studio.keyboard.press('Escape');
     check('drawing and typing land on the whiteboard', (await studio.evaluate(() => window.__studio.board.count)) === 3);
@@ -230,6 +244,19 @@ async function until(fn, ms = 15000, step = 250) {
     await phone.goto(BASE + '/'); await until(() => phone.evaluate(() => document.querySelector('#video').videoWidth > 0), 20000);
     await phone.screenshot({ path: path.join(OUT, 'viewer-phone.png') });
     check('phone layout has no sideways scroll', await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+
+    // ---- recordings ----------------------------------------------------------------------
+    check('recordings are private', (await fetch(BASE + '/api/recordings')).status === 401 && (await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4')).status === 401);
+    const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
+    check('recordings cannot reach other files', (await fetch(BASE + '/api/recordings?name=..%2F..%2Fserver.js&token=' + tok)).status === 400 && (await fetch(BASE + '/api/recordings?name=notes.txt&token=' + tok)).status === 400);
+    const dl = await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4&token=' + tok);
+    check('a recording downloads in full', dl.status === 200 && (await dl.arrayBuffer()).byteLength === 2_500_000);
+    await studio.reload(); await studio.waitForSelector('#recs li .rec-actions', { timeout: 20000 });
+    check('studio lists the recording with date and size', /10\/11\/2026 · 20:30 · (2|3) MB/.test(await studio.textContent('#recs li')), await studio.textContent('#recs li'));
+    await studio.click('#recs li button');
+    check('deleting a recording removes the file', (await until(() => !fs.existsSync(path.join(OUT, 'rec', 'air', '2026-11-10_20-30-00-000000.mp4')), 5000)) !== null && (await until(() => studio.locator('#noRecs').isVisible(), 5000)) !== null);
+    await studio.click('#goBtn');
+    await until(() => studio.evaluate(() => window.__studio.pc && window.__studio.pc.connectionState === 'connected'));
 
     // ---- end of live -------------------------------------------------------------------
     await studio.click('#goBtn');

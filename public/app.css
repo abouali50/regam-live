@@ -123,3 +123,15 @@ input[type="text"], input[type="password"], select { background: var(--bg); bord
 .dot-btn[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
 /* where the camera tile sits in the broadcast, so the host does not write under it */
 .board-cam { position: absolute; right: 1.2%; bottom: 2.1%; width: 19%; aspect-ratio: 4 / 3; border: 2px dashed #b9c0cc; border-radius: 10px; display: grid; place-items: center; color: #9aa3b1; font-size: 13px; pointer-events: none; }
+.recs li { flex-wrap: wrap; }
+.rec-actions { display: flex; gap: 6px; }
+.rec-actions .btn { padding: 5px 12px; text-decoration: none; font-size: 14px; }
+/* hearts + share */
+.actions { display: flex; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.heart { color: var(--live); margin-inline-end: 6px; }
+.btn.like { font-variant-numeric: tabular-nums; }
+.likes-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hearts { position: absolute; inset-inline-end: 14px; bottom: 60px; width: 70px; height: 60%; pointer-events: none; }
+.float-heart { position: absolute; bottom: 0; left: 50%; color: var(--live); font-size: 30px; line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,.5); animation: rise 2.2s ease-out forwards; }
+@keyframes rise { from { transform: translate(-50%, 0) scale(.5); opacity: 0; } 15% { opacity: 1; } to { transform: translate(calc(-50% + var(--x)), -260px) scale(var(--s)); opacity: 0; } }
+@media (max-width: 900px) { .under { flex-wrap: wrap; } .actions .btn { padding: 8px 12px; } }

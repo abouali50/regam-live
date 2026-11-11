@@ -219,6 +219,8 @@ const DICT = {
   'تقدر تعلق ملي تدخل للقاعة.': ['Vous pourrez commenter une fois entré dans la salle.', 'You can comment once you are in the room.'],
   '{name} كيتسنى يدخل': ['{name} attend pour entrer', '{name} is waiting to come in'],
   '{n} ناس كيتسناو يدخلو': ['{n} personnes attendent pour entrer', '{n} people are waiting to come in'],
+  '{name} بغا يطلع للمنصة': ['{name} demande à monter sur scène', '{name} asks to come on stage'],
+  '{n} ناس بغاو يطلعو للمنصة': ['{n} personnes demandent à monter sur scène', '{n} people ask to come on stage'],
   'طلع دابا': ['Monter maintenant', 'Join now'],
   'لا، شكرا': ['Non, merci', 'No, thanks'],
   '{name} على المنصة مع {host}': ['{name} est sur scène avec {host}', '{name} is on stage with {host}'],

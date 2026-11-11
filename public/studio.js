@@ -444,6 +444,32 @@
     $('#inviteCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#inviteText').value); status(T('تنسخات الدعوة. لصقها فواتساب ولا فالإيميل.')); } catch { $('#inviteText').select(); } };
     link.on('code', (d) => { roomCode = d.code || ''; showInvite(); }).on('next', (d) => { roomNext = d.next; showInvite(); });
 
+    // ---- requests the host must answer are shown in a bar across the top of the screen, with a chime:
+    // people waiting to come in, and people asking to come up on stage
+    let doorList = [], handList = [];
+    function chime() {
+      try {
+        const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(), g = ac.createGain();
+        o.frequency.value = 880; g.gain.setValueAtTime(0.15, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.6);
+        o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.6); o.onended = () => ac.close();
+      } catch { /* no sound, the bar is enough */ }
+    }
+    function paintBar() {
+      const bar = $('#waitBar');
+      bar.hidden = doorList.length + handList.length === 0;
+      const group = (list, title, yes, no, all) => (list.length ? [el('span', { class: 'wait-group' },
+        el('strong', {}, title),
+        ...list.slice(0, 4).map((w) => el('span', { class: 'wait-one' }, list.length > 1 ? el('span', {}, w.name) : null,
+          el('button', { class: 'btn primary small', type: 'button', onclick: () => yes(w) }, T('قبول')),
+          no ? el('button', { class: 'btn small', type: 'button', onclick: () => no(w) }, T('رفض')) : null)),
+        all && list.length > 1 ? el('button', { class: 'btn primary small', type: 'button', onclick: all }, T('دخل الجميع')) : null)] : []);
+      bar.replaceChildren(
+        ...group(doorList, T(doorList.length === 1 ? '{name} كيتسنى يدخل' : '{n} ناس كيتسناو يدخلو', { name: doorList[0] ? doorList[0].name : '', n: doorList.length }),
+          (w) => link.send({ t: 'admit', uid: w.uid, ok: true }), (w) => link.send({ t: 'admit', uid: w.uid, ok: false }), () => link.send({ t: 'admit' })),
+        ...group(handList, T(handList.length === 1 ? '{name} بغا يطلع للمنصة' : '{n} ناس بغاو يطلعو للمنصة', { name: handList[0] ? handList[0].name : '', n: handList.length }),
+          (h) => acceptHand(h), null, null));
+    }
+
     // ---- waiting room: people give their name and wait for the host to let them in
     let waitingN = 0;
     function showWaiting(gate, list) {
@@ -455,21 +481,10 @@
         el('span', { class: 'guest-acts' },
           el('button', { class: 'btn primary', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: true }) }, T('دخلو')),
           el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: false }) }, T('رفض'))))));
-      // people at the door are shown at the top of the screen, whatever the host is looking at
-      const bar = $('#waitBar');
-      bar.hidden = list.length === 0;
-      bar.replaceChildren(el('strong', {}, T(list.length === 1 ? '{name} كيتسنى يدخل' : '{n} ناس كيتسناو يدخلو', { name: list[0] ? list[0].name : '', n: list.length })),
-        ...list.slice(0, 4).map((w) => el('span', { class: 'wait-one' }, list.length > 1 ? el('span', {}, w.name) : null,
-          el('button', { class: 'btn primary small', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: true }) }, T('دخلو')),
-          el('button', { class: 'btn small', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: false }) }, T('رفض')))),
-        list.length > 1 ? el('button', { class: 'btn primary small', type: 'button', onclick: () => link.send({ t: 'admit' }) }, T('دخل الجميع')) : null);
+      doorList = list; paintBar();
       if (list.length > waitingN) {
         status(T('{name} كيتسنى فقاعة الانتظار.', { name: list[list.length - 1].name }));
-        try {                                                   // a short chime
-          const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(), g = ac.createGain();
-          o.frequency.value = 880; g.gain.setValueAtTime(0.15, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.6);
-          o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.6); o.onended = () => ac.close();
-        } catch { /* no sound, the bar is enough */ }
+        chime();
       }
       waitingN = list.length;
     }
@@ -532,15 +547,18 @@
       showSound(''); $('#soundNote').textContent = T('تحيد الصوت.');
     };
 
+    function acceptHand(h) {
+      if (!liveOn) return status(T('بدا اللايف أولا، عاد قبل الطلبات.'));
+      if (guests.length >= maxGuests) return status(T('المنصة عامرة. نزل شي واحد أولا.'));
+      link.send({ t: 'stage', uid: h.uid });
+    }
     function showHands(list) {
       $('#noHands').hidden = list.length > 0;
       $('#hands').replaceChildren(...list.map((h) => el('li', {},
         el('span', {}, h.name),
-        el('button', { class: 'btn primary', type: 'button', onclick: () => {
-          if (!liveOn) return status(T('بدا اللايف أولا، عاد قبل الطلبات.'));
-          if (guests.length >= maxGuests) return status(T('المنصة عامرة. نزل شي واحد أولا.'));
-          link.send({ t: 'stage', uid: h.uid });
-        } }, T('قبول')))));
+        el('button', { class: 'btn primary', type: 'button', onclick: () => acceptHand(h) }, T('قبول')))));
+      if (list.length > handList.length) chime();
+      handList = list; paintBar();
     }
 
     // ---------------------------------------------------------- settings --

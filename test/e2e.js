@@ -199,6 +199,7 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- guest on stage -------------------------------------------------------
     await viewer.click('#handBtn');
     check('stage request appears in the studio', (await until(() => studio.locator('#hands li', { hasText: 'كريم' }).isVisible())) !== null);
+    check('the request is also shown in the bar at the top of the studio', await studio.locator('#waitBar', { hasText: 'كريم' }).isVisible() && await studio.evaluate(() => document.querySelector('#waitBar').getBoundingClientRect().top < 80));
     await studio.click('#hands li button');
     check('viewer receives the invitation', (await until(() => viewer.locator('#inviteDlg[open]').isVisible())) !== null);
     await viewer.click('#inviteYes');
@@ -419,7 +420,8 @@ async function until(fn, ms = 15000, step = 250) {
     await w1.fill('#nameInput', 'نادية'); await w1.click('#nameForm button[type=submit]');
     check('the host sees who is waiting', (await until(() => studio.locator('#waiting li', { hasText: 'نادية' }).isVisible())) !== null && await w1.locator('#offlineText', { hasText: 'تسنى' }).isVisible());
     check('people already inside keep watching', await viewer.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status) === 200);
-    await studio.locator('#waiting li', { hasText: 'نادية' }).locator('button.primary').click();
+    check('someone waiting to come in is announced at the top of the studio, and can be accepted from there', await studio.locator('#waitBar', { hasText: 'نادية' }).isVisible());
+    await studio.locator('#waitBar button.primary').first().click();
     check('once admitted, the person watches the live', (await until(() => w1.locator('#liveBadge.on').isVisible())) !== null
       && (await until(() => w1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null && (await studio.locator('#waiting li').count()) === 0);
     const w2 = await door();

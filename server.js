@@ -180,37 +180,82 @@ const cookieOf = (req, name) => {
 const SOUND_TYPES = { 'audio/mpeg': 1, 'audio/mp3': 1, 'audio/mp4': 1, 'audio/x-m4a': 1, 'audio/m4a': 1, 'audio/aac': 1, 'audio/ogg': 1, 'audio/wav': 1, 'audio/x-wav': 1 };
 const SOUND_MAX = 60 * 1024 * 1024;
 const soundFile = (slug) => path.join(DATA_DIR, `sound_${slug}`);
-function handleSound(req, res, url) {
-  const room = roomOf(url);
-  if (!room) return send(res, 404, { error: 'no such room' });
-  if (!canHost(whoIs(bearer(req)), room)) return send(res, 401, { error: 'unauthorized' });
-  if (req.method === 'DELETE') {
-    delete room.cfg.sound; save();
-    fs.unlink(soundFile(room.cfg.slug), () => {});
-    return send(res, 200, { ok: true });
-  }
-  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
-  const type = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-  if (!SOUND_TYPES[type]) return send(res, 415, { error: 'not a sound file' });
-  if (Number(req.headers['content-length']) > SOUND_MAX) return send(res, 413, { error: 'too large' });
-  const tmp = soundFile(room.cfg.slug) + '.tmp', out = fs.createWriteStream(tmp);
+// Receives an uploaded file into `dest` (through a temporary file). Answers the error itself.
+function receiveFile(req, res, dest, max, done) {
+  if (Number(req.headers['content-length']) > max) return send(res, 413, { error: 'too large' });
+  const tmp = dest + '.tmp', out = fs.createWriteStream(tmp);
   let size = 0, failed = false;
   const fail = (code) => { if (failed) return; failed = true; req.unpipe(out); out.destroy(); fs.unlink(tmp, () => {}); send(res, code, { error: code === 413 ? 'too large' : 'upload failed' }); req.resume(); };
-  req.on('data', (c) => { size += c.length; if (size > SOUND_MAX) fail(413); });
+  req.on('data', (c) => { size += c.length; if (size > max) fail(413); });
   req.on('error', () => fail(400)); out.on('error', () => fail(500));
   req.on('aborted', () => fail(400));
   req.pipe(out);
   out.on('finish', () => {
     if (failed) return;
     if (!size) return fail(400);
-    fs.rename(tmp, soundFile(room.cfg.slug), (e) => {
-      if (e) return fail(500);
-      room.cfg.sound = { type, v: Date.now() }; save();
-      send(res, 200, { ok: true, sound: soundUrl(room) });
-    });
+    fs.rename(tmp, dest, (e) => (e ? fail(500) : done()));
   });
 }
-const soundUrl = (room) => (room.cfg.sound ? `/media/sound/${room.cfg.slug}?v=${room.cfg.sound.v}` : '');
+const typeOf = (req) => String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+function handleSound(req, res, url) {
+  const room = roomOf(url);
+  if (!room) return send(res, 404, { error: 'no such room' });
+  if (!canHost(whoIs(bearer(req)), room)) return send(res, 401, { error: 'unauthorized' });
+  if (req.method === 'DELETE') {                 // no sound at all
+    delete room.cfg.sound; room.cfg.soundOff = true; save();
+    fs.unlink(soundFile(room.cfg.slug), () => {});
+    return send(res, 200, { ok: true, sound: '' });
+  }
+  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+  if (url.searchParams.get('default')) {         // back to the recitation that comes with the site
+    delete room.cfg.sound; delete room.cfg.soundOff; save();
+    fs.unlink(soundFile(room.cfg.slug), () => {});
+    return send(res, 200, { ok: true, sound: soundUrl(room) });
+  }
+  const type = typeOf(req);
+  if (!SOUND_TYPES[type]) return send(res, 415, { error: 'not a sound file' });
+  receiveFile(req, res, soundFile(room.cfg.slug), SOUND_MAX, () => {
+    room.cfg.sound = { type, v: Date.now() }; delete room.cfg.soundOff; save();
+    send(res, 200, { ok: true, sound: soundUrl(room) });
+  });
+}
+// A room without its own sound plays the recitation that comes with the site (Surat Ar-Rahman,
+// Abdulbasit Abdulsamad), unless its host switched the sound off.
+const DEFAULT_SOUND = 'WAIT_SOUND_URL' in env ? env.WAIT_SOUND_URL : 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r3/055.mp3';
+const soundUrl = (room) => (room.cfg.sound ? `/media/sound/${room.cfg.slug}?v=${room.cfg.sound.v}` : room.cfg.soundOff ? '' : DEFAULT_SOUND);
+
+// Pictures shown one after the other while the room is not live (sent by its host; without any, the reef picture).
+const PIC_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const PIC_MAX = 8 * 1024 * 1024, PICS_PER_ROOM = 12;
+const picFile = (slug, id) => path.join(DATA_DIR, `pic_${slug}_${id}`);
+const picUrls = (room) => (room.cfg.pics || []).map((p) => ({ id: p.id, url: `/media/pic/${room.cfg.slug}/${p.id}` }));
+function handlePics(req, res, url) {
+  const room = roomOf(url);
+  if (!room) return send(res, 404, { error: 'no such room' });
+  if (!canHost(whoIs(bearer(req)), room)) return send(res, 401, { error: 'unauthorized' });
+  const pics = (room.cfg.pics = room.cfg.pics || []);
+  if (req.method === 'DELETE') {
+    const id = String(url.searchParams.get('id') || '');
+    if (!pics.some((p) => p.id === id)) return send(res, 404, { error: 'no such picture' });
+    room.cfg.pics = pics.filter((p) => p.id !== id); save();
+    fs.unlink(picFile(room.cfg.slug, id), () => {});
+    return send(res, 200, { ok: true, pics: picUrls(room) });
+  }
+  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+  const type = typeOf(req);
+  if (!PIC_TYPES[type]) return send(res, 415, { error: 'not a picture' });
+  if (pics.length >= PICS_PER_ROOM) return send(res, 409, { error: 'too many pictures' });
+  const id = crypto.randomBytes(6).toString('hex');
+  receiveFile(req, res, picFile(room.cfg.slug, id), PIC_MAX, () => {
+    room.cfg.pics.push({ id, type }); save();
+    send(res, 200, { ok: true, pics: picUrls(room) });
+  });
+}
+function servePic(res, rest) {
+  const [slug, id] = rest.split('/'), room = rooms.get(slug), pic = room && (room.cfg.pics || []).find((p) => p.id === id);
+  if (!pic) return send(res, 404, 'Not found');
+  fs.readFile(picFile(slug, id), (e, data) => (e ? send(res, 404, 'Not found') : send(res, 200, data, { 'Content-Type': pic.type, 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' })));
+}
 function serveSound(req, res, slug) {
   const room = rooms.get(slug);
   if (!room || !room.cfg.sound) return send(res, 404, 'Not found');
@@ -480,13 +525,15 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
-        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, sound: soundUrl(room),
+        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, sound: soundUrl(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
         access: acct.access(), accounts: acct.mailReady(),
       });
     }
     if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady() });
     if (p.startsWith('/api/member/')) return await acct.handle(req, res, p.slice(12));
     if (p === '/api/sound') return handleSound(req, res, url);
+    if (p === '/api/pics') return handlePics(req, res, url);
+    if (p.startsWith('/media/pic/')) return servePic(res, p.slice(11));
     if (p.startsWith('/media/sound/')) return serveSound(req, res, p.slice(13));
     if (p === '/api/pass') {                      // the pass that lets an admitted person's player fetch the stream
       const room = roomOf(url);

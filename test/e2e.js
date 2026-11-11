@@ -105,7 +105,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'),
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -616,6 +616,7 @@ async function until(fn, ms = 15000, step = 250) {
     {
       const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
       const bytes = Buffer.alloc(5000, 7);
+      check('a room without its own sound plays the recitation that comes with the site', (await (await fetch(BASE + '/api/config')).json()).sound === 'https://sound.test.invalid/rahman.mp3');
       const noAuth = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg' }, body: bytes });
       const notSound = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'text/html', Authorization: 'Bearer ' + tok }, body: bytes });
       const up = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg', Authorization: 'Bearer ' + tok }, body: bytes });
@@ -628,6 +629,23 @@ async function until(fn, ms = 15000, step = 250) {
       check('while nothing is live, viewers get a button to hear the waiting sound', (await until(() => idle.locator('#soundBtn').isVisible())) !== null);
       const del = await fetch(BASE + '/api/sound', { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
       check('the host can remove the sound', del.status === 200 && (await (await fetch(BASE + '/api/config')).json()).sound === '' && (await fetch(BASE + cfgNow.sound)).status === 404);
+      const back = await fetch(BASE + '/api/sound?default=1', { method: 'POST', headers: { Authorization: 'Bearer ' + tok } });
+      check('and can bring the recitation back', back.status === 200 && (await (await fetch(BASE + '/api/config')).json()).sound === 'https://sound.test.invalid/rahman.mp3');
+      // waiting pictures
+      const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+      const before = await idle.evaluate(() => getComputedStyle(document.querySelector('#offline .reef.on')).backgroundImage);
+      const picNo = await fetch(BASE + '/api/pics', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: png });
+      const picBad = await fetch(BASE + '/api/pics', { method: 'POST', headers: { 'Content-Type': 'image/svg+xml', Authorization: 'Bearer ' + tok }, body: png });
+      const pic1 = await fetch(BASE + '/api/pics', { method: 'POST', headers: { 'Content-Type': 'image/png', Authorization: 'Bearer ' + tok }, body: png });
+      await fetch(BASE + '/api/pics', { method: 'POST', headers: { 'Content-Type': 'image/png', Authorization: 'Bearer ' + tok }, body: png });
+      const list = (await (await fetch(BASE + '/api/config')).json()).pics;
+      const got = await fetch(BASE + list[0].url);
+      await idle.reload();
+      check('the reef picture is shown by default; the host can put several pictures of their own instead', /sea\.webp/.test(before) && picNo.status === 401 && picBad.status === 415 && pic1.status === 200 && list.length === 2
+        && got.status === 200 && got.headers.get('content-type') === 'image/png'
+        && (await until(() => idle.evaluate(() => { const l = document.querySelector('#offline .reef.on'); return !!l && /media\/pic\/main\//.test(l.style.backgroundImage); }), 8000)) !== null, `${picNo.status} ${picBad.status} ${pic1.status} ${list.length} ${before}`);
+      for (const p of list) await fetch(BASE + `/api/pics?id=${p.id}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
+      check('pictures can be removed again', (await (await fetch(BASE + '/api/config')).json()).pics.length === 0 && (await fetch(BASE + list[0].url)).status === 404);
       await idle.context().close();
     }
     // ---- the studio on a phone: no worker mixer there, the simple one takes over

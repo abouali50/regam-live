@@ -33,7 +33,7 @@
       $('#nameCancel').onclick = () => finish(null);
       nameDlg.oncancel = () => resolve(null);
       nameDlg.showModal();
-      nameInput.focus();
+      if (TOUCH) nameInput.blur(); else nameInput.focus();
     });
   }
 
@@ -375,8 +375,8 @@
         dlg.close(); link.hello();
       };
       $('#codeInput').value = '';
-      if (!dlg.open) dlg.showModal();
-      $('#codeInput').focus();
+      if (!dlg.open) { dlg.showModal(); $('#codeInput').blur(); }      // the dialog focuses its first field by itself: undone on phones
+      focusSoon($('#codeInput'));
     })
     .on('signin', () => {                     // the site is for signed-in people: show the way in
       doorShut = true; setLive(false); knockBtn.hidden = true;

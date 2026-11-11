@@ -455,7 +455,22 @@
         el('span', { class: 'guest-acts' },
           el('button', { class: 'btn primary', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: true }) }, T('دخلو')),
           el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: false }) }, T('رفض'))))));
-      if (list.length > waitingN) status(T('{name} كيتسنى فقاعة الانتظار.', { name: list[list.length - 1].name }));
+      // people at the door are shown at the top of the screen, whatever the host is looking at
+      const bar = $('#waitBar');
+      bar.hidden = list.length === 0;
+      bar.replaceChildren(el('strong', {}, T(list.length === 1 ? '{name} كيتسنى يدخل' : '{n} ناس كيتسناو يدخلو', { name: list[0] ? list[0].name : '', n: list.length })),
+        ...list.slice(0, 4).map((w) => el('span', { class: 'wait-one' }, list.length > 1 ? el('span', {}, w.name) : null,
+          el('button', { class: 'btn primary small', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: true }) }, T('دخلو')),
+          el('button', { class: 'btn small', type: 'button', onclick: () => link.send({ t: 'admit', uid: w.uid, ok: false }) }, T('رفض')))),
+        list.length > 1 ? el('button', { class: 'btn primary small', type: 'button', onclick: () => link.send({ t: 'admit' }) }, T('دخل الجميع')) : null);
+      if (list.length > waitingN) {
+        status(T('{name} كيتسنى فقاعة الانتظار.', { name: list[list.length - 1].name }));
+        try {                                                   // a short chime
+          const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(), g = ac.createGain();
+          o.frequency.value = 880; g.gain.setValueAtTime(0.15, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.6);
+          o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.6); o.onended = () => ac.close();
+        } catch { /* no sound, the bar is enough */ }
+      }
       waitingN = list.length;
     }
     $('#gateChk').onchange = () => link.send({ t: 'gate', on: $('#gateChk').checked });

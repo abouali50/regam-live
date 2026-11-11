@@ -366,3 +366,22 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .room-enter { margin-top: 6px; align-self: start; background: var(--gold); color: #1b1405; font-weight: 700; padding: 6px 14px; border-radius: 999px; font-size: 14px; }
 .room-next { color: var(--gold); font-size: 13px; }
 .offline-hint { margin: 0; font-size: 14px; max-width: 46ch; background: rgba(2,20,36,.6); padding: 6px 12px; border-radius: 10px; }
+
+/* people waiting at the door: a bar across the top of the studio */
+.wait-bar { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px; background: #3a2c0a; border-bottom: 2px solid var(--gold); color: #ffe7a8; }
+.wait-one { display: inline-flex; align-items: center; gap: 6px; }
+/* narrow phones: the header never pushes the page wider than the screen */
+@media (max-width: 600px) {
+  .top .meta { flex-wrap: wrap; row-gap: 6px; min-width: 0; max-width: 100%; }
+  .acc-name { max-width: 90px; }
+  body.watch, body.home { overflow-x: hidden; }
+}
+/* small phones: the waiting screen gets more height and smaller text, so nothing is cut */
+@media (max-width: 600px) {
+  .watch .player:has(.offline:not([hidden])) { aspect-ratio: 1 / 1; }
+  .watch .offline { gap: 8px; padding: 10px 12px; }
+  .watch .offline-mark { font-size: 24px; }
+  .watch .offline p { font-size: 14px; line-height: 1.4; }
+  .watch .offline .offline-hint { font-size: 12.5px; }
+  .watch .offline .btn { padding: 7px 14px; }
+}

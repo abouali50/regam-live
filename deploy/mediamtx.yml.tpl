@@ -33,6 +33,8 @@ srt: false
 hls: true
 hlsAddress: :8888
 hlsAllowOrigins: ["*"]
+# The app is the only HLS client: it proxies the "air" path to viewers with this secret.
+hlsCDNSecret: __MTX_PASS__
 hlsAlwaysRemux: true
 hlsVariant: mpegts
 hlsSegmentCount: 7

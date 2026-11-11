@@ -131,7 +131,7 @@ if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
 fi
 
 say "Building and starting REGAM Live (a few minutes the first time)"
-docker compose "${PROFILE[@]}" up -d --build --remove-orphans
+docker compose "${PROFILE[@]}" up -d --build --remove-orphans --force-recreate
 
 # ------------------------------------------------------ reverse proxy (opt) --
 if [ "$MODE" = "proxy" ]; then

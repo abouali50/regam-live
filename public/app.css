@@ -187,3 +187,20 @@ span.react { cursor: default; }
 body.home, body.admin { min-height: 100dvh; }
 a.btn { color: var(--text); text-decoration: none; display: inline-block; }
 a.btn.primary { color: #1b1405; }
+/* teacher sign-up, plans, subscriptions */
+.teach-main { max-width: 640px; }
+.apply-form { display: grid; gap: 12px; }
+.apply-form label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.apply-form input[type="text"], .apply-form input[type="password"] { width: 100%; }
+.plans { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; margin: 0; }
+.plans legend { color: var(--muted); font-size: 14px; padding: 0 6px; }
+.apply-form .plan { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 16px; }
+.pay-info { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: inherit; margin: 0; }
+.pay-form { display: grid; gap: 8px; }
+.pay-form label { font-size: 14px; color: var(--muted); }
+.pay-form textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--text); font: inherit; resize: vertical; }
+.pay-form .btn { justify-self: start; }
+.badge.wait { background: var(--gold); color: #1b1405; }
+.admin-list li.is-pending { outline: 1px solid var(--gold); }
+.card-link { color: var(--muted); font-size: 14px; text-align: center; }
+.card-link:hover { color: var(--text); }

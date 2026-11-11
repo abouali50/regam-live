@@ -176,7 +176,12 @@
   $('#leaveBtn').onclick = () => leaveStage(true);
 
   // ---------------------------------------------------------------- link --
+  link.on('full', () => {                       // the room has reached the number of viewers its plan allows
+    setLive(false);
+    $('#offlineText').textContent = T('القاعة عامرة دابا. غادي نعاودو نجربو بوحدنا من بعد شوية.');
+  });
   link.on('init', (d) => {
+    $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
     setLive(d.live);
     $('#viewers').textContent = d.viewers;
     if (d.title) $('#title').textContent = d.title;

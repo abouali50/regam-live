@@ -25,6 +25,7 @@
       <label>كلمة السر<input name="password" type="text" minlength="8" autocomplete="off" required dir="ltr"></label>
       <button class="btn primary" type="submit">زيد أستاذ</button>
     </form>
+    <p class="muted">الطلبات الجديدة كتجي من صفحة التسجيل: <a class="room-url" href="/teach" target="_blank" rel="noopener" dir="ltr" id="teachUrl"></a></p>
     <p id="noUsers" class="muted">ما كاين حتى أستاذ.</p>
     <ul id="users" class="admin-list"></ul>
   </section>
@@ -39,6 +40,23 @@
     </form>
     <datalist id="topics"></datalist>
     <ul id="roomList" class="admin-list"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>العروض والخلاص</h2>
+    <p class="muted">كل عرض: الاسم، الثمن بالدولار فالشهر، وعدد المتابعين الأقصى فالقاعة.</p>
+    <ul id="planList" class="admin-list"></ul>
+    <form id="planForm" class="admin-form">
+      <label>اسم العرض<input name="name" type="text" maxlength="30" required></label>
+      <label>الثمن ($ فالشهر)<input name="price" type="number" min="0" step="1" required dir="ltr"></label>
+      <label>عدد المتابعين<input name="capacity" type="number" min="1" step="1" required dir="ltr"></label>
+      <button class="btn primary" type="submit">زيد عرض</button>
+    </form>
+    <form id="payForm" class="pay-form">
+      <label for="payText">طريقة الخلاص (كتبان للأستاذ من بعد الطلب)</label>
+      <textarea id="payText" rows="5" maxlength="1500" placeholder="PayPal: ...&#10;USDT (TRC20): ...&#10;واتساب: ..." dir="auto"></textarea>
+      <button class="btn" type="submit">حفظ</button>
+    </form>
   </section>
 </main>
 <script src="/i18n.js"></script>

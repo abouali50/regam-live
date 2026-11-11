@@ -347,6 +347,48 @@ async function until(fn, ms = 15000, step = 250) {
       && (await (await fetch(BASE + '/')).text()).includes('id="video"'));
     await tctx.close(); await adminCtx.close(); await home.close(); await pupil.close();
 
+    // ---- sign-in, teacher sign-up, plans, capacity, subscriptions ----------------------------
+    const lg = (body) => fetch(BASE + '/api/login', { method: 'POST', body: JSON.stringify(body) });
+    check("the administrator's password works whatever is typed in the login field", (await lg({ login: 'regam-live', password: 'studio-pass-1' })).status === 200 && (await lg({ login: 'me@example.com', password: 'studio-pass-1' })).status === 200 && (await lg({ login: 'regam-live', password: 'nope-nope-1' })).status === 401);
+    const actx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1100, height: 900 } });
+    const apply = await actx.newPage();
+    apply.on('pageerror', (e) => errors.push('apply: ' + e.message));
+    const admin2 = { Authorization: 'Bearer ' + (await (await lg({ password: 'studio-pass-1' })).json()).token, 'Content-Type': 'application/json' };
+    const post = (url, body, headers = admin2) => fetch(BASE + url, { method: 'POST', headers, body: JSON.stringify(body) });
+    await post('/api/admin/settings', { payInfo: 'PayPal: pay@example.com\nUSDT (TRC20): TXyz123', plans: [{ name: 'Classe 2', price: 500, capacity: 2 }, { name: 'Amphi', price: 1200, capacity: 500 }] });
+    check('plans with a wrong size or price are refused', (await post('/api/admin/settings', { plans: [{ name: 'x', price: -1, capacity: 10 }] })).status === 400 && (await post('/api/admin/settings', { plans: [{ name: 'x', price: 5, capacity: 0 }] })).status === 400);
+    await apply.goto(BASE + '/teach');
+    await apply.waitForSelector('#plans .plan');
+    check('the sign-up page shows the plans, in French for a French browser', (await apply.locator('#plans .plan').first().textContent()) === "Classe 2 : jusqu'à 2 spectateurs, 500 $ par mois" && (await apply.locator('#plans .plan').count()) === 2);
+    await apply.fill('[name=name]', 'Karim Bennani'); await apply.fill('[name=contact]', '+212 600 000 000'); await apply.fill('[name=roomTitle]', 'Crypto Débutants'); await apply.fill('[name=topic]', 'Crypto');
+    await apply.fill('[name=login]', 'karim'); await apply.fill('[name=password]', 'karim-pass-7');
+    await apply.screenshot({ path: path.join(OUT, 'teach.png'), fullPage: true });
+    await apply.click('#applyForm button');
+    check('after the request the teacher sees how to pay', (await until(() => apply.locator('#applyDone').isVisible())) !== null && (await apply.textContent('#payInfo')).includes('USDT (TRC20): TXyz123') && (await apply.textContent('#donePlan')).startsWith('Classe 2'));
+    check('a request opens nothing: no sign-in, no room', (await lg({ login: 'karim', password: 'karim-pass-7' })).status === 401 && (await (await fetch(BASE + '/api/rooms')).json()).rooms.length === 1);
+    check('the same login cannot be requested twice, and anonymous visitors cannot approve', (await post('/api/apply', { planId: 'x', name: 'a', contact: 'b', roomTitle: 'c', login: 'karim', password: '12345678' }, {})).status >= 400 && (await post('/api/admin/user', { id: 'whatever', months: 1 }, {})).status === 401);
+    const pend = (await (await fetch(BASE + '/api/admin', { headers: admin2 })).json()).users.find((u) => u.login === 'karim');
+    check('the administrator sees the request with contact, room and plan', pend.pending === true && pend.contact === '+212 600 000 000' && pend.wantRoom === 'Crypto Débutants');
+    await post('/api/admin/user', { id: pend.id, months: 1 });
+    const afterPay = await (await fetch(BASE + '/api/admin', { headers: admin2 })).json();
+    const kRoom = afterPay.rooms.find((r) => r.ownerId === pend.id), kUser = afterPay.users.find((u) => u.id === pend.id);
+    check('payment received: the account is active for a month and the room opens with the plan size', (await lg({ login: 'karim', password: 'karim-pass-7' })).status === 200 && kRoom && kRoom.slug === 'crypto-debutants' && kRoom.capacity === 2 && kRoom.topic === 'Crypto'
+      && kUser.pending === false && Math.abs(kUser.paidUntil - Date.now() - 30 * 86400e3) < 60e3);
+    const seat = async (uid) => { const pg = await actx.newPage(); await pg.addInitScript((u) => localStorage.setItem('regam.uid', u), uid); await pg.goto(BASE + '/r/crypto-debutants'); return pg; };
+    const s1 = await seat('seat0000000001'), s2 = await seat('seat0000000002');
+    await until(async () => (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === 'crypto-debutants').viewers === 2);
+    const s3 = await seat('seat0000000003');
+    check('a room takes no more viewers than its plan allows, and says so', (await until(() => s3.locator('#offlineText', { hasText: 'La salle est complète' }).isVisible(), 8000)) !== null && (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === 'crypto-debutants').viewers === 2);
+    const kTok = (await (await lg({ login: 'karim', password: 'karim-pass-7' })).json()).token;
+    await s1.evaluate((tok) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onmessage = (e) => { window.hostIn = JSON.parse(e.data).t; res(); }; w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'hostkarim000001', room: 'crypto-debutants', token: tok })); }), kTok);
+    check('the teacher always gets into their own full room', (await s1.evaluate(() => window.hostIn)) === 'init');
+    // let the subscription run out
+    const dbFile = path.join(OUT, 'data', 'db.json');
+    await post('/api/admin/user', { id: pend.id, name: 'Karim Bennani' });   // any save, so the file is fresh
+    await sleep(500);
+    check('teacher passwords are stored hashed', !fs.readFileSync(dbFile, 'utf8').includes('karim-pass-7') && /"hash":"[0-9a-f]{64}"/.test(fs.readFileSync(dbFile, 'utf8')));
+    await actx.close();
+
     // ---- recordings ----------------------------------------------------------------------
     check('recordings are private', (await fetch(BASE + '/api/recordings')).status === 401 && (await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4')).status === 401);
     const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));

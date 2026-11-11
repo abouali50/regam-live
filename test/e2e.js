@@ -238,6 +238,20 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.click('.who-btn');
     check('a click on the viewer count lists who is watching, the host first', (await until(async () => { const t = await studio.locator('.who-list li').allTextContents(); return t.length >= 3 && t[0].startsWith('Pro') && t.some((x) => x === 'كريم') && t.some((x) => x === 'سلمى'); }, 8000)) !== null, (await studio.locator('.who-list li').allTextContents()).join(' | '));
     await studio.click('.who-dlg .btn');
+    // ---- with the whiteboard on, the guests are not squeezed beside it: they are on a second page
+    {
+      const corner = () => studio.evaluate(() => { const v = document.querySelector('#preview'), c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; const x = c.getContext('2d'); x.drawImage(v, 0, 0); const px = (fx, fy) => [...x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data].slice(0, 3); return { left: px(0.5, 0.3), right: px(0.93, 0.3) }; });
+      const white = (p) => p.every((v) => v > 235);
+      await studio.click('#boardBtn');
+      await until(async () => white((await corner()).left), 8000);
+      const onBoard = await corner();
+      check('the whiteboard fills the picture, with no column of guests beside it', white(onBoard.left) && white(onBoard.right) && await studio.locator('#pageBar').isVisible(), JSON.stringify(onBoard));
+      await studio.click('#pagePeople');
+      const people = await until(async () => { const c = await corner(); return !white(c.left) && c; }, 8000);
+      check('the host turns to the page of the guests, and back to the board', !!people && (await studio.click('#pageBoard'), (await until(async () => white((await corner()).left), 8000)) !== null));
+      await studio.click('#boardBtn');
+      check('without the board, the page buttons go away', await studio.locator('#pageBar').isHidden());
+    }
     // ---- three more people are accepted one after the other, before any of them has joined
     const extra = [];
     for (const name of ['يوسف', 'هدى', 'عمر']) {
@@ -357,6 +371,26 @@ async function until(fn, ms = 15000, step = 250) {
       const gone = await fetch(BASE + '/api/admin/member?id=' + yas.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
       const after = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'yassine@example.com', password: 'motdepasse1' }) });
       check('the administrator can delete an account, which then cannot sign in', gone.status === 200 && after.status === 401);
+      // an assistant: a member the host names to help run the room
+      await adminSet({ access: 'open' });
+      await studio.fill('#helperEmail', 'nobody@example.com'); await studio.click('#helperForm button[type=submit]');
+      const unknown = (await until(async () => (await studio.textContent('#helperNote')).length > 0, 6000)) !== null;
+      await studio.fill('#helperEmail', 'samira@example.com'); await studio.click('#helperForm button[type=submit]');
+      check('the host names an assistant by the e-mail of their account; an unknown address is refused', unknown && (await until(() => studio.locator('#helperList li', { hasText: 'Samira' }).isVisible(), 6000)) !== null
+        && (await until(() => a.locator('#helperBar').isVisible(), 10000)) !== null);
+      const hv = await (await browser.newContext({ locale: 'ar-MA' })).newPage();
+      await hv.goto(BASE + '/r/main'); await until(() => hv.locator('#liveBadge.on').isVisible());
+      await hv.click('#handBtn'); await hv.fill('#nameInput', 'زائر'); await hv.click('#nameForm button[type=submit]');
+      await until(() => a.locator('#helperBar .wait-one', { hasText: 'زائر' }).isVisible(), 8000);
+      await a.locator('#helperBar .wait-one', { hasText: 'زائر' }).locator('button.primary').click();
+      const invited = (await until(() => hv.locator('#inviteDlg[open]').isVisible(), 8000)) !== null;
+      await hv.click('#inviteNo');
+      await a.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'helperhack000001', mt: localStorage.getItem('regam.member'), room: 'main' })); w.send(JSON.stringify({ t: 'title', text: 'HACKED' })); w.send(JSON.stringify({ t: 'gate', on: true })); }; });
+      await sleep(800);
+      check('the assistant accepts a request to come on stage, but cannot touch the settings', invited && (await a.textContent('#title')) !== 'HACKED' && !(await studio.isChecked('#gateChk')));
+      await studio.locator('#helperList li', { hasText: 'Samira' }).locator('button').click();
+      check('removed, the assistant is an ordinary viewer again', (await until(async () => (await studio.locator('#helperList li').count()) === 0 && await a.locator('#helperBar').isHidden(), 10000)) !== null);
+      await hv.context().close();
       await adminSet({ access: 'open', mail: { host: '', port: 465, user: '', from: '' } });       // the rest of the run is without accounts, as on a fresh install
       await anon.context().close(); await actx.close();
     }

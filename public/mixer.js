@@ -5,7 +5,9 @@
 
 function createPainter(canvas, { brand = 'REGAM Live', fixed = false } = {}) {
   const ctx = canvas.getContext('2d', { alpha: false });
-  const state = { brand, names: {}, off: {} };      // names: slot -> guest name; off: slot -> camera off
+  // names: slot -> guest name; off: slot -> camera off; page: with a screen or the whiteboard on,
+  // 0 shows it full picture (the host alone in a corner), 1 shows the people instead
+  const state = { brand, names: {}, off: {}, page: 0 };
 
   function cover(f, x, y, w, h) {           // fill the box, crop the overflow
     const fw = f.displayWidth || f.videoWidth, fh = f.displayHeight || f.videoHeight, s = Math.max(w / fw, h / fh);
@@ -60,16 +62,11 @@ function createPainter(canvas, { brand = 'REGAM Live', fixed = false } = {}) {
 
     ctx.fillStyle = '#0c0f14';
     ctx.fillRect(0, 0, W, H);
-    if (screen) {
-      // the screen (or the whiteboard) fills the picture; people are small tiles down the right side
+    if (screen && state.page !== 1) {
+      // the screen (or the whiteboard) fills the picture. The guests are not squeezed beside it:
+      // they have their own page, which the host shows when wanted. Only the host stays, small, in a corner.
       contain(screen, 0, 0, W, H);
-      const m = Math.round(W * 0.012), n = people.length;
-      const perCol = n > 6 ? Math.ceil(n / 2) : Math.max(n, 1);            // more than six: two columns
-      const tw = Math.round(Math.min(W * 0.19, ((H - m * (perCol + 1)) / perCol) / 0.75)), th = Math.round(tw * 0.75);
-      people.forEach((p, i) => {
-        const col = Math.floor(i / perCol), row = i % perCol;
-        tile(p.frame, W - (m + tw) * (col + 1), H - (m + th) * (row + 1), tw, th, p.label);
-      });
+      if (cam) { const m = Math.round(W * 0.012), tw = Math.round(W * 0.17), th = Math.round(tw * 0.75); tile(cam, W - m - tw, H - m - th, tw, th, ''); }
     } else if (people.length) {
       // no screen: an even grid. 1 full, 2 side by side, up to 4 in two columns, up to 9 in three, then four
       const n = people.length, cols = n === 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4, rows = Math.ceil(n / cols), gap = n === 1 ? 0 : 4;

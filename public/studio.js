@@ -94,7 +94,7 @@
         holder.append(v); v.play().catch(() => {});
         vids[name] = v;
       };
-      worker = { postMessage(d) { if (d.type === 'guestName') painter.state.names[d.slot] = d.name || ''; else if (d.type === 'guestCam') painter.state.off[d.slot] = !d.on; } };
+      worker = { postMessage(d) { if (d.type === 'guestName') painter.state.names[d.slot] = d.name || ''; else if (d.type === 'guestCam') painter.state.off[d.slot] = !d.on; else if (d.type === 'page') painter.state.page = d.n; } };
       const frameOf = (name) => { const v = vids[name]; return v && v.readyState >= 2 && v.videoWidth ? v : null; };
       painter.paint(frameOf);
       setInterval(() => painter.paint(frameOf), 40);
@@ -204,7 +204,19 @@
 
     // When the connection is weak, drop frames rather than sharpness: the audience
     // gets a fixed picture size, and text on a shared screen must stay readable.
+    // With the whiteboard or a shared screen on, the picture has two pages: the board, and the people.
+    let page = 0;
+    function showPage(n) {
+      const can = !!(screenTrack || boardOn) && guests.length > 0;
+      page = can ? n : 0;
+      worker.postMessage({ type: 'page', n: page });
+      $('#pageBar').hidden = !can;
+      press($('#pageBoard'), page === 0); press($('#pagePeople'), page === 1);
+    }
+    $('#pageBoard').onclick = () => showPage(0);
+    $('#pagePeople').onclick = () => showPage(1);
     function tune() {
+      showPage(page);
       mixed.contentHint = (screenTrack || boardOn) ? 'detail' : 'motion';
       const sender = pc && pc.getSenders().find((s) => s.track && s.track.kind === 'video');
       if (!sender) return;
@@ -356,6 +368,7 @@
         el('span', { class: 'guest-acts' },
           el('button', { class: 'btn', type: 'button', onclick: () => link.send({ t: 'mute', uid: g.uid, on: !g.muted }) }, T(g.muted ? 'حل ليه الميكرو' : 'سد ليه الميكرو')),
           el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'unstage', uid: g.uid }) }, T('نزلو من المنصة'))))));
+      showPage(page);
       $('#muteAll').hidden = guests.length < 2;
       $('#muteAll').textContent = T(guests.every((g) => g.muted) ? 'حل الميكرو للجميع' : 'سد الميكرو للجميع');
       $('#muteAll').onclick = () => link.send({ t: 'mute', on: !guests.every((g) => g.muted) });
@@ -453,6 +466,17 @@
     $('#nextClear').onclick = () => link.send({ t: 'next', at: 0 });
     $('#inviteCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#inviteText').value); status(T('تنسخات الدعوة. لصقها فواتساب ولا فالإيميل.')); } catch { $('#inviteText').select(); } };
     link.on('code', (d) => { roomCode = d.code || ''; showInvite(); }).on('next', (d) => { roomNext = d.next; showInvite(); });
+
+    // ---- assistants: members who help the host run the room
+    function showHelpers(list, err) {
+      $('#helperList').replaceChildren(...list.map((h) => el('li', {},
+        el('span', {}, h.name + ' ', el('span', { class: 'muted', dir: 'ltr' }, h.email)),
+        el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'helper', id: h.id, on: false }) }, T('حيد')))));
+      $('#helperNote').textContent = err ? T('ما لقيناش حساب مفعل بهاد الإيميل. خاص هاد الشخص يسجل فالموقع أولا.') : '';
+      if (!err) $('#helperEmail').value = '';
+    }
+    $('#helperForm').onsubmit = (e) => { e.preventDefault(); link.send({ t: 'helper', email: $('#helperEmail').value.trim(), on: true }); };
+    link.on('helpers', (d) => showHelpers(d.list, d.err));
 
     // ---- requests the host must answer are shown in a bar across the top of the screen, with a chime:
     // people waiting to come in, and people asking to come up on stage
@@ -587,6 +611,7 @@
       showWaiting(!!d.gate, d.waiting || []);
       recOn = !!d.rec; showRec();
       roomCode = d.code || ''; roomNext = d.next || null; showInvite();
+      showHelpers(d.helpers || []);
     })
       .on('waiting', (d) => showWaiting(d.gate, d.list))
       .on('live', (d) => setBadge(d.on))

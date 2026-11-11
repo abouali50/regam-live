@@ -17,6 +17,7 @@
   </div>
 </header>
 
+<div id="helperBar" class="wait-bar" hidden></div>
 <main class="layout">
   <section class="stage">
     <div class="player" id="player">
@@ -38,9 +39,10 @@
     </div>
     <div class="onstage" id="stageBar" hidden>
       <span class="onstage-tag">نتا على المنصة</span>
-      <button id="micBtn" class="btn" type="button">سد الميكرو</button>
-      <button id="camBtn" class="btn" type="button">سد الكاميرا</button>
-      <button id="leaveBtn" class="btn danger" type="button">نزل من المنصة</button>
+      <button id="micBtn" class="bar-btn" type="button" data-icon="🎤">سد الميكرو</button>
+      <button id="camBtn" class="bar-btn" type="button" data-icon="📷">سد الكاميرا</button>
+      <button id="barCap" class="bar-btn" type="button" data-icon="🌐">الترجمة</button>
+      <button id="leaveBtn" class="bar-btn danger" type="button" data-icon="✕">نزل من المنصة</button>
     </div>
     <div class="under">
       <div class="under-text">

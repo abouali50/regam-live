@@ -25,6 +25,7 @@ onmessage = ({ data }) => {
 function note(data) {
   if (data.type === 'guestName') painter.state.names[data.slot] = data.name || '';
   else if (data.type === 'guestCam') painter.state.off[data.slot] = !data.on;
+  else if (data.type === 'page') painter.state.page = data.n;
 }
 
 function drop(name) {

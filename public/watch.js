@@ -275,16 +275,31 @@
     if (t) t.enabled = !on;
     micBtn.disabled = on;
     micBtn.textContent = T(on ? 'صاحب اللايف سد ليك الميكرو' : 'سد الميكرو');
+    paintBar();
   }
   micBtn.onclick = () => {
     const t = stage && stage.cam.getAudioTracks()[0];
     if (!t || hostMuted) return;
     t.enabled = !t.enabled;
     micBtn.textContent = T(t.enabled ? 'سد الميكرو' : 'حل الميكرو');
+    paintBar();
   };
   // Camera on or off while on stage. Off: the camera is really released and a name card is shown.
   const camBtn = $('#camBtn');
-  const paintCam = () => { camBtn.textContent = T(stage && stage.vtrack ? 'سد الكاميرا' : 'حل الكاميرا'); };
+  const paintCam = () => { camBtn.textContent = T(stage && stage.vtrack ? 'سد الكاميرا' : 'حل الكاميرا'); paintBar(); };
+  // The bar is compact: an icon and one short word per button; the full sentence stays as the tooltip.
+  function paintBar() {
+    const micOn = !!(stage && stage.cam.getAudioTracks()[0] && stage.cam.getAudioTracks()[0].enabled), camOn = !!(stage && stage.vtrack);
+    const set = (b, icon, word, off) => { b.dataset.icon = icon; b.dataset.word = T(word); b.classList.toggle('off', off); b.title = b.textContent; b.setAttribute('aria-label', b.textContent); };
+    set(micBtn, micOn ? '🎤' : '🔇', 'الميكرو', !micOn);
+    set(camBtn, '📷', 'الكاميرا', !camOn);
+    set($('#barCap'), '🌐', 'الترجمة', false);
+    set($('#leaveBtn'), '✕', 'نزل', false);
+  }
+  paintBar();
+  $('#barCap').onclick = () => { capMenu.classList.add('from-bar'); capMenu.hidden = !capMenu.hidden; };
+  // the page keeps room for the bar, whatever its height, so it never covers the comments
+  new ResizeObserver(() => document.documentElement.style.setProperty('--bar-h', (stageBar.hidden ? 0 : stageBar.offsetHeight) + 'px')).observe(stageBar);
   camBtn.onclick = async () => {
     const s = stage;
     if (!s || !s.vsender || camBtn.disabled) return;
@@ -311,6 +326,25 @@
     setLive(false);
     $('#offlineText').textContent = T('القاعة عامرة دابا. غادي نعاودو نجربو بوحدنا من بعد شوية.');
   });
+  // ---- assistant: a member the host chose to help. Requests show in a bar at the top, like in the studio.
+  let helping = false, hDoor = [], hHands = [], hGuests = [];
+  function helperBar() {
+    const bar = $('#helperBar');
+    bar.hidden = !helping;
+    if (!helping) return;
+    const group = (title, items) => (items.length ? el('span', { class: 'wait-group' }, el('strong', {}, title), ...items) : null);
+    const act = (text, msg, cls = '') => el('button', { class: 'btn small ' + cls, type: 'button', onclick: () => link.send(msg) }, text);
+    bar.replaceChildren(el('span', { class: 'badge wait' }, T('مساعد')),
+      group(T('كيتسناو يدخلو'), hDoor.slice(0, 5).map((w) => el('span', { class: 'wait-one' }, el('span', {}, w.name), act(T('قبول'), { t: 'admit', uid: w.uid, ok: true }, 'primary'), act(T('رفض'), { t: 'admit', uid: w.uid, ok: false })))),
+      group(T('بغاو يطلعو للمنصة'), hHands.slice(0, 5).map((h) => el('span', { class: 'wait-one' }, el('span', {}, h.name), act(T('قبول'), { t: 'stage', uid: h.uid }, 'primary')))),
+      group(T('على المنصة'), hGuests.map((g) => el('span', { class: 'wait-one' }, el('span', {}, g.name + (g.muted ? ' 🔇' : '')), act(T(g.muted ? 'حل ليه الميكرو' : 'سد ليه الميكرو'), { t: 'mute', uid: g.uid, on: !g.muted }), act(T('نزلو من المنصة'), { t: 'unstage', uid: g.uid }, 'danger')))));
+  }
+  link.on('init', (d) => { helping = !!d.helper; hDoor = d.waiting || []; hHands = d.hands || []; hGuests = d.guests || []; helperBar(); })
+    .on('waiting', (d) => { hDoor = d.list || []; helperBar(); })
+    .on('hands', (d) => { hHands = d.list || []; helperBar(); })
+    .on('guests', (d) => { hGuests = d.guests || []; helperBar(); })
+    .on('helper', () => location.reload());       // named or removed while on the page
+
   // ---- live translation: the host's words as text under the picture, and spoken if the person wants
   const capBtn = $('#capBtn'), capMenu = $('#capMenu'), capLine = $('#capLine');
   // Until the person chooses, the translation follows the language of their page.
@@ -320,8 +354,8 @@
   $('#capLang').value = capLang; $('#capVoice').checked = capVoice;
   const paintCap = () => { capBtn.classList.toggle('on', !!capLang); if (!capLang) { capLine.hidden = true; if (window.speechSynthesis) speechSynthesis.cancel(); video.volume = 1; } };
   paintCap();
-  capBtn.onclick = () => { capMenu.hidden = !capMenu.hidden; capBtn.setAttribute('aria-expanded', capMenu.hidden ? 'false' : 'true'); };
-  document.addEventListener('pointerdown', (e) => { if (!capMenu.hidden && !e.target.closest('.cap-wrap')) { capMenu.hidden = true; capBtn.setAttribute('aria-expanded', 'false'); } });
+  capBtn.onclick = () => { capMenu.classList.remove('from-bar'); capMenu.hidden = !capMenu.hidden; capBtn.setAttribute('aria-expanded', capMenu.hidden ? 'false' : 'true'); };
+  document.addEventListener('pointerdown', (e) => { if (!capMenu.hidden && !e.target.closest('.cap-wrap') && !e.target.closest('#barCap')) { capMenu.hidden = true; capBtn.setAttribute('aria-expanded', 'false'); } });
   $('#capLang').onchange = () => { capLang = $('#capLang').value; capAuto = false; store.set('regam.cap', capLang); paintCap(); };
   $('#capVoice').onchange = () => {
     capVoice = $('#capVoice').checked; store.set('regam.capVoice', capVoice ? '1' : '0');

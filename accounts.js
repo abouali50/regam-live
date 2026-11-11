@@ -162,5 +162,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
   }
   function adminRemove(id) { const n = db.members.length; db.members = db.members.filter((m) => m.id !== id); save(); return db.members.length < n; }
 
-  return { handle, memberOf, mailReady, adminView, adminSet, adminTest, adminRemove, access: () => db.access };
+  const find = (email) => { const m = byEmail(emailOf(email)); return m && m.verified ? m : null; };
+  const byId = (id) => db.members.find((m) => m.id === id) || null;
+  return { find, byId, handle, memberOf, mailReady, adminView, adminSet, adminTest, adminRemove, access: () => db.access };
 };

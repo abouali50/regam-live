@@ -80,6 +80,7 @@
       <button id="camBtn" class="btn" type="button" aria-pressed="true">الكاميرا</button>
       <button id="screenBtn" class="btn" type="button" aria-pressed="false">شارك الشاشة</button>
       <button id="boardBtn" class="btn" type="button" aria-pressed="false">السبورة</button>
+      <span id="pageBar" class="page-bar" hidden role="group" aria-label="الصفحة اللي كتبان"><button id="pageBoard" class="btn" type="button" aria-pressed="true">◀ السبورة</button><button id="pagePeople" class="btn" type="button" aria-pressed="false">الضيوف ▶</button></span>
       <button id="micBtn" class="btn" type="button" aria-pressed="true">الميكرو</button>
     </div>
 
@@ -91,6 +92,18 @@
       <h3 class="sub">طلبات الطلوع</h3>
       <p id="noHands" class="muted">ما كاين حتى طلب دابا.</p>
       <ul id="hands" class="hands"></ul>
+    </div>
+
+    <div class="panel" id="helperPanel">
+      <h2>المساعدين</h2>
+      <p class="muted">المساعد كيدخل بالحساب ديالو كمتابع، وكيقدر يقبل ولا يرفض الناس، يطلع وينزل الضيوف، يسد الميكرو، يحذف التعليقات ويحظر. ما كيقدرش يبدا اللايف ولا يبدل الإعدادات.</p>
+      <form id="helperForm" class="row">
+        <label for="helperEmail">الإيميل ديال الحساب ديالو</label>
+        <input id="helperEmail" type="email" maxlength="120" dir="ltr" required>
+        <button class="btn" type="submit">زيد مساعد</button>
+      </form>
+      <p id="helperNote" class="muted"></p>
+      <ul id="helperList" class="hands"></ul>
     </div>
 
     <div class="panel" id="capPanel">

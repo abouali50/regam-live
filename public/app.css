@@ -388,3 +388,20 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 
 .wait-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .wait-group + .wait-group { border-inline-start: 1px solid rgba(255,231,168,.4); padding-inline-start: 12px; }
+
+/* the bar of a person on stage: compact, one row, never over the comments */
+.onstage { gap: 6px; padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); flex-wrap: nowrap; }
+.bar-btn { font-size: 0; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 62px; height: 46px; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); cursor: pointer; }
+.bar-btn::before { content: attr(data-icon); font-size: 19px; line-height: 1.1; }
+.bar-btn::after { content: attr(data-word); font-size: 11px; font-weight: 600; line-height: 1.1; white-space: nowrap; }
+.bar-btn.off { border-color: var(--live); color: var(--live); background: rgba(255,74,74,.12); }
+.bar-btn.danger { background: var(--live); border-color: var(--live); color: #fff; }
+.bar-btn:disabled { opacity: .55; cursor: default; }
+.bar-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.layout:has(#stageBar:not([hidden])) { padding-bottom: calc(var(--bar-h, 60px) + 8px) !important; }
+@media (max-width: 600px) { .onstage .onstage-tag { display: none; } .bar-btn { flex: 1; min-width: 0; } }
+.cap-menu.from-bar { position: fixed; bottom: calc(var(--bar-h, 60px) + 8px); inset-inline: 12px; width: auto; max-width: none; z-index: 45; }
+
+.page-bar { display: inline-flex; border: 1px solid var(--gold); border-radius: 12px; overflow: hidden; }
+.page-bar .btn { border: 0; border-radius: 0; }
+.page-bar .btn[aria-pressed="true"] { background: var(--gold); color: #1b1405; }

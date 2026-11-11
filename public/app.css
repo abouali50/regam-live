@@ -296,7 +296,11 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .ending-card { max-width:calc(100% - 24px); text-align:center; padding:clamp(8px, 2vw, 22px); border-radius:16px; background:#021b30dd; }
 .ending-card h2, .ending-card p { margin:0 0 5px; }
 .ending-card h2 { font-size:clamp(17px, 3vw, 32px); }
-.ending-card audio { display:block; width:min(265px, 68vw); height:34px; margin:6px auto; }
+.ending-card .ending-play { display:inline-block; min-height:44px; margin:5px 0; padding:8px 18px; background:#bdf5ff; color:#08263a; border:1px solid #bdf5ff; border-radius:9px; font-weight:700; cursor:pointer; }
+.ending-card .ending-play:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+.ending-card .ending-status:empty { display:none; }
+.ending-card .ending-status { font-size:13px; }
+.ending-card a { display:block; }
 .ending-card a { color:#c7f4ff; font-size:13px; }
 .reef-fish { position:absolute; left:-12%; top:26%; width:clamp(16px, 3vw, 42px); aspect-ratio:2; border-radius:55% 72% 55% 72%; background:linear-gradient(155deg,#ffffab,#e87b34 65%,#9f3f63); filter:drop-shadow(0 0 7px #7ae5ff55); animation:reef-swim 19s -8s linear infinite; }
 .reef-fish::before { content:""; position:absolute; right:90%; top:12%; width:35%; height:76%; background:inherit; clip-path:polygon(0 0,100% 50%,0 100%); }

@@ -91,10 +91,47 @@
   if (waitSound) { waitSound.loop = true; waitSound.preload = 'none'; }
   const ending = $('#liveEnding');
   const endingAudio = $('#endingAudio');
-  const endingTitle = $('#endingTitle');
-  const endingLabels = { ar: 'انتهى البث المباشر', fr: 'Le direct est terminé', en: 'The live has ended' };
-  endingTitle.textContent = endingLabels[LANG] || endingLabels.ar;
-  const recitationUrl = 'https://server7.mp3quran.net/basit/055.mp3';
+  const endingPlay = $('#endingPlay');
+  const endingStatus = $('#endingStatus');
+  const endingLabels = {
+    ar: { title: 'انتهى البث المباشر', play: 'شغّل التلاوة', pause: 'وقف التلاوة مؤقتاً', loading: 'كنحمّلو التلاوة…', error: 'التلاوة ما تحمّلاتش. جرّب من جديد أو افتح رابط الاستماع.' },
+    fr: { title: 'Le direct est terminé', play: 'Écouter la récitation', pause: 'Mettre en pause', loading: 'Chargement de la récitation…', error: 'Le son est indisponible. Réessayez ou ouvrez le lien d’écoute.' },
+    en: { title: 'The live has ended', play: 'Play recitation', pause: 'Pause recitation', loading: 'Loading recitation…', error: 'Audio unavailable. Try again or open the listening link.' },
+  };
+  const labels = endingLabels[LANG] || endingLabels.ar;
+  $('#endingTitle').textContent = labels.title;
+  const recitationUrl = 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r3/055.mp3';
+  const paintEndingAudio = () => {
+    endingPlay.textContent = endingAudio.paused ? '▶ ' + labels.play : 'Ⅱ ' + labels.pause;
+  };
+
+  for (const event of ['play', 'pause', 'ended']) {
+    endingAudio.addEventListener(event, paintEndingAudio);
+  }
+  endingAudio.addEventListener('playing', () => { endingStatus.textContent = ''; });
+  endingAudio.addEventListener('waiting', () => {
+    if (!ending.hidden && !endingAudio.paused) endingStatus.textContent = labels.loading;
+  });
+  endingAudio.addEventListener('error', () => {
+    if (!ending.hidden) endingStatus.textContent = labels.error;
+  });
+  endingPlay.addEventListener('click', async () => {
+    if (ending.hidden) return;
+    if (!endingAudio.paused) {
+      endingAudio.pause();
+      endingStatus.textContent = '';
+      return;
+    }
+    endingStatus.textContent = labels.loading;
+    if (!endingAudio.getAttribute('src') || endingAudio.error) endingAudio.src = recitationUrl;
+    try {
+      await endingAudio.play();
+    } catch (error) {
+      if (!ending.hidden && error.name !== 'AbortError') endingStatus.textContent = labels.error;
+      paintEndingAudio();
+    }
+  });
+  paintEndingAudio();
 
   function syncSound() {
     if (!waitSound) return;
@@ -115,9 +152,8 @@
   function setLive(on, ended = false) {
     live = on;
     ending.hidden = !ended;
-    if (ended) {
-      if (!endingAudio.getAttribute('src')) endingAudio.src = recitationUrl;
-    } else {
+    if (!ended) {
+      endingStatus.textContent = '';
       endingAudio.pause();
       if (endingAudio.getAttribute('src')) {
         endingAudio.removeAttribute('src');

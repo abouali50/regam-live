@@ -70,7 +70,7 @@
       $('#goBtn').disabled = true;
       return;
     }
-    let worker, mixed, setInput;
+    let worker, mixed, setInput, replaySources = () => {};
     if (fast) {
       worker = new Worker('/compositor.worker.js');
       mixed = new MediaStreamTrackGenerator({ kind: 'video' });
@@ -89,11 +89,15 @@
       setInput = (name, track) => {
         if (vids[name]) { vids[name].srcObject = null; vids[name].remove(); delete vids[name]; }
         if (!track) return;
-        const v = el('video', { playsinline: '', autoplay: '' });
-        v.muted = true; v.srcObject = new MediaStream([track]);
+        const v = el('video', { playsinline: '', 'webkit-playsinline': '', autoplay: '', muted: '' });
+        v.muted = true; v.defaultMuted = true; v.srcObject = new MediaStream([track]);
         holder.append(v); v.play().catch(() => {});
+        v.addEventListener('loadedmetadata', () => v.play().catch(() => {}));
         vids[name] = v;
       };
+      // phones start a video only after a tap: every tap gives the sources another chance
+      replaySources = () => { for (const v of Object.values(vids)) if (v.paused) v.play().catch(() => {}); };
+      document.addEventListener('pointerdown', replaySources);
       worker = { postMessage(d) { if (d.type === 'guestName') painter.state.names[d.slot] = d.name || ''; else if (d.type === 'guestCam') painter.state.off[d.slot] = !d.on; else if (d.type === 'page') painter.state.page = d.n; } };
       const frameOf = (name) => { const v = vids[name]; return v && v.readyState >= 2 && v.videoWidth ? v : null; };
       painter.paint(frameOf);
@@ -229,16 +233,23 @@
     async function goLive() {
       $('#goBtn').disabled = true;
       status(T('كنوجدو البث…'));
+      let step = 'sound';                              // which part failed, shown with the error
       try {
+        // iPhone: the sound engine must be created and started inside the tap itself, before anything is waited for
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const woke = audioCtx.resume().catch(() => {});
+        replaySources();
+        step = 'mic';
         if (!(await ensureMic())) return;
-        audioCtx = audioCtx || new AudioContext();
-        await audioCtx.resume();
+        await Promise.race([woke, new Promise((r) => setTimeout(r, 1500))]);
+        step = 'mix';
         if (!mixOut) {
           mixOut = audioCtx.createMediaStreamDestination();
           micGain = audioCtx.createGain();
           micGain.gain.value = micOn ? 1 : 0;
           audioCtx.createMediaStreamSource(new MediaStream([micTrack])).connect(micGain).connect(mixOut);
         }
+        step = 'peer';
         pc = new RTCPeerConnection();
         pc.addTransceiver(mixOut.stream.getAudioTracks()[0], { direction: 'sendonly' });
         preferH264(pc.addTransceiver(mixed, { direction: 'sendonly', sendEncodings: [{ maxBitrate: 4_500_000, maxFramerate: 25 }] }));
@@ -247,9 +258,10 @@
           if (pc.connectionState === 'connected') status(T('نتا على الهواء. المتابعين كيشوفوك بتأخير ديال بضع ثواني.'));
           if (pc.connectionState === 'failed') { stopLive(); status(T('تقطع الاتصال بالسيرفر. تأكد من الأنترنيت وعاود بدا اللايف.')); }
         };
+        step = 'server';
         await rtcNegotiate(pc, 'whip', 'studio', token);
         liveOn = true;
-        tune();
+        try { tune(); } catch { /* a hint the browser does not know: the live goes on without it */ }
         $('#goBtn').textContent = T('وقف اللايف');
         lockLang(true); $('#roomSel').disabled = true;
         $('#goBtn').classList.add('danger');
@@ -258,7 +270,8 @@
         syncGuests();
       } catch (e) {
         if (pc) { pc.close(); pc = null; }
-        status(T(e && e.status === 401 ? 'سالات الجلسة. عاود دخل.' : 'ما قدرناش نبداو اللايف. السيرفر ديال البث ما كيجاوبش.'));
+        status(T(e && e.status === 401 ? 'سالات الجلسة. عاود دخل.' : step === 'server' ? 'ما قدرناش نبداو اللايف. السيرفر ديال البث ما كيجاوبش.' : 'ما قدرناش نبداو اللايف من هاد الجهاز.')
+          + ` [${step}${e && e.status ? ' ' + e.status : ''}: ${String((e && (e.name || e.message)) || e).slice(0, 60)}]`);
         if (e && e.status === 401) logout();
       } finally { $('#goBtn').disabled = false; }
     }

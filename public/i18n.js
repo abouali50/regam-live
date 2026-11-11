@@ -239,6 +239,7 @@ const DICT = {
   '◀ السبورة': ['◀ Tableau', '◀ Board'],
   'الضيوف ▶': ['Invités ▶', 'Guests ▶'],
   'الصفحة اللي كتبان': ['Page affichée', 'Page shown'],
+  'ما قدرناش نبداو اللايف من هاد الجهاز.': ['Impossible de démarrer le live depuis cet appareil.', 'The live could not be started from this device.'],
   'طلع دابا': ['Monter maintenant', 'Join now'],
   'لا، شكرا': ['Non, merci', 'No, thanks'],
   '{name} على المنصة مع {host}': ['{name} est sur scène avec {host}', '{name} is on stage with {host}'],

@@ -851,6 +851,15 @@ wss.on('connection', (ws, req) => {
         save();
         if (cfg.code) for (const c of [...room.clients]) if (!c.mod && !slotOf(room, c.uid)) c.close();     // viewers come back through the code; guests on stage stay
         return toMods(room, { t: 'code', code: cfg.code });
+      case 'cap': {                        // what the host just said, with its translations: shown (and spoken) to viewers
+        const now = Date.now();
+        if (now - (ws.lastCap || 0) < 150 || !['ar', 'fr', 'en'].includes(d.src) || !d.tx || typeof d.tx !== 'object') return;
+        ws.lastCap = now;
+        const tx = {};
+        for (const l of ['ar', 'fr', 'en']) { const v = clean(d.tx[l], 400); if (v) tx[l] = v; }
+        if (!tx[d.src]) return;
+        return broadcast(room, { t: 'cap', src: d.src, tx });
+      }
       case 'next': {                       // announce the next session (or clear it)
         const at = Number(d.at);
         cfg.next = at > Date.now() - 3600e3 && at < Date.now() + 366 * 24 * 3600e3 ? { at, title: clean(d.title, 80) } : null;

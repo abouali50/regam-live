@@ -360,6 +360,19 @@ async function until(fn, ms = 15000, step = 250) {
     check('and stops it with the same button', (await until(() => seen.recConf.air_main === false, 6000)) !== null && (await until(async () => !(await studio.locator('#recBtn.rec-on').count()), 6000)) !== null);
     await studio.click('#recBtn');
     await until(() => seen.recConf.air_main === true, 6000);
+    // ---- live translation: the host's words reach each viewer in the language they picked
+    {
+      const mk = async () => { const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 900, height: 700 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('cap: ' + e.message)); await p.goto(BASE + '/r/main'); await until(() => p.locator('#liveBadge.on').isVisible()); return p; };
+      const en = await mk(), none = await mk();
+      await en.click('#capBtn'); await en.selectOption('#capLang', 'en');
+      await en.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'fakecaptioner001', name: 'x' })); w.send(JSON.stringify({ t: 'cap', src: 'fr', tx: { fr: 'faux', en: 'FAKE' } })); }; });
+      await studio.evaluate(() => window.__cap.send('fr', { fr: 'Bonjour à tous', en: 'Hello everyone', ar: 'مرحبا بالجميع', de: 'x' }));
+      check('a viewer who picked English reads the host in English, on the picture', (await until(async () => (await en.locator('#capLine').isVisible()) && (await en.textContent('#capLine')) === 'Hello everyone', 40000)) !== null);
+      check('a viewer who asked for no translation sees none, and only the host can send them', await none.locator('#capLine').isHidden() && (await en.textContent('#capLine')) !== 'FAKE');
+      await studio.evaluate(() => window.__cap.say('Merci beaucoup', 'fr'));
+      check('without a translator in the browser, the words still go out in the language spoken', (await until(async () => (await en.textContent('#capLine')) === 'Merci beaucoup', 40000)) !== null && await studio.locator('#capPanel').isVisible());
+      for (const p of [en, none]) await p.context().close();
+    }
     // ---- entry code and invitation, like a meeting passcode
     {
       await studio.check('#codeChk');

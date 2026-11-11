@@ -348,3 +348,13 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 
 .setup-note { margin: 10px 16px 0; padding: 10px 14px; border-radius: 10px; background: #3a2c0a; border: 1px solid var(--gold); color: #ffe7a8; }
 .setup-note a { color: #fff; font-weight: 700; }
+
+/* live translation */
+.cap-line { position: absolute; inset-inline: 4%; bottom: 7%; margin: 0; z-index: 3; text-align: center; pointer-events: none; }
+.cap-line { color: #fff; font-size: clamp(15px, 2.4vw, 26px); font-weight: 600; line-height: 1.45; text-shadow: 0 1px 3px #000; background: rgba(0,0,0,.62); padding: 6px 14px; border-radius: 10px; width: fit-content; max-width: 92%; margin-inline: auto; }
+.cap-wrap { position: relative; display: inline-flex; }
+.cap-menu { position: absolute; z-index: 30; bottom: calc(100% + 8px); inset-inline-end: 0; display: grid; gap: 8px; width: max-content; max-width: 86vw; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,.5); font-size: 14px; }
+.cap-menu[hidden] { display: none; }
+.cap-menu .check { margin: 0; }
+.btn.on { border-color: var(--gold); color: var(--gold); }
+.cap-last { margin: 0; color: var(--text); font-size: 14px; }

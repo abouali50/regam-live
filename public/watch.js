@@ -310,6 +310,39 @@
     setLive(false);
     $('#offlineText').textContent = T('القاعة عامرة دابا. غادي نعاودو نجربو بوحدنا من بعد شوية.');
   });
+  // ---- live translation: the host's words as text under the picture, and spoken if the person wants
+  const capBtn = $('#capBtn'), capMenu = $('#capMenu'), capLine = $('#capLine');
+  let capLang = store.get('regam.cap') || '', capVoice = store.get('regam.capVoice') === '1', capHide = null;
+  const VOICE = { ar: 'ar-SA', fr: 'fr-FR', en: 'en-US' };
+  $('#capLang').value = capLang; $('#capVoice').checked = capVoice;
+  const paintCap = () => { capBtn.classList.toggle('on', !!capLang); if (!capLang) { capLine.hidden = true; if (window.speechSynthesis) speechSynthesis.cancel(); video.volume = 1; } };
+  paintCap();
+  capBtn.onclick = () => { capMenu.hidden = !capMenu.hidden; capBtn.setAttribute('aria-expanded', capMenu.hidden ? 'false' : 'true'); };
+  document.addEventListener('pointerdown', (e) => { if (!capMenu.hidden && !e.target.closest('.cap-wrap')) { capMenu.hidden = true; capBtn.setAttribute('aria-expanded', 'false'); } });
+  $('#capLang').onchange = () => { capLang = $('#capLang').value; store.set('regam.cap', capLang); paintCap(); };
+  $('#capVoice').onchange = () => {
+    capVoice = $('#capVoice').checked; store.set('regam.capVoice', capVoice ? '1' : '0');
+    // phones let a page speak only after a tap: this tap is the one
+    if (capVoice && window.speechSynthesis) speechSynthesis.speak(new SpeechSynthesisUtterance(' '));
+    if (!capVoice && window.speechSynthesis) { speechSynthesis.cancel(); video.volume = 1; }
+  };
+  function showCap(d) {
+    if (!capLang || !live) return;
+    const text = d.tx[capLang] || d.tx[d.src];
+    capLine.textContent = text; capLine.hidden = false;
+    clearTimeout(capHide); capHide = setTimeout(() => { capLine.hidden = true; }, Math.min(12000, 3500 + text.length * 70));
+    if (capVoice && window.speechSynthesis && d.tx[capLang] && d.src !== capLang) {       // spoken only when it really is a translation
+      const u = new SpeechSynthesisUtterance(d.tx[capLang]);
+      u.lang = VOICE[capLang]; u.rate = 1.05;
+      u.onstart = () => { video.volume = 0.2; };                    // the host's own voice goes quiet under the translation
+      u.onend = u.onerror = () => { if (!speechSynthesis.pending) video.volume = 1; };
+      speechSynthesis.speak(u);
+    }
+  }
+  // The audience sees the picture a few seconds late; the words wait the same time so they land on the right moment.
+  const capDelay = () => (onStage ? 0 : hls && hls.latency > 0 ? Math.min(30, hls.latency) * 1000 : 7000);
+  link.on('cap', (d) => { if (capLang) setTimeout(() => showCap(d), capDelay()); });
+
   // ---- waiting room: the person gives a name, the host lets them in (or not)
   const knockBtn = $('#knockBtn');
   const pass = () => fetch(`/api/pass?room=${encodeURIComponent(cfg.room)}&uid=${link.uid}&code=${link.code}`, { headers: account.token ? { Authorization: 'Bearer ' + account.token } : {} }).catch(() => {});

@@ -368,6 +368,57 @@
       syncGuests();
     }
 
+    // ---- live translation: the host's speech is written down by the browser, translated on this
+    // computer (Chrome's built-in translator), and sent to the viewers as text.
+    const CAP_LANGS = ['ar', 'fr', 'en'], SPEECH = { ar: 'ar-MA', fr: 'fr-FR', en: 'en-US' };
+    const SRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let capOn = false, capRec = null, capSrc = 'ar', translators = {}, capQueue = Promise.resolve();
+    $('#capLang').value = CAP_LANGS.includes(LANG) ? LANG : 'ar';
+    const capNote = (t) => { $('#capNote').textContent = t; };
+    if (!SRec) { $('#capBtn').disabled = true; capNote(T('هاد المتصفح ما كيعرفش يكتب الهضرة. استعمل Google Chrome فالحاسوب.')); }
+    async function capTranslators(src) {              // one translator per other language; the models download the first time
+      translators = {};
+      if (!('Translator' in self)) return false;
+      let ok = true;
+      for (const to of CAP_LANGS.filter((l) => l !== src)) {
+        try {
+          translators[to] = await Translator.create({ sourceLanguage: src, targetLanguage: to, monitor(m) { m.addEventListener('downloadprogress', (e) => capNote(T('كنحملو الترجمة ({lang}): {n}%', { lang: to, n: Math.round(e.loaded * 100) }))); } });
+        } catch { ok = false; }
+      }
+      return ok;
+    }
+    function capSay(text) {                           // translate, then send; one sentence after the other
+      capQueue = capQueue.then(async () => {
+        const tx = { [capSrc]: text };
+        for (const [to, tr] of Object.entries(translators)) { try { tx[to] = await tr.translate(text); } catch { /* that language is skipped */ } }
+        link.send({ t: 'cap', src: capSrc, tx });
+        $('#capLast').textContent = CAP_LANGS.map((l) => tx[l]).filter(Boolean).join('  ·  ');
+      });
+    }
+    function capListen() {
+      capRec = new SRec();
+      capRec.lang = SPEECH[capSrc]; capRec.continuous = true; capRec.interimResults = false;
+      capRec.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const t = e.results[i][0].transcript.trim(); if (t) capSay(t); } };
+      capRec.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { capStop(); capNote(T('خاصك تسمح للمتصفح باستعمال الميكرو باش تخدم الترجمة.')); } };
+      capRec.onend = () => { if (capOn) setTimeout(() => { if (capOn) { try { capListen(); } catch { /* tried again at the next pause */ } } }, 400); };   // the browser stops after a silence
+      capRec.start();
+    }
+    function capStop() {
+      capOn = false; press($('#capBtn'), false); $('#capBtn').textContent = T('شغل الترجمة'); $('#capLang').disabled = false;
+      if (capRec) { try { capRec.stop(); } catch { /* already stopped */ } }
+    }
+    $('#capBtn').onclick = async () => {
+      if (capOn) { capStop(); capNote(''); return; }
+      capSrc = $('#capLang').value;
+      $('#capBtn').disabled = true; capNote(T('كنوجدو الترجمة…'));
+      const full = await capTranslators(capSrc);
+      $('#capBtn').disabled = false;
+      capOn = true; press($('#capBtn'), true); $('#capBtn').textContent = T('وقف الترجمة'); $('#capLang').disabled = true;
+      capNote(T(full ? 'الترجمة خدامة. هضر عادي، جملة بجملة.' : 'الهضرة كتكتب، ولكن الترجمة للغات الأخرى ما متوفراش فهاد المتصفح. حدث Google Chrome فالحاسوب.'));
+      try { capListen(); } catch { capStop(); capNote(T('ما قدرناش نشغلو الترجمة. عاود جرب.')); }
+    };
+    window.__cap = { say: (text, src) => { capSrc = src || capSrc; capSay(text); }, send: (src, tx) => link.send({ t: 'cap', src, tx }) };     // for diagnostics
+
     // ---- invitation: entry code and the time of the next session, as one text to send
     let roomCode = '', roomNext = null;
     const pad = (n) => String(n).padStart(2, '0');

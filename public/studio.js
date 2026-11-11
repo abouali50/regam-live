@@ -11,7 +11,7 @@
     const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('#pw').value }) });
     if (!r.ok) {
       $('#loginErr').hidden = false;
-      $('#loginErr').textContent = r.status === 429 ? 'محاولات بزاف. تسنى ربع ساعة وعاود.' : 'كلمة السر غالطة.';
+      $('#loginErr').textContent = T(r.status === 429 ? 'محاولات بزاف. تسنى ربع ساعة وعاود.' : 'كلمة السر غالطة.');
       return;
     }
     token = (await r.json()).token;
@@ -35,7 +35,7 @@
     // --------------------------------------------------------- the mixer --
     const supported = 'MediaStreamTrackProcessor' in window && 'MediaStreamTrackGenerator' in window;
     if (!supported) {
-      status('الاستوديو كيخدم على Google Chrome ولا Edge فالحاسوب. حل هاد الصفحة فواحد منهم.');
+      status(T('الاستوديو كيخدم على Google Chrome ولا Edge فالحاسوب. حل هاد الصفحة فواحد منهم.'));
       $('#goBtn').disabled = true;
       return;
     }
@@ -65,7 +65,7 @@
         camTrack.onended = camOff;
         setInput('cam', camTrack);
         press($('#camBtn'), true);
-      } catch { press($('#camBtn'), false); status('ما قدرناش نحلو الكاميرا. تأكد من الإذن فالمتصفح.'); }
+      } catch { press($('#camBtn'), false); status(T('ما قدرناش نحلو الكاميرا. تأكد من الإذن فالمتصفح.')); }
     }
     function camOff() {
       if (camTrack) { camTrack.onended = null; camTrack.stop(); camTrack = null; }
@@ -82,7 +82,7 @@
         screenTrack.onended = screenOff;       // "Stop sharing" in the browser bar
         setInput('screen', screenTrack);
         press($('#screenBtn'), true);
-        $('#screenBtn').textContent = 'وقف مشاركة الشاشة';
+        $('#screenBtn').textContent = T('وقف مشاركة الشاشة');
         tune();
       } catch { /* the user cancelled the picker */ }
     }
@@ -90,7 +90,7 @@
       if (screenTrack) { screenTrack.onended = null; screenTrack.stop(); screenTrack = null; }
       setInput('screen', null);
       press($('#screenBtn'), false);
-      $('#screenBtn').textContent = 'شارك الشاشة';
+      $('#screenBtn').textContent = T('شارك الشاشة');
       tune();
     }
     $('#screenBtn').onclick = () => (screenTrack ? screenOff() : screenOn());
@@ -125,7 +125,7 @@
     colorBtns.forEach((b) => { b.onclick = () => { board.setColor(b.dataset.color); pick(colorBtns, b); }; });
     $('#boardSize').onchange = () => board.setSize(Number($('#boardSize').value));
     $('#boardUndo').onclick = () => board.undo();
-    $('#boardClear').onclick = () => { if (confirm('تمسح السبورة كاملة؟')) board.clear(); };
+    $('#boardClear').onclick = () => { if (confirm(T('تمسح السبورة كاملة؟'))) board.clear(); };
 
     async function ensureMic() {
       if (micTrack) return true;
@@ -133,7 +133,7 @@
         const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
         micTrack = s.getAudioTracks()[0];
         return true;
-      } catch { status('ما قدرناش نحلو الميكرو. تأكد من الإذن فالمتصفح.'); return false; }
+      } catch { status(T('ما قدرناش نحلو الميكرو. تأكد من الإذن فالمتصفح.')); return false; }
     }
     $('#micBtn').onclick = () => {
       micOn = !micOn;
@@ -156,7 +156,7 @@
     // ----------------------------------------------------------- go live --
     async function goLive() {
       $('#goBtn').disabled = true;
-      status('كنوجدو البث…');
+      status(T('كنوجدو البث…'));
       try {
         if (!(await ensureMic())) return;
         audioCtx = audioCtx || new AudioContext();
@@ -172,20 +172,21 @@
         preferH264(pc.addTransceiver(mixed, { direction: 'sendonly', sendEncodings: [{ maxBitrate: 4_500_000, maxFramerate: 25 }] }));
         pc.onconnectionstatechange = () => {
           if (!pc) return;
-          if (pc.connectionState === 'connected') status('نتا على الهواء. المتابعين كيشوفوك بتأخير ديال بضع ثواني.');
-          if (pc.connectionState === 'failed') { stopLive(); status('تقطع الاتصال بالسيرفر. تأكد من الأنترنيت وعاود بدا اللايف.'); }
+          if (pc.connectionState === 'connected') status(T('نتا على الهواء. المتابعين كيشوفوك بتأخير ديال بضع ثواني.'));
+          if (pc.connectionState === 'failed') { stopLive(); status(T('تقطع الاتصال بالسيرفر. تأكد من الأنترنيت وعاود بدا اللايف.')); }
         };
         await rtcNegotiate(pc, 'whip', 'studio', token);
         liveOn = true;
         tune();
-        $('#goBtn').textContent = 'وقف اللايف';
+        $('#goBtn').textContent = T('وقف اللايف');
+        lockLang(true);
         $('#goBtn').classList.add('danger');
         $('#onAir').hidden = false;
-        status('كنتصلو…');
+        status(T('كنتصلو…'));
         if (guest) syncGuest();
       } catch (e) {
         if (pc) { pc.close(); pc = null; }
-        status(e && e.status === 401 ? 'سالات الجلسة. عاود دخل.' : 'ما قدرناش نبداو اللايف. السيرفر ديال البث ما كيجاوبش.');
+        status(T(e && e.status === 401 ? 'سالات الجلسة. عاود دخل.' : 'ما قدرناش نبداو اللايف. السيرفر ديال البث ما كيجاوبش.'));
         if (e && e.status === 401) logout();
       } finally { $('#goBtn').disabled = false; }
     }
@@ -194,10 +195,11 @@
       dropGuestMedia();
       if (pc) { rtcClose(pc, 'whip', 'studio', token); pc = null; }
       liveOn = false;
-      $('#goBtn').textContent = 'ابدأ اللايف';
+      $('#goBtn').textContent = T('ابدأ اللايف');
+      lockLang(false);
       $('#goBtn').classList.remove('danger');
       $('#onAir').hidden = true;
-      status('وقف اللايف.');
+      status(T('وقف اللايف.'));
     }
     $('#goBtn').onclick = () => (liveOn ? stopLive() : goLive());
 
@@ -231,9 +233,9 @@
           };
           attach();
           rx.pc.addEventListener('track', () => setTimeout(attach, 0));
-          status(`${guest.name} طلع معاك للمنصة. استعمل السماعات باش ما يكونش الصدى.`);
+          status(T('{name} طلع معاك للمنصة. استعمل السماعات باش ما يكونش الصدى.', { name: guest.name }));
         }
-      } catch { status('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.'); }
+      } catch { status(T('ما قدرناش نربطو الضيف. نزلو وعاود قبل الطلب ديالو.')); }
     }
     function dropGuestMedia() {
       setInput('guest', null);
@@ -247,7 +249,7 @@
       if (changed) dropGuestMedia();
       guest = g;
       $('#guestBox').hidden = !g;
-      if (g) $('#guestName').textContent = g.ready ? `${g.name} على المنصة` : `كنتسناو ${g.name} يدخل…`;
+      if (g) $('#guestName').textContent = T(g.ready ? '{name} على المنصة' : 'كنتسناو {name} يدخل…', { name: g.name });
       worker.postMessage({ type: 'guestName', name: g ? g.name : '' });
       if (g) syncGuest();
     }
@@ -258,9 +260,9 @@
       $('#hands').replaceChildren(...list.map((h) => el('li', {},
         el('span', {}, h.name),
         el('button', { class: 'btn primary', type: 'button', onclick: () => {
-          if (!liveOn) return status('بدا اللايف أولا، عاد قبل الطلبات.');
+          if (!liveOn) return status(T('بدا اللايف أولا، عاد قبل الطلبات.'));
           link.send({ t: 'stage', uid: h.uid });
-        } }, 'قبول'))));
+        } }, T('قبول')))));
     }
 
     // ---------------------------------------------------------- settings --
@@ -297,20 +299,20 @@
         const busy = data.live && i === 0;            // still being written
         return el('li', {},
           el('span', { dir: 'ltr' }, `${fmtName(f.name)} · ${fmtSize(f.size)}`),
-          busy ? el('span', { class: 'muted' }, 'كيتسجل دابا…') : el('span', { class: 'rec-actions' },
-            el('a', { class: 'btn primary', href: `/api/recordings?name=${encodeURIComponent(f.name)}&token=${encodeURIComponent(token)}`, download: '' }, 'تحميل'),
+          busy ? el('span', { class: 'muted' }, T('كيتسجل دابا…')) : el('span', { class: 'rec-actions' },
+            el('a', { class: 'btn primary', href: `/api/recordings?name=${encodeURIComponent(f.name)}&token=${encodeURIComponent(token)}`, download: '' }, T('تحميل')),
             el('button', { class: 'btn', type: 'button', onclick: async () => {
-              if (!confirm('تحذف هاد التسجيل نهائيا؟')) return;
+              if (!confirm(T('تحذف هاد التسجيل نهائيا؟'))) return;
               await fetch(`/api/recordings?name=${encodeURIComponent(f.name)}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
               loadRecs();
-            } }, 'حذف')));
+            } }, T('حذف'))));
       }));
     }
     loadRecs();
     link.on('live', () => setTimeout(loadRecs, 3000));
 
     function setBadge(on) {
-      $('#liveBadge').textContent = on ? 'مباشر' : 'غير مباشر';
+      $('#liveBadge').textContent = T(on ? 'مباشر' : 'غير مباشر');
       $('#liveBadge').className = 'badge ' + (on ? 'on' : 'off');
     }
 

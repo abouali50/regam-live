@@ -145,3 +145,6 @@ input[type="text"], input[type="password"], select { background: var(--bg); bord
 .reactions .likes-count { margin-inline-start: auto; background: var(--panel-2); border-radius: 999px; padding: 4px 12px; font-weight: 700; color: var(--text); }
 .float-heart { font-size: 32px; }
 @media (max-width: 900px) { .reactions { padding: 0 12px; } .react { width: 40px; height: 40px; font-size: 20px; } .react-row { gap: 5px; } }
+/* language menu */
+.lang { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--text); }
+.lang:disabled { opacity: .5; }

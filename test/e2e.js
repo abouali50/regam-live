@@ -108,7 +108,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('path traversal is refused', [400, 404].includes((await fetch(BASE + '/%2e%2e/server.js')).status));
 
     // ---- viewer (desktop) -------------------------------------------------
-    const vctx = await browser.newContext({ viewport: { width: 1280, height: 760 }, permissions: ['camera', 'microphone'] });
+    const vctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1280, height: 760 }, permissions: ['camera', 'microphone'] });
     const viewer = await vctx.newPage();
     const errors = [];
     viewer.on('pageerror', (e) => errors.push('viewer: ' + e.message));
@@ -116,7 +116,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('viewer sees "offline" before the live starts', await viewer.locator('#offline').isVisible() && await viewer.locator('#handBtn').isHidden());
 
     // ---- studio ------------------------------------------------------------
-    const sctx = await browser.newContext({ viewport: { width: 1380, height: 900 }, permissions: ['camera', 'microphone'] });
+    const sctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1380, height: 900 }, permissions: ['camera', 'microphone'] });
     const studio = await sctx.newPage();
     studio.on('pageerror', (e) => errors.push('studio: ' + e.message));
     studio.on('dialog', (d) => d.accept());
@@ -239,13 +239,35 @@ async function until(fn, ms = 15000, step = 250) {
     check('a banned viewer cannot comment any more', (await studio.locator('.msg', { hasText: 'واش باقي' }).count()) === 0);
 
     // ---- screenshots ------------------------------------------------------------------
-    const v2 = await (await browser.newContext({ viewport: { width: 1280, height: 760 } })).newPage();
+    const v2 = await (await browser.newContext({ locale: 'ar-MA', viewport: { width: 1280, height: 760 } })).newPage();
     await v2.goto(BASE + '/'); await until(() => v2.evaluate(() => document.querySelector('#video').videoWidth > 0), 20000);
     await v2.screenshot({ path: path.join(OUT, 'viewer-desktop.png') });
-    const phone = await (await browser.newContext({ ...devices['iPhone 14'] })).newPage();
+    const phone = await (await browser.newContext({ ...devices['iPhone 14'], locale: 'ar-MA' })).newPage();
     await phone.goto(BASE + '/'); await until(() => phone.evaluate(() => document.querySelector('#video').videoWidth > 0), 20000);
     await phone.screenshot({ path: path.join(OUT, 'viewer-phone.png') });
     check('phone layout has no sideways scroll', await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+
+    // ---- languages ----------------------------------------------------------------------
+    const frCtx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1280, height: 760 } });
+    const fr = await frCtx.newPage();
+    fr.on('pageerror', (e) => errors.push('fr: ' + e.message));
+    await fr.goto(BASE + '/');
+    await until(() => fr.locator('#liveBadge.on').isVisible());
+    const frText = await fr.evaluate(() => [document.documentElement.lang, document.documentElement.dir, document.querySelector('#liveBadge').textContent, document.querySelector('#handBtn').textContent, document.querySelector('.composer input').placeholder, document.querySelector('.chat-head').textContent, document.querySelector('#shareBtn').textContent].join(' | '));
+    check('a French browser gets the page in French, left to right', frText === 'fr | ltr | En direct | Demander à monter | Écrire un commentaire… | Commentaires | Partager', frText);
+    check('no Arabic interface text is left on the French page', await fr.evaluate(() => { const skip = ['.msgs', '.pinned', '#title', '#guestLine', '.lang']; const c = document.body.cloneNode(true); skip.forEach((q) => c.querySelectorAll(q).forEach((n) => n.remove())); c.querySelectorAll('[hidden],dialog,script').forEach((n) => n.remove()); return !/[\u0600-\u06FF]/.test(c.textContent); }));
+    await fr.screenshot({ path: path.join(OUT, 'viewer-fr.png') });
+    await fr.selectOption('.lang', 'en');
+    await fr.waitForLoadState('load');
+    check('the language menu switches to English and remembers it', (await until(async () => (await fr.textContent('#handBtn')) === 'Ask to join' && (await fr.evaluate(() => document.documentElement.lang)) === 'en')) !== null);
+    const frStudio = await frCtx.newPage();
+    await frStudio.goto(BASE + '/studio');
+    await frStudio.evaluate(() => localStorage.setItem('regam.lang', 'fr')); await frStudio.reload();
+    check('studio sign-in is in French', (await frStudio.textContent('#loginForm h1')) === 'Connexion au studio' && (await frStudio.textContent('#loginForm button')) === 'Entrer');
+    await frStudio.fill('#pw', 'studio-pass-1'); await frStudio.click('#loginForm button'); await frStudio.waitForSelector('#app:not([hidden])');
+    check('studio controls are in French', (await frStudio.evaluate(() => ['#goBtn', '#camBtn', '#screenBtn', '#boardBtn', '#micBtn'].map((q) => document.querySelector(q).textContent).join(' | '))) === "Démarrer le live | Caméra | Partager l'écran | Tableau blanc | Micro");
+    await frStudio.screenshot({ path: path.join(OUT, 'studio-fr.png') });
+    await frCtx.close();
 
     // ---- recordings ----------------------------------------------------------------------
     check('recordings are private', (await fetch(BASE + '/api/recordings')).status === 401 && (await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4')).status === 401);

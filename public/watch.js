@@ -56,7 +56,7 @@
       hls.loadSource(cfg.hls);
       hls.attachMedia(video);
     } else {
-      $('#offlineText').textContent = 'المتصفح ديالك ما كيدعمش هاد البث. جرب Chrome ولا Safari.';
+      $('#offlineText').textContent = T('المتصفح ديالك ما كيدعمش هاد البث. جرب Chrome ولا Safari.');
       offline.hidden = false;
       return;
     }
@@ -78,7 +78,7 @@
 
   function setLive(on) {
     live = on;
-    badge.textContent = on ? 'مباشر' : 'غير مباشر';
+    badge.textContent = T(on ? 'مباشر' : 'غير مباشر');
     badge.className = 'badge ' + (on ? 'on' : 'off');
     offline.hidden = on;
     if (!on) unmute.hidden = true;
@@ -87,11 +87,11 @@
   }
   function showGuest(g) {
     guestLine.hidden = !g || !g.ready;
-    if (g) guestLine.textContent = `${g.name} على المنصة مع ${cfg.host}`;
+    if (g) guestLine.textContent = T('{name} على المنصة مع {host}', { name: g.name, host: cfg.host });
   }
   function setHand(on) {
     handUp = on;
-    handBtn.textContent = on ? 'إلغاء الطلب' : 'طلب الطلوع';
+    handBtn.textContent = T(on ? 'إلغاء الطلب' : 'طلب الطلوع');
     handBtn.classList.toggle('active', on);
   }
   handBtn.onclick = async () => {
@@ -124,7 +124,7 @@
     });
   }
   REACTIONS.forEach(([emoji, label], k) => {
-    $('#reactions').append(el('button', { type: 'button', class: 'react', 'aria-label': label, title: label, onclick: () => {
+    $('#reactions').append(el('button', { type: 'button', class: 'react', 'aria-label': T(label), title: T(label), onclick: () => {
       if (!link.ready) return;
       link.send({ t: 'react', k });
       sent[k]++; mine++;
@@ -136,7 +136,7 @@
     const data = { title: document.title, text: $('#title').textContent, url: location.origin + '/' };
     try {
       if (navigator.share) await navigator.share(data);
-      else { await navigator.clipboard.writeText(data.url); chat.say('تنسخ الرابط. لصقو فين بغيتي.'); }
+      else { await navigator.clipboard.writeText(data.url); chat.say(T('تنسخ الرابط. لصقو فين بغيتي.')); }
     } catch (e) { if (e && e.name !== 'AbortError') chat.say(data.url, 8000); }
   };
 
@@ -169,10 +169,11 @@
     video.srcObject = mixed; video.muted = false;
     video.play().catch(() => {});
     unmute.hidden = true; stageBar.hidden = false; handBtn.hidden = true;
-    micBtn.textContent = 'سد الميكرو';
+    micBtn.textContent = T('سد الميكرو');
+    lockLang(true);
     link.send({ t: 'onstage' });
     stage.pub.onconnectionstatechange = () => {
-      if (stage && ['failed', 'closed'].includes(stage.pub.connectionState)) { leaveStage(true); chat.say('تقطع الاتصال ديالك بالمنصة.'); }
+      if (stage && ['failed', 'closed'].includes(stage.pub.connectionState)) { leaveStage(true); chat.say(T('تقطع الاتصال ديالك بالمنصة.')); }
     };
   }
   function leaveStage(tellServer) {
@@ -184,6 +185,7 @@
     if (s.voice) rtcClose(s.voice.pc, 'whep', 'backstage', s.token);
     if (tellServer) link.send({ t: 'leave' });
     onStage = false;
+    lockLang(false);
     video.srcObject = null;
     stageBar.hidden = true;
     handBtn.hidden = !live;
@@ -194,7 +196,7 @@
     const t = stage && stage.cam.getAudioTracks()[0];
     if (!t) return;
     t.enabled = !t.enabled;
-    micBtn.textContent = t.enabled ? 'سد الميكرو' : 'حل الميكرو';
+    micBtn.textContent = T(t.enabled ? 'سد الميكرو' : 'حل الميكرو');
   };
   $('#leaveBtn').onclick = () => leaveStage(true);
 
@@ -212,7 +214,7 @@
     .on('likes', (d) => showLikes(d.n, d.r))
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guest', (d) => showGuest(d.guest))
-    .on('hand', (d) => { setHand(d.on); if (d.on) chat.say('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.', 6000); })
+    .on('hand', (d) => { setHand(d.on); if (d.on) chat.say(T('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.'), 6000); })
     .on('invite', (d) => {
       setHand(false);
       inviteErr.hidden = true;
@@ -224,8 +226,8 @@
           $('#inviteYes').disabled = false;
           inviteErr.hidden = false;
           inviteErr.textContent = e && e.name === 'NotAllowedError'
-            ? 'خاصك تسمح للمتصفح باستعمال الكاميرا والميكرو، ومن بعد عاود.'
-            : 'ما قدرناش نطلعوك للمنصة. تأكد من الكاميرا والأنترنيت وعاود.';
+            ? T('خاصك تسمح للمتصفح باستعمال الكاميرا والميكرو، ومن بعد عاود.')
+            : T('ما قدرناش نطلعوك للمنصة. تأكد من الكاميرا والأنترنيت وعاود.');
         }
       };
       $('#inviteNo').onclick = () => { inviteDlg.close(); link.send({ t: 'leave' }); };
@@ -236,7 +238,7 @@
       if (inviteDlg.open) inviteDlg.close();
       const was = onStage;
       leaveStage(false);
-      if (was && d.reason !== 'left') chat.say(d.reason === 'ended' ? 'سالا اللايف.' : 'صاحب اللايف نزلك من المنصة.', 6000);
+      if (was && d.reason !== 'left') chat.say(T(d.reason === 'ended' ? 'سالا اللايف.' : 'صاحب اللايف نزلك من المنصة.'), 6000);
     });
 
   addEventListener('pagehide', () => leaveStage(true));

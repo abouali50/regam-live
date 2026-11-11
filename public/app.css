@@ -285,3 +285,30 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
   .studio .chat:not(.collapsed) { height: 70dvh; }
   .studio .guest-box, .studio .hands li { flex-wrap: wrap; }
 }
+
+/* End of broadcast */
+.live-ending { position:absolute; inset:0; z-index:2; display:grid; place-items:center; overflow:hidden; isolation:isolate; color:#fff; background:#073a58; }
+.live-ending[hidden] { display:none; }
+.reef-motion, .reef-motion::before, .reef-motion::after { position:absolute; inset:0; pointer-events:none; }
+.reef-motion { z-index:-1; overflow:hidden; }
+.reef-motion::before { content:""; inset:-4%; background:center / cover no-repeat url("/reef.webp"); animation:reef-drift 22s ease-in-out infinite alternate; }
+.reef-motion::after { content:""; background:linear-gradient(115deg, transparent 25%, #bdfcff40 46%, transparent 66%); animation:reef-rays 12s ease-in-out infinite alternate; }
+.ending-card { max-width:calc(100% - 24px); text-align:center; padding:clamp(8px, 2vw, 22px); border-radius:16px; background:#021b30dd; }
+.ending-card h2, .ending-card p { margin:0 0 5px; }
+.ending-card h2 { font-size:clamp(17px, 3vw, 32px); }
+.ending-card audio { display:block; width:min(265px, 68vw); height:34px; margin:6px auto; }
+.ending-card a { color:#c7f4ff; font-size:13px; }
+.reef-fish { position:absolute; left:-12%; top:26%; width:clamp(16px, 3vw, 42px); aspect-ratio:2; border-radius:55% 72% 55% 72%; background:linear-gradient(155deg,#ffffab,#e87b34 65%,#9f3f63); filter:drop-shadow(0 0 7px #7ae5ff55); animation:reef-swim 19s -8s linear infinite; }
+.reef-fish::before { content:""; position:absolute; right:90%; top:12%; width:35%; height:76%; background:inherit; clip-path:polygon(0 0,100% 50%,0 100%); }
+.reef-fish::after { content:""; position:absolute; right:13%; top:29%; width:9%; aspect-ratio:1; border-radius:50%; background:#092032; }
+.reef-fish:nth-child(2) { top:69%; animation-duration:24s; animation-delay:-3s; background:linear-gradient(150deg,#c6ffff,#25a9dd 65%,#385db0); }
+.reef-fish:nth-child(3) { top:81%; animation-duration:20s; animation-delay:-15s; }
+.reef-bubbles { position:absolute; left:19%; bottom:-32px; width:10px; aspect-ratio:1; border-radius:50%; border:1px solid #d1fdffbb; box-shadow:9vw 15px 0 -2px #b8f1ffb0, 54vw 10px 0 -2px #b8f1ffad, 61vw 30px 0 -3px #b8f1ffa1; animation:reef-rise 9s -4s linear infinite; }
+@keyframes reef-drift { to { transform:translate(2%,-1%) scale(1.05); } }
+@keyframes reef-rays { from { transform:translateX(-17%); opacity:.25; } to { transform:translateX(13%); opacity:.65; } }
+@keyframes reef-swim { from { left:-12%; transform:translateY(10px); } 50% { transform:translateY(-12px); } to { left:108%; transform:translateY(5px); } }
+@keyframes reef-rise { to { bottom:104%; transform:translateX(22px); opacity:0; } }
+@media (prefers-reduced-motion:reduce) {
+  .reef-motion::before, .reef-motion::after { animation:none; }
+  .reef-fish, .reef-bubbles { display:none; }
+}

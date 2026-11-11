@@ -31,6 +31,7 @@
         <button id="knockBtn" class="btn primary" type="button" hidden>كتب سميتك باش تدخل</button>
         <button id="soundBtn" class="btn" type="button" hidden>🔊 استمع</button>
       </div>
+      <p id="capLine" class="cap-line" dir="auto" hidden></p>
       <div id="hearts" class="hearts" aria-hidden="true"></div>
       <button id="unmute" class="unmute" type="button" hidden>شغّل الصوت</button>
     </div>
@@ -47,6 +48,14 @@
         <p id="guestLine" class="guest-line" hidden></p>
       </div>
       <div class="actions">
+        <span class="cap-wrap">
+          <button id="capBtn" class="btn" type="button" aria-expanded="false">🌐 الترجمة</button>
+          <span id="capMenu" class="cap-menu" hidden>
+            <label for="capLang">اللغة ديال الترجمة</label>
+            <select id="capLang"><option value="">بلا ترجمة</option><option value="ar">العربية</option><option value="fr">Français</option><option value="en">English</option></select>
+            <label class="check"><input id="capVoice" type="checkbox"> <span>نسمع الترجمة بالصوت</span></label>
+          </span>
+        </span>
         <button id="shareBtn" class="btn" type="button">شارك</button>
         <button id="handBtn" class="btn" type="button">طلب الطلوع</button>
       </div>

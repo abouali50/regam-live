@@ -387,10 +387,39 @@
     // ---- the sound people hear while the room is not live
     function showSound(url) {
       $('#soundDel').hidden = !url;
+      $('#soundDefault').hidden = !!url;
       $('#soundTry').hidden = !url;
       if (url) $('#soundTry').src = url; else $('#soundTry').removeAttribute('src');
     }
-    fetch('/api/config?room=' + encodeURIComponent(window.REGAM_ROOM || '')).then((r) => r.json()).then((c) => showSound(c.sound)).catch(() => {});
+    const roomQ = 'room=' + encodeURIComponent(window.REGAM_ROOM || '');
+    fetch('/api/config?' + roomQ).then((r) => r.json()).then((c) => { showSound(c.sound); showPics(c.pics || []); }).catch(() => {});
+    $('#soundDefault').onclick = async () => {
+      const r = await fetch('/api/sound?default=1&' + roomQ, { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(() => null);
+      if (r && r.ok) { showSound((await r.json()).sound); $('#soundNote').textContent = T('رجعات تلاوة سورة الرحمن.'); }
+    };
+    // ---- the pictures people see while the room is not live
+    function showPics(list) {
+      $('#picList').replaceChildren(...list.map((p) => {
+        const li = el('li', {}, el('button', { type: 'button', 'aria-label': T('حذف'), title: T('حذف'), onclick: async () => {
+          const r = await fetch(`/api/pics?id=${p.id}&` + roomQ, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } }).catch(() => null);
+          if (r && r.ok) showPics((await r.json()).pics);
+        } }, '✕'));
+        li.style.backgroundImage = `url("${p.url}")`;
+        return li;
+      }));
+    }
+    $('#picFile').onchange = async () => {
+      const note = $('#picNote');
+      let bad = 0, last = null;
+      for (const f of [...$('#picFile').files]) {
+        note.textContent = T('كنصيفطو الملف…');
+        const r = await fetch('/api/pics?' + roomQ, { method: 'POST', headers: { 'Content-Type': f.type, Authorization: 'Bearer ' + token }, body: f }).catch(() => null);
+        if (r && r.ok) last = (await r.json()).pics; else bad++;
+      }
+      if (last) showPics(last);
+      note.textContent = T(bad ? 'شي صور ما تسجلوش: خاصها تكون JPG ولا PNG ولا WebP، أقل من 8 ميغا، وحتى ل 12 صورة.' : 'تسجلو الصور. الناس غادي يشوفوهم ملي ما يكونش لايف.');
+      $('#picFile').value = '';
+    };
     $('#soundFile').onchange = async () => {
       const f = $('#soundFile').files[0];
       if (!f) return;

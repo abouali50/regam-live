@@ -109,7 +109,22 @@
     addEventListener('pointerdown', (e) => { if (e.target !== soundBtn && soundWanted && !live && !onStage) waitSound.play().catch(() => {}); }, { once: true });
   }
 
-  const sea = createSea($('#sea'));             // the scene under the sea shown while nothing is live
+  const sea = createSea($('#sea'));             // light, fish and bubbles over the picture shown while nothing is live
+  // The pictures behind: the room's own, one after the other, or the reef that comes with the site.
+  const pics = (cfg.pics || []).length ? cfg.pics.map((p) => p.url) : ['/sea.webp'];
+  const layers = [...document.querySelectorAll('#offline .reef')];
+  let picAt = 0, picTimer = null;
+  const showPic = (i) => {
+    const top = layers[i % 2], img = new Image();
+    img.onload = () => { top.style.backgroundImage = `url("${pics[i % pics.length]}")`; top.classList.add('on'); layers[(i + 1) % 2].classList.remove('on'); };
+    img.src = pics[i % pics.length];
+  };
+  function slides(on) {
+    clearInterval(picTimer); picTimer = null;
+    if (!on) return;
+    showPic(picAt);
+    if (pics.length > 1) picTimer = setInterval(() => showPic(++picAt), 12000);
+  }
   function setLive(on) {
     live = on;
     badge.textContent = T(on ? 'مباشر' : 'غير مباشر');
@@ -119,6 +134,7 @@
     handBtn.hidden = !on || onStage;
     if (on) startHls(); else stopHls();
     if (on) sea.stop(); else sea.start();
+    slides(!on);
     syncSound();
   }
   function showGuests(list) {

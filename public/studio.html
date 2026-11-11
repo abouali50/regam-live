@@ -129,8 +129,15 @@
         <input id="soundFile" type="file" accept="audio/*,.mp3,.m4a">
         <button id="soundDel" class="btn" type="button" hidden>حيد الصوت</button>
       </div>
-      <p id="soundNote" class="muted">صوت (تلاوة مثلا) كيسمعوه الناس ملي ما كاينش لايف. ملف MP3 أو M4A، حتى ل 60 ميغا.</p>
+      <p id="soundNote" class="muted">الصوت اللي كيسمعوه الناس ملي ما كاينش لايف. بلا ملف ديالك كتسمع سورة الرحمن بصوت عبد الباسط. تقدر تبدلها بملف MP3 أو M4A (حتى ل 60 ميغا).</p>
+      <button id="soundDefault" class="btn" type="button" hidden>رجع تلاوة سورة الرحمن</button>
       <audio id="soundTry" controls hidden></audio>
+      <div class="row">
+        <label for="picFile">صور الانتظار</label>
+        <input id="picFile" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+      </div>
+      <p id="picNote" class="muted">الصور اللي كيشوفوها الناس ملي ما كاينش لايف، وحدة مور وحدة. بلا صور ديالك كتبان صورة البحر. حتى ل 12 صورة (JPG، PNG، WebP).</p>
+      <ul id="picList" class="pic-list"></ul>
     </div>
   </section>
   <aside class="chat" id="chat" aria-label="التعليقات"></aside>

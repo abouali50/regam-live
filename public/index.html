@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0f14">
+<title>REGAM Live</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body class="watch">
+<header class="top">
+  <a class="brand" href="/">REGAM<b>Live</b></a>
+  <div class="meta">
+    <span id="liveBadge" class="badge off">غير مباشر</span>
+    <span class="viewers" title="المتابعين دابا"><span class="dot"></span><span id="viewers">0</span></span>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage">
+    <div class="player" id="player">
+      <video id="video" playsinline></video>
+      <div class="offline" id="offline">
+        <div class="offline-mark">REGAM<b>Live</b></div>
+        <p id="offlineText">اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.</p>
+      </div>
+      <button id="unmute" class="unmute" type="button" hidden>شغّل الصوت</button>
+      <div class="onstage" id="stageBar" hidden>
+        <span class="onstage-tag">نتا على المنصة</span>
+        <button id="micBtn" class="btn" type="button">سد الميكرو</button>
+        <button id="leaveBtn" class="btn danger" type="button">نزل من المنصة</button>
+      </div>
+    </div>
+    <div class="under">
+      <div class="under-text">
+        <h1 id="title">REGAM Live</h1>
+        <p id="guestLine" class="guest-line" hidden></p>
+      </div>
+      <button id="handBtn" class="btn" type="button">طلب الطلوع</button>
+    </div>
+  </section>
+  <aside class="chat" id="chat" aria-label="التعليقات"></aside>
+</main>
+
+<dialog id="nameDlg" class="dlg">
+  <form method="dialog" id="nameForm">
+    <h2>شنو سميتك؟</h2>
+    <p>هاد السمية هي اللي غادي تبان مع التعليقات ديالك.</p>
+    <input id="nameInput" type="text" maxlength="24" required autocomplete="nickname" aria-label="السمية">
+    <div class="dlg-actions">
+      <button class="btn primary" type="submit">دخل</button>
+      <button class="btn" type="button" id="nameCancel">من بعد</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="inviteDlg" class="dlg">
+  <h2>صاحب اللايف قبل الطلب ديالك</h2>
+  <p>غادي تبان بالكاميرا والصوت لكاع المتابعين. استعمل السماعات باش ما يكونش الصدى.</p>
+  <p id="inviteErr" class="err" hidden></p>
+  <div class="dlg-actions">
+    <button class="btn primary" type="button" id="inviteYes">طلع دابا</button>
+    <button class="btn" type="button" id="inviteNo">لا، شكرا</button>
+  </div>
+</dialog>
+
+<script src="/vendor/hls.min.js"></script>
+<script src="/common.js"></script>
+<script src="/watch.js"></script>
+</body>
+</html>

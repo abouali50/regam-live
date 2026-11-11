@@ -1,0 +1,38 @@
+# REGAM Live
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MTX_RTC: http://mediamtx:8889
+      MTX_HLS: http://mediamtx:8888
+      MTX_API: http://mediamtx:9997
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:${APP_PORT:-3210}:3000"
+    depends_on: [mediamtx]
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest-ffmpeg
+    restart: unless-stopped
+    volumes:
+      - ./deploy/mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      - "8189:8189/udp"     # live video/audio from the studio and the guest
+      - "8189:8189/tcp"     # same, for networks that block UDP
+
+  # Only used when nothing else on the server owns ports 80/443 ("direct" mode).
+  caddy:
+    image: caddy:2
+    profiles: [direct]
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [app]
+
+volumes:
+  caddy_data:

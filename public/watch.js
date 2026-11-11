@@ -40,8 +40,14 @@
   function startHls() {
     stopHls();
     if (onStage || !live) return;
-    const again = () => { clearTimeout(retry); retry = setTimeout(startHls, 2500); };
-    if (window.Hls && Hls.isSupported()) {
+    const again = (ms = 2500) => { clearTimeout(retry); retry = setTimeout(startHls, ms); };
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // iPhone, iPad and Safari play HLS themselves: every browser on iOS is
+      // Safari underneath, and its own player is the reliable one there.
+      video.src = `${cfg.hls}?t=${Date.now()}`;
+      video.onerror = () => again();
+    } else if (window.Hls && Hls.isSupported()) {
+      video.onerror = null;
       hls = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8, manifestLoadingMaxRetry: 2, lowLatencyMode: false });
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return;
@@ -49,15 +55,15 @@
       });
       hls.loadSource(cfg.hls);
       hls.attachMedia(video);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = cfg.hls;                 // Safari / iPhone play HLS natively
-      video.onerror = again;
     } else {
       $('#offlineText').textContent = 'المتصفح ديالك ما كيدعمش هاد البث. جرب Chrome ولا Safari.';
       offline.hidden = false;
       return;
     }
     play();
+    // The first seconds of a live have no picture to serve yet: if nothing
+    // is on screen after a while, start the player again.
+    retry = setTimeout(() => { if (live && !onStage && video.readyState < 2) startHls(); }, 9000);
   }
   async function play() {
     video.muted = false;

@@ -47,7 +47,7 @@ webrtcAdditionalHosts: [__PUBLIC_IP__]
 
 paths:
   studio:
-    runOnReady: >-
+    runOnAvailable: >-
       ffmpeg -hide_banner -loglevel warning -rtsp_transport tcp
       -i rtsp://__MTX_USER__:__MTX_PASS__@127.0.0.1:8554/studio
       -vf scale=__W__:__H__:force_original_aspect_ratio=decrease,pad=__W__:__H__:-1:-1,fps=25,format=yuv420p
@@ -55,7 +55,7 @@ paths:
       -b:v __VBITRATE__ -maxrate __VBITRATE__ -bufsize __VBUF__
       -c:a aac -b:a 128k -ar 48000 -ac 2
       -f rtsp -rtsp_transport tcp rtsp://__MTX_USER__:__MTX_PASS__@127.0.0.1:8554/air
-    runOnReadyRestart: true
+    runOnAvailableRestart: true
   air:
   guest:
   backstage:

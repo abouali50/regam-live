@@ -25,8 +25,20 @@
           el('strong', { class: 'room-name' }, r.title),
           r.live && r.liveTitle ? el('span', { class: 'room-now' }, r.liveTitle) : null,
           el('span', { class: 'room-by' }, r.host),
-          r.live ? el('span', { class: 'viewers' }, el('span', { class: 'dot' }), String(r.viewers)) : null))))));
+          r.live ? el('span', { class: 'viewers' }, el('span', { class: 'dot' }), String(r.viewers)) : null,
+          !r.live && r.next ? el('span', { class: 'room-next' }, T('اللايف الجاي: {when}', { when: new Date(r.next.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })) : null,
+          el('span', { class: 'room-enter' }, (r.locked ? '🔒 ' : '') + T('دخل للقاعة'))))))));
   }
+  // "join with a code", like a meeting number: the code leads to its room
+  $('#joinForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const code = $('#joinCode').value.replace(/\D/g, ''), err = $('#joinErr');
+    err.hidden = true;
+    const r = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) }).catch(() => null);
+    if (r && r.ok) { location.href = '/r/' + (await r.json()).slug + '?code=' + code; return; }
+    err.hidden = false;
+    err.textContent = T(r && r.status === 429 ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط. شوف الدعوة وعاود.');
+  };
   // the account corner, and the invitation to sign up for people who have no account yet
   fetch('/api/site').then((r) => r.json()).then((site) => {
     mountAccount(document.querySelector('.top .meta'), site);

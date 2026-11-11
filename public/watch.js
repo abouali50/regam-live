@@ -146,6 +146,7 @@
     offline.hidden = on;
     if (!on) unmute.hidden = true;
     handBtn.hidden = !on || onStage;
+    $('#offlineHint').hidden = on || doorShut;      // how to come up on stage, told while people wait
     if (on) startHls(); else stopHls();
     if (on) sea.stop(); else sea.start();
     slides(!on);

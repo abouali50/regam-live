@@ -61,11 +61,11 @@ function mountChat(root, link, { askName } = {}) {
   let mod = false, banned = false;
   const pinned = el('div', { class: 'pinned', hidden: true });
   const list = el('div', { class: 'msgs', role: 'log', 'aria-live': 'polite' });
-  const more = el('button', { class: 'more', hidden: true, type: 'button', onclick: () => { stick = true; scroll(); } }, 'رسائل جديدة ↓');
+  const more = el('button', { class: 'more', hidden: true, type: 'button', onclick: () => { stick = true; scroll(); } }, T('رسائل جديدة ↓'));
   const note = el('div', { class: 'note', hidden: true });
-  const input = el('input', { type: 'text', maxlength: 300, placeholder: 'اكتب تعليق…', autocomplete: 'off', enterkeyhint: 'send', 'aria-label': 'تعليق' });
-  const form = el('form', { class: 'composer', onsubmit: submit }, input, el('button', { type: 'submit', class: 'btn primary' }, 'إرسال'));
-  root.append(el('div', { class: 'chat-head' }, 'التعليقات'), pinned, el('div', { class: 'msgs-wrap' }, list, more), note, form);
+  const input = el('input', { type: 'text', maxlength: 300, placeholder: T('اكتب تعليق…'), autocomplete: 'off', enterkeyhint: 'send', 'aria-label': T('تعليق') });
+  const form = el('form', { class: 'composer', onsubmit: submit }, input, el('button', { type: 'submit', class: 'btn primary' }, T('إرسال')));
+  root.append(el('div', { class: 'chat-head' }, T('التعليقات')), pinned, el('div', { class: 'msgs-wrap' }, list, more), note, form);
 
   let stick = true, noteTimer = null;
   list.addEventListener('scroll', () => {
@@ -84,8 +84,8 @@ function mountChat(root, link, { askName } = {}) {
       el('span', { class: 'who' }, m.name), el('span', { class: 'txt' }, m.text));
     if (mod && !m.mod) {
       r.append(el('span', { class: 'tools' },
-        el('button', { type: 'button', title: 'حذف التعليق', onclick: () => link.send({ t: 'del', id: m.id }) }, 'حذف'),
-        el('button', { type: 'button', title: 'حظر صاحب التعليق', onclick: () => { if (confirm(`تحظر "${m.name}"؟ ما غاديش يبقى يقدر يكتب.`)) link.send({ t: 'ban', uid: m.uid }); } }, 'حظر')));
+        el('button', { type: 'button', title: T('حذف التعليق'), onclick: () => link.send({ t: 'del', id: m.id }) }, T('حذف')),
+        el('button', { type: 'button', title: T('حظر صاحب التعليق'), onclick: () => { if (confirm(T('تحظر "{name}"؟ ما غاديش يبقى يقدر يكتب.', { name: m.name }))) link.send({ t: 'ban', uid: m.uid }); } }, T('حظر'))));
     }
     return r;
   }
@@ -99,9 +99,9 @@ function mountChat(root, link, { askName } = {}) {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
-    if (banned) return say('تم حظرك من التعليق فهاد اللايف.');
+    if (banned) return say(T('تم حظرك من التعليق فهاد اللايف.'));
     if (!link.name && askName) { const n = await askName(); if (!n) return; }
-    if (!link.ready) return say('الاتصال مقطوع، كنعاود نتصل…');
+    if (!link.ready) return say(T('الاتصال مقطوع، كنعاود نتصل…'));
     link.send({ t: 'msg', text });
     input.value = '';
   }
@@ -116,12 +116,12 @@ function mountChat(root, link, { askName } = {}) {
     .on('del', (d) => { const n = list.querySelector(`[data-id="${d.id}"]`); if (n) n.remove(); })
     .on('purge', (d) => list.querySelectorAll(`[data-uid="${d.uid}"]`).forEach((n) => n.remove()))
     .on('pin', (d) => { pinned.textContent = d.text; pinned.hidden = !d.text; })
-    .on('banned', (d) => { banned = d.on; if (d.on) say('تم حظرك من التعليق فهاد اللايف.', 0); })
+    .on('banned', (d) => { banned = d.on; if (d.on) say(T('تم حظرك من التعليق فهاد اللايف.'), 0); })
     .on('err', (d) => {
-      if (d.code === 'slow') say(`تسنى ${d.wait} ثواني قبل التعليق الجاي.`);
-      if (d.code === 'banned') say('تم حظرك من التعليق فهاد اللايف.', 0);
+      if (d.code === 'slow') say(T('تسنى {n} ثواني قبل التعليق الجاي.', { n: d.wait }));
+      if (d.code === 'banned') say(T('تم حظرك من التعليق فهاد اللايف.'), 0);
     })
-    .on('offline', () => say('الاتصال مقطوع، كنعاود نتصل…', 0));
+    .on('offline', () => say(T('الاتصال مقطوع، كنعاود نتصل…'), 0));
   return { say, focus: () => input.focus() };
 }
 

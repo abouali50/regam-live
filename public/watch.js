@@ -313,14 +313,16 @@
   });
   // ---- live translation: the host's words as text under the picture, and spoken if the person wants
   const capBtn = $('#capBtn'), capMenu = $('#capMenu'), capLine = $('#capLine');
-  let capLang = store.get('regam.cap') || '', capVoice = store.get('regam.capVoice') === '1', capHide = null;
+  // Until the person chooses, the translation follows the language of their page.
+  let capAuto = store.get('regam.cap') === null;
+  let capLang = capAuto ? LANG : store.get('regam.cap'), capVoice = store.get('regam.capVoice') === '1', capHide = null;
   const VOICE = { ar: 'ar-SA', fr: 'fr-FR', en: 'en-US' };
   $('#capLang').value = capLang; $('#capVoice').checked = capVoice;
   const paintCap = () => { capBtn.classList.toggle('on', !!capLang); if (!capLang) { capLine.hidden = true; if (window.speechSynthesis) speechSynthesis.cancel(); video.volume = 1; } };
   paintCap();
   capBtn.onclick = () => { capMenu.hidden = !capMenu.hidden; capBtn.setAttribute('aria-expanded', capMenu.hidden ? 'false' : 'true'); };
   document.addEventListener('pointerdown', (e) => { if (!capMenu.hidden && !e.target.closest('.cap-wrap')) { capMenu.hidden = true; capBtn.setAttribute('aria-expanded', 'false'); } });
-  $('#capLang').onchange = () => { capLang = $('#capLang').value; store.set('regam.cap', capLang); paintCap(); };
+  $('#capLang').onchange = () => { capLang = $('#capLang').value; capAuto = false; store.set('regam.cap', capLang); paintCap(); };
   $('#capVoice').onchange = () => {
     capVoice = $('#capVoice').checked; store.set('regam.capVoice', capVoice ? '1' : '0');
     // phones let a page speak only after a tap: this tap is the one
@@ -329,6 +331,7 @@
   };
   function showCap(d) {
     if (!capLang || !live) return;
+    if (capAuto && (d.src === capLang || !d.tx[capLang])) return;      // nothing to translate for this person
     const text = d.tx[capLang] || d.tx[d.src];
     capLine.textContent = text; capLine.hidden = false;
     clearTimeout(capHide); capHide = setTimeout(() => { capLine.hidden = true; }, Math.min(12000, 3500 + text.length * 70));

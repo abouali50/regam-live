@@ -59,7 +59,7 @@ async function until(fn, ms = 15000, step = 250) {
       if (s.pub) { delete window.paths[s.name]; const v = document.getElementById('v_' + s.name); if (v) v.remove(); } };
   });
 
-  const seen = { unauth: 0, posts: [], recConf: {}, recCalls: [] };
+  const seen = { unauth: 0, posts: [], recConf: {}, recCalls: [], translated: [] };
   let sid = 0;
   const rtc = http.createServer(async (req, res) => {
     const m = req.url.match(/^\/([a-z0-9_-]+)\/(whip|whep)(?:\/(\w+))?$/);
@@ -91,6 +91,13 @@ async function until(fn, ms = 15000, step = 250) {
     res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ itemCount: names.length, pageCount: 1, items: names.map((name) => ({ name, available: true })) }));
   }).listen(19997);
+  const lt = http.createServer(async (req, res) => {          // stands in for the translation service
+    let body = ''; for await (const c of req) body += c;
+    const q = JSON.parse(body || '{}');
+    seen.translated.push(`${q.source}>${q.target}`);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ translatedText: `[${q.target}] ${q.q}` }));
+  }).listen(15000);
   const hlsSrv = http.createServer((req, res) => {
     // like MediaMTX: without the CDN secret, a playlist request is answered with a redirect
     if (req.headers.authorization !== 'Bearer mtxpass') { seen.hlsNoSecret = (seen.hlsNoSecret || 0) + 1; res.writeHead(302, { Location: req.url + '?cookieCheck=1' }); return res.end(); }
@@ -105,7 +112,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -364,15 +371,21 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- live translation: the host's words reach each viewer in the language they picked
     {
       const mk = async () => { const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 900, height: 700 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('cap: ' + e.message)); await p.goto(BASE + '/r/main'); await until(() => p.locator('#liveBadge.on').isVisible()); return p; };
-      const en = await mk(), none = await mk();
+      const en = await mk(), none = await mk(), auto = await mk();
       await en.click('#capBtn'); await en.selectOption('#capLang', 'en');
+      await none.click('#capBtn'); await none.selectOption('#capLang', '');
       await en.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'fakecaptioner001', name: 'x' })); w.send(JSON.stringify({ t: 'cap', src: 'fr', tx: { fr: 'faux', en: 'FAKE' } })); }; });
       await studio.evaluate(() => window.__cap.send('fr', { fr: 'Bonjour à tous', en: 'Hello everyone', ar: 'مرحبا بالجميع', de: 'x' }));
       check('a viewer who picked English reads the host in English, on the picture', (await until(async () => (await en.locator('#capLine').isVisible()) && (await en.textContent('#capLine')) === 'Hello everyone', 40000)) !== null);
       check('a viewer who asked for no translation sees none, and only the host can send them', await none.locator('#capLine').isHidden() && (await en.textContent('#capLine')) !== 'FAKE');
+      check('a viewer who chose nothing gets the translation in the language of their page', (await until(async () => (await auto.textContent('#capLine')) === 'مرحبا بالجميع', 40000)) !== null);
       await studio.evaluate(() => window.__cap.say('Merci beaucoup', 'fr'));
-      check('without a translator in the browser, the words still go out in the language spoken', (await until(async () => (await en.textContent('#capLine')) === 'Merci beaucoup', 40000)) !== null && await studio.locator('#capPanel').isVisible());
-      for (const p of [en, none]) await p.context().close();
+      check('what the host says is translated on the server into the other two languages', (await until(async () => (await en.textContent('#capLine')) === '[en] Merci beaucoup', 40000)) !== null
+        && (await until(async () => (await auto.textContent('#capLine')) === '[ar] Merci beaucoup', 20000)) !== null && seen.translated.join(' ') === 'fr>ar fr>en'
+        && (await until(async () => (await studio.textContent('#capLast')).includes('EN: [en] Merci beaucoup'), 6000)) !== null, seen.translated.join(' '));
+      await studio.evaluate(() => window.__cap.say('شكرا', 'ar'));
+      check('a viewer is not shown a translation of their own language', (await until(async () => (await en.textContent('#capLine')) === '[en] شكرا', 40000)) !== null && (await auto.textContent('#capLine')) === '[ar] Merci beaucoup');
+      for (const p of [en, none, auto]) await p.context().close();
     }
     // ---- entry code and invitation, like a meeting passcode
     {
@@ -739,7 +752,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);
   } finally {
-    ff.kill('SIGKILL'); app.kill(); await browser.close(); rtc.close(); api.close(); hlsSrv.close();
+    ff.kill('SIGKILL'); app.kill(); await browser.close(); rtc.close(); api.close(); hlsSrv.close(); lt.close();
   }
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

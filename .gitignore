@@ -8,3 +8,4 @@ data/
 test/out/
 deploy/mediamtx.yml
 deploy/Caddyfile
+recordings/

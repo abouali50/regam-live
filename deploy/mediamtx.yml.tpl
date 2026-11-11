@@ -59,5 +59,11 @@ paths:
       -f rtsp -rtsp_transport tcp rtsp://__MTX_USER__:__MTX_PASS__@127.0.0.1:8554/air
     runOnAvailableRestart: true
   air:
+    # every live is kept as a video file (one file per live, cut every 6 hours)
+    record: true
+    recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+    recordFormat: fmp4
+    recordSegmentDuration: 6h
+    recordDeleteAfter: 0s
   guest:
   backstage:

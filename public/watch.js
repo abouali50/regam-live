@@ -99,6 +99,39 @@
     link.send({ t: 'hand', on: !handUp });
   };
 
+  // -------------------------------------------------------- hearts, share --
+  const heartsBox = $('#hearts');
+  let likeTotal = 0, mine = 0;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function floatHeart() {
+    if (calm || document.hidden || heartsBox.childElementCount > 24) return;
+    const h = el('span', { class: 'float-heart' }, '♥');
+    h.style.setProperty('--x', `${Math.round(Math.random() * 60 - 30)}px`);
+    h.style.setProperty('--s', (0.8 + Math.random() * 0.7).toFixed(2));
+    heartsBox.append(h);
+    h.addEventListener('animationend', () => h.remove());
+  }
+  function showLikes(n) {
+    const fresh = n - likeTotal - mine;       // hearts sent by other viewers since the last count
+    mine = 0; likeTotal = n;
+    $('#likes').textContent = n;
+    for (let i = 0; i < Math.min(Math.max(fresh, 0), 6); i++) setTimeout(floatHeart, i * 120);
+  }
+  $('#likeBtn').onclick = () => {
+    if (!link.ready) return;
+    link.send({ t: 'like' });
+    mine++;
+    $('#likes').textContent = likeTotal + mine;
+    floatHeart();
+  };
+  $('#shareBtn').onclick = async () => {
+    const data = { title: document.title, text: $('#title').textContent, url: location.origin + '/' };
+    try {
+      if (navigator.share) await navigator.share(data);
+      else { await navigator.clipboard.writeText(data.url); chat.say('تنسخ الرابط. لصقو فين بغيتي.'); }
+    } catch (e) { if (e && e.name !== 'AbortError') chat.say(data.url, 8000); }
+  };
+
   // ------------------------------------------------- on stage (the guest) --
   const inviteDlg = $('#inviteDlg'), inviteErr = $('#inviteErr'), stageBar = $('#stageBar'), micBtn = $('#micBtn');
   let stage = null;   // { token, cam, pub, watch, voice }
@@ -161,12 +194,14 @@
   link.on('init', (d) => {
     setLive(d.live);
     $('#viewers').textContent = d.viewers;
+    likeTotal = d.likes || 0; mine = 0; $('#likes').textContent = likeTotal;
     if (d.title) $('#title').textContent = d.title;
     showGuest(d.guest); setHand(!!d.hand);
     if (onStage && !(d.guest && d.guest.uid === link.uid)) leaveStage(false);
   })
     .on('live', (d) => setLive(d.on))
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
+    .on('likes', (d) => showLikes(d.n))
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guest', (d) => showGuest(d.guest))
     .on('hand', (d) => { setHand(d.on); if (d.on) chat.say('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.', 6000); })

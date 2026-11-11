@@ -77,6 +77,7 @@ function createBoard(canvas, typer) {
       commitText();
       text = { x: p.x, y: p.y - FONT[size] / 2, value: '', color, px: FONT[size] };
       typer.value = '';
+      typer.focus();
       setTimeout(() => typer.focus(), 0);
       render();
       return;
@@ -88,6 +89,8 @@ function createBoard(canvas, typer) {
         : { kind: 'line', color, width: PEN[size], alpha: 1, points: [p] };
     render();
   });
+  // a click on the board must not take the keyboard away from the text being typed
+  canvas.addEventListener('mousedown', (e) => e.preventDefault());
   canvas.addEventListener('pointermove', (e) => {
     if (!stroke) return;
     const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];

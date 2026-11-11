@@ -23,6 +23,7 @@ const SITE_TITLE = env.SITE_TITLE || 'REGAM Live';
 const HOST_NAME = env.HOST_NAME || 'REGAM';
 const DATA_DIR = env.DATA_DIR || path.join(__dirname, 'data');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const REC_DIR = path.join(env.REC_DIR || path.join(__dirname, 'recordings'), 'air');   // written by the media server
 const AIR = 'air';
 const HISTORY = 150, MAX_TEXT = 300, MAX_NAME = 24;
 
@@ -177,6 +178,36 @@ function proxyHls(req, res, sub) {
   res.on('close', () => up.destroy());
 }
 
+// Recordings of past lives (studio only): list, download, delete.
+const REC_NAME = /^[0-9][0-9_.-]*\.mp4$/;
+function handleRecordings(req, res, url) {
+  // a download is a plain link, so the token may also come in the address
+  if (!isAdmin(bearer(req) || url.searchParams.get('token'))) return send(res, 401, { error: 'unauthorized' });
+  const name = url.searchParams.get('name');
+  if (!name) {
+    if (req.method !== 'GET') return send(res, 405, { error: 'method' });
+    return fs.readdir(REC_DIR, (err, files) => {
+      const list = [];
+      for (const f of err ? [] : files) {
+        if (!REC_NAME.test(f)) continue;
+        try { const st = fs.statSync(path.join(REC_DIR, f)); list.push({ name: f, size: st.size, mtime: st.mtimeMs }); } catch { /* removed meanwhile */ }
+      }
+      list.sort((x, y) => (x.name < y.name ? 1 : -1));
+      // while on air, the newest file is still being written
+      send(res, 200, { live, list });
+    });
+  }
+  if (!REC_NAME.test(name)) return send(res, 400, { error: 'bad name' });
+  const file = path.join(REC_DIR, name);
+  if (req.method === 'DELETE') return fs.unlink(file, (err) => send(res, err ? 404 : 200, { ok: !err }));
+  if (req.method !== 'GET') return send(res, 405, { error: 'method' });
+  fs.stat(file, (err, st) => {
+    if (err) return send(res, 404, { error: 'not found' });
+    res.writeHead(200, { 'Content-Type': 'video/mp4', 'Content-Length': st.size, 'Content-Disposition': `attachment; filename="regam-live_${name}"` });
+    fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
@@ -198,6 +229,7 @@ const server = http.createServer(async (req, res) => {
       if (!safeEq(hmac(String(body.password || '')), hmac(ADMIN_PASSWORD))) { loginFailed(ip); return send(res, 401, { error: 'wrong password' }); }
       return send(res, 200, { token: sign('admin', 'host', 12 * 3600e3) });
     }
+    if (p === '/api/recordings') return handleRecordings(req, res, url);
     const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+)$/);
     if (m) return handleRtc(req, res, m[1], m[2]);
 
@@ -270,7 +302,7 @@ wss.on('connection', (ws, req) => {
       if (!byUid.has(ws.uid)) byUid.set(ws.uid, new Set());
       byUid.get(ws.uid).add(ws);
       return tx(ws, {
-        t: 'init', live, viewers: wss.clients.size, slow: state.slow, pinned: state.pinned, title: state.title,
+        t: 'init', live, likes, viewers: wss.clients.size, slow: state.slow, pinned: state.pinned, title: state.title,
         history, guest: guestPublic(), mod: ws.mod, banned: !!state.banned[ws.uid],
         hands: ws.mod ? handsList() : undefined, hand: hands.has(ws.uid),
       });
@@ -309,6 +341,12 @@ wss.on('connection', (ws, req) => {
       case 'leave':
         if (guest && guest.uid === ws.uid) endStage('left');
         return;
+      case 'like': {                     // hearts: anyone watching, a few per second at most
+        const now = Date.now();
+        if (state.banned[ws.uid] || now - (ws.lastLike || 0) < 200) return;
+        ws.lastLike = now; likes++; likesDirty = true;
+        return;
+      }
     }
 
     // ---- moderator actions
@@ -359,6 +397,8 @@ setInterval(() => {
     ws.alive = false; ws.ping();
   }
 }, 30e3);
+let likes = 0, likesDirty = false;
+setInterval(() => { if (likesDirty) { likesDirty = false; broadcast({ t: 'likes', n: likes }); } }, 700);
 let lastViewers = -1;
 setInterval(() => {
   const n = wss.clients.size;
@@ -378,6 +418,7 @@ async function pollLive() {
   } catch { /* media server down = offline */ }
   if (on !== live) {
     live = on;
+    if (on) { likes = 0; likesDirty = true; }      // a new live starts its hearts from zero
     broadcast({ t: 'live', on });
     if (!on && guest) endStage('ended');
   }

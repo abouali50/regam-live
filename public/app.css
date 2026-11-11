@@ -212,3 +212,42 @@ a.btn.primary { color: #1b1405; }
 .pw-eye:focus-visible { outline: 2px solid var(--gold); }
 .pw-eye[aria-pressed="true"] { color: var(--gold); }
 .pw-eye[aria-pressed="true"] .eye-off { display: none; }
+/* stage controls sit under the picture, not on it */
+.onstage { position: static; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; }
+.sub { font-size: 14px; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
+li.guest-box { list-style: none; }
+/* comments fold away */
+.chat-head { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; text-align: start; }
+.chat-head:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.chat-unread { background: var(--live); color: #fff; border-radius: 999px; font-size: 12px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+.chat-chevron { margin-inline-start: auto; width: 9px; height: 9px; border-inline-end: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-135deg); transition: transform .15s; }
+.chat.collapsed .chat-chevron { transform: rotate(45deg); }
+.chat.collapsed { align-self: start; }
+.chat.collapsed > :not(.chat-head) { display: none; }
+.chat.collapsed .chat-head { border-bottom: 0; }
+.layout:has(> .chat.collapsed) { grid-template-columns: minmax(0, 1fr) max-content; }
+/* with the comments folded, the picture takes the width, but never more than the window is tall */
+.layout:has(> .chat.collapsed) .player { max-width: calc((100dvh - 200px) * 16 / 9); width: 100%; margin-inline: auto; }
+@media (max-width: 900px) {
+  .layout:has(> .chat.collapsed) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; }
+  .watch .chat.collapsed { min-height: 0; }
+  .onstage { margin: 0 12px; }
+  .layout:has(> .chat.collapsed) .player { max-width: none; }
+}
+/* small phones: the seven reactions stay on one line, the live badge on one line */
+.badge { white-space: nowrap; }
+.react-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; flex: 1; max-width: 400px; }
+.react, .react-row .react { width: auto; min-width: 0; }
+@media (max-width: 420px) { .top { padding: 8px 10px; gap: 8px; } .brand { font-size: 17px; } .lang { padding: 3px 6px; max-width: 96px; } .meta { gap: 8px; } }
+/* who is watching */
+.who-btn { background: none; border: 1px solid transparent; border-radius: 999px; padding: 3px 9px; cursor: pointer; font: inherit; font-size: 14px; }
+.who-btn:hover { border-color: var(--line); color: var(--text); }
+.who-btn:focus-visible { outline: 2px solid var(--gold); }
+.who-list { list-style: none; margin: 0 0 12px; padding: 0; max-height: 50vh; overflow-y: auto; display: grid; gap: 4px; }
+.who-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: var(--panel-2); border-radius: 8px; overflow-wrap: anywhere; }
+.who-list li.is-host span:first-child { color: var(--gold); font-weight: 700; }
+/* on stage: one control bar fixed at the bottom of the screen, never on the picture */
+.onstage { position: fixed; inset-inline: 0; bottom: 0; z-index: 20; margin: 0; border-radius: 0; border-inline: 0; border-bottom: 0; justify-content: center; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: var(--panel); box-shadow: 0 -6px 18px rgba(0,0,0,.35); }
+.onstage .onstage-tag { margin-inline-end: 0; }
+.layout:has(#stageBar:not([hidden])) { padding-bottom: 72px; }
+@media (max-width: 900px) { .onstage { margin: 0; } .layout:has(#stageBar:not([hidden])) { padding-bottom: calc(66px + env(safe-area-inset-bottom)); } }

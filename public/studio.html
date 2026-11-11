@@ -81,10 +81,9 @@
 
     <div class="panel" id="stagePanel">
       <h2>المنصة</h2>
-      <div id="guestBox" class="guest-box" hidden>
-        <span id="guestName"></span>
-        <button id="unstageBtn" class="btn danger" type="button">نزلو من المنصة</button>
-      </div>
+      <p id="noGuests" class="muted">ما كاين حتى واحد على المنصة. تقدر تطلع حتى ل 12 واحد معاك.</p>
+      <ul id="onStage" class="hands"></ul>
+      <h3 class="sub">طلبات الطلوع</h3>
       <p id="noHands" class="muted">ما كاين حتى طلب دابا.</p>
       <ul id="hands" class="hands"></ul>
     </div>
@@ -118,7 +117,6 @@
   </section>
   <aside class="chat" id="chat" aria-label="التعليقات"></aside>
 </main>
-<audio id="guestAudio" autoplay></audio>
 
 <script src="/i18n.js"></script>
 <script src="/common.js"></script>

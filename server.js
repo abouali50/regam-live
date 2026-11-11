@@ -27,6 +27,7 @@ const DATA_DIR = env.DATA_DIR || path.join(__dirname, 'data');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const REC_ROOT = env.REC_DIR || path.join(__dirname, 'recordings');   // written by the media server
 const HISTORY = 150, MAX_TEXT = 300, MAX_NAME = 24;
+const MAX_GUESTS = 12;               // guests on stage at once, next to the host
 const REACTIONS = 7;                 // thumbs up, hug, heart, laugh, oops, blush, thinking
 const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const zeros = () => new Array(REACTIONS).fill(0);
@@ -61,7 +62,7 @@ if (!db.rooms.length) {
 const rooms = new Map();
 function openRoom(cfg) {
   const room = {
-    cfg, live: false, seq: 0, history: [], hands: new Map(), guest: null, rtc: new Map(),
+    cfg, live: false, seq: 0, history: [], hands: new Map(), guests: new Map(), rtc: new Map(),   // guests: slot -> { uid, name, nonce, ready }
     clients: new Set(), byUid: new Map(), lastMsgAt: new Map(), outbox: [],
     likes: 0, reacts: zeros(), totals: zeros(), likesDirty: false, lastViewers: -1,
   };
@@ -102,9 +103,12 @@ function whoIs(token) {
 }
 const canHost = (user, room) => !!user && !!room && (user.role === 'admin' || room.cfg.ownerId === user.id);
 const ownerName = (room) => (room.cfg.ownerId === 'admin' ? HOST_NAME : (db.users.find((u) => u.id === room.cfg.ownerId) || {}).name || HOST_NAME);
-function isGuest(token, room) {
+// The stage slot (1..MAX_GUESTS) this token gives access to, or 0.
+function guestSlot(token, room) {
   const v = verify(token, 'stage');
-  return !!(v && room.guest && v === `${room.cfg.slug}_${room.guest.uid}_${room.guest.nonce}`);
+  if (!v) return 0;
+  for (const [slot, g] of room.guests) if (v === `${room.cfg.slug}_${g.uid}_${slot}_${g.nonce}`) return slot;
+  return 0;
 }
 const bearer = (req) => (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
 const clientIp = (req) => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
@@ -166,10 +170,12 @@ const roomOf = (url) => (url.searchParams.get('room') ? rooms.get(url.searchPara
 
 // Which role may open which WebRTC session on the media server.
 //   whip = publish, whep = watch in real time
-const RTC_RULES = {
-  host: { whip: ['studio', 'backstage'], whep: ['guest'] },
-  guest: { whip: ['guest'], whep: ['studio', 'backstage'] },
-};
+//   host        : publishes the broadcast and one "backstage<n>" sound mix per guest, watches every guest
+//   guest in <n>: publishes "guest<n>", watches the broadcast picture and their own backstage mix
+function rtcAllowed(slot, kind, name) {
+  if (!slot) return kind === 'whip' ? (name === 'studio' || /^backstage(?:[1-9]|1[0-2])$/.test(name)) : /^guest(?:[1-9]|1[0-2])$/.test(name);
+  return kind === 'whip' ? name === `guest${slot}` : (name === 'studio' || name === `backstage${slot}`);
+}
 
 async function closeRtc(room, key) {
   const url = room.rtc.get(key);
@@ -182,10 +188,10 @@ async function handleRtc(req, res, url, kind, name) {
   const room = roomOf(url);
   if (!room) return send(res, 404, { error: 'no such room' });
   const token = bearer(req);
-  const role = canHost(whoIs(token), room) ? 'host' : isGuest(token, room) ? 'guest' : null;
-  if (!role) return send(res, 401, { error: 'unauthorized' });
-  if (!RTC_RULES[role][kind] || !RTC_RULES[role][kind].includes(name)) return send(res, 403, { error: 'forbidden' });
-  const key = `${role}:${kind}:${name}`;
+  const slot = canHost(whoIs(token), room) ? 0 : guestSlot(token, room);
+  if (slot === 0 && !canHost(whoIs(token), room)) return send(res, 401, { error: 'unauthorized' });
+  if (!rtcAllowed(slot, kind, name)) return send(res, 403, { error: 'forbidden' });
+  const key = `${slot ? 'guest' + slot : 'host'}:${kind}:${name}`;
 
   if (req.method === 'DELETE') { await closeRtc(room, key); return send(res, 200, { ok: true }); }
   if (req.method !== 'POST') return send(res, 405, { error: 'method' });
@@ -448,7 +454,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/recordings') return handleRecordings(req, res, url);
     const a = p.match(/^\/api\/admin(?:\/(user|room|settings))?$/);
     if (a) return handleAdmin(req, res, url, a[1]);
-    const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+)$/);
+    const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+(?:[1-9]|1[0-2])?)$/);
     if (m) return handleRtc(req, res, url, m[1], m[2]);
 
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method');
@@ -487,15 +493,21 @@ const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws
 const toUid = (room, uid, obj) => { for (const ws of room.byUid.get(uid) || []) tx(ws, obj); };
 const viewersOf = (room) => { let n = 0; for (const ws of room.clients) if (!ws.mod) n++; return n; };
 const handsList = (room) => [...room.hands].map(([uid, h]) => ({ uid, name: h.name })).slice(0, 50);
-const guestPublic = (room) => (room.guest ? { name: room.guest.name, uid: room.guest.uid, ready: room.guest.ready } : null);
+const guestsPublic = (room) => [...room.guests].map(([slot, g]) => ({ slot, uid: g.uid, name: g.name, ready: g.ready }));
+const slotOf = (room, uid) => { for (const [slot, g] of room.guests) if (g.uid === uid) return slot; return 0; };
 
-function endStage(room, reason) {
-  if (!room.guest) return;
-  const uid = room.guest.uid;
-  room.guest = null;
-  toUid(room, uid, { t: 'kick', reason });
-  for (const k of [...room.rtc.keys()]) if (k.startsWith('guest:') || k === 'host:whep:guest' || k === 'host:whip:backstage') closeRtc(room, k);
-  broadcast(room, { t: 'guest', guest: null });
+// Take one guest (or, without a slot, everybody) off the stage.
+function endStage(room, reason, only) {
+  const slots = only ? [only] : [...room.guests.keys()];
+  let changed = false;
+  for (const slot of slots) {
+    const g = room.guests.get(slot);
+    if (!g) continue;
+    room.guests.delete(slot); changed = true;
+    toUid(room, g.uid, { t: 'kick', reason });
+    for (const k of [...room.rtc.keys()]) if (k.startsWith(`guest${slot}:`) || k === `host:whep:guest${slot}` || k === `host:whip:backstage${slot}`) closeRtc(room, k);
+  }
+  if (changed) broadcast(room, { t: 'guests', guests: guestsPublic(room) });
 }
 
 wss.on('connection', (ws, req) => {
@@ -538,7 +550,7 @@ wss.on('connection', (ws, req) => {
       return tx(ws, {
         t: 'init', live: room.live, likes: room.likes, reacts: room.totals, viewers: room.clients.size,
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
-        history: room.history, guest: guestPublic(room), mod: ws.mod, banned: !!room.cfg.banned[ws.uid],
+        history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
       });
     }
@@ -567,16 +579,26 @@ wss.on('connection', (ws, req) => {
 
       // ---- stage requests (viewer side)
       case 'hand':
-        if (!ws.name || cfg.banned[ws.uid] || (room.guest && room.guest.uid === ws.uid)) return;
+        if (!ws.name || cfg.banned[ws.uid] || slotOf(room, ws.uid)) return;
         if (d.on === false) room.hands.delete(ws.uid);
         else if (room.hands.size < 200) room.hands.set(ws.uid, { name: ws.name, ts: Date.now() });
         tx(ws, { t: 'hand', on: room.hands.has(ws.uid) });
         return toMods(room, { t: 'hands', list: handsList(room) });
-      case 'onstage':
-        if (room.guest && room.guest.uid === ws.uid && !room.guest.ready) { room.guest.ready = true; broadcast(room, { t: 'guest', guest: guestPublic(room) }); }
+      case 'onstage': {
+        const g = room.guests.get(slotOf(room, ws.uid));
+        if (g && !g.ready) { g.ready = true; broadcast(room, { t: 'guests', guests: guestsPublic(room) }); }
         return;
+      }
+      case 'who': {                      // who is watching: the names people chose, and how many gave none
+        const now = Date.now();
+        if (now - (ws.lastWho || 0) < 1500) return;
+        ws.lastWho = now;
+        const names = new Map(); let anon = 0;
+        for (const c of room.clients) { if (c.name) names.set(c.uid, { name: c.name, host: c.mod || undefined }); else anon++; }
+        return tx(ws, { t: 'who', people: [...names.values()].slice(0, 300), more: Math.max(0, names.size - 300), anon });
+      }
       case 'leave':
-        if (room.guest && room.guest.uid === ws.uid) endStage(room, 'left');
+        if (slotOf(room, ws.uid)) endStage(room, 'left', slotOf(room, ws.uid));
         return;
       case 'like':                       // older pages: a plain heart
       case 'react': {                    // reactions: anyone watching, a few per second at most
@@ -604,7 +626,7 @@ wss.on('connection', (ws, req) => {
         if (d.on !== false) {
           for (let i = room.history.length - 1; i >= 0; i--) if (room.history[i].uid === uid) room.history.splice(i, 1);
           room.hands.delete(uid);
-          if (room.guest && room.guest.uid === uid) endStage(room, 'banned');
+          if (slotOf(room, uid)) endStage(room, 'banned', slotOf(room, uid));
           broadcast(room, { t: 'purge', uid });
           toMods(room, { t: 'hands', list: handsList(room) });
         }
@@ -616,15 +638,21 @@ wss.on('connection', (ws, req) => {
       case 'stage': {
         const uid = String(d.uid || '');
         const h = room.hands.get(uid);
-        if (!h || !room.byUid.has(uid)) return;
-        if (room.guest) endStage(room, 'replaced');
+        if (!h || !room.byUid.has(uid) || slotOf(room, uid)) return;
+        let slot = 0;
+        for (let i = 1; i <= MAX_GUESTS; i++) if (!room.guests.has(i)) { slot = i; break; }
+        if (!slot) return tx(ws, { t: 'err', code: 'stagefull' });
         room.hands.delete(uid);
-        room.guest = { uid, name: h.name, nonce: crypto.randomBytes(6).toString('hex'), ready: false };
-        toUid(room, uid, { t: 'invite', token: sign('stage', `${cfg.slug}_${uid}_${room.guest.nonce}`, 4 * 3600e3) });
-        broadcast(room, { t: 'guest', guest: guestPublic(room) });
+        const g = { uid, name: h.name, nonce: crypto.randomBytes(6).toString('hex'), ready: false };
+        room.guests.set(slot, g);
+        toUid(room, uid, { t: 'invite', slot, token: sign('stage', `${cfg.slug}_${uid}_${slot}_${g.nonce}`, 4 * 3600e3) });
+        broadcast(room, { t: 'guests', guests: guestsPublic(room) });
         return toMods(room, { t: 'hands', list: handsList(room) });
       }
-      case 'unstage': return endStage(room, 'removed');
+      case 'unstage':                      // one guest (by uid), or everybody
+        if (!d.uid) return endStage(room, 'removed');
+        if (slotOf(room, String(d.uid))) endStage(room, 'removed', slotOf(room, String(d.uid)));
+        return;
     }
   });
 });

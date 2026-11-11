@@ -22,6 +22,7 @@ async function until(fn, ms = 15000, step = 250) {
 }
 
 (async () => {
+  const openChat = (ctx) => ctx.addInitScript(() => { try { if (!localStorage.getItem('regam.chat')) localStorage.setItem('regam.chat', 'open'); } catch {} });
   const browser = await chromium.launch({ args: [
     '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream',
     '--disable-features=WebRtcHideLocalIpsWithMdns', '--autoplay-policy=no-user-gesture-required',
@@ -106,11 +107,12 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- security checks on the API --------------------------------------
     check('login rejects a wrong password', (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"nope"}' })).status === 401);
     check('publishing without a token is refused', (await fetch(BASE + '/api/rtc/whip/studio', { method: 'POST', body: 'x' })).status === 401);
-    check('only the audience stream is exposed over HLS', (await fetch(BASE + '/hls/studio_main/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/guest_main/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/air_nope/index.m3u8')).status === 404);
+    check('only the audience stream is exposed over HLS', (await fetch(BASE + '/hls/studio_main/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/guest1_main/index.m3u8')).status === 404 && (await fetch(BASE + '/hls/air_nope/index.m3u8')).status === 404);
     check('path traversal is refused', [400, 404].includes((await fetch(BASE + '/%2e%2e/server.js')).status));
 
     // ---- viewer (desktop) -------------------------------------------------
     const vctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1280, height: 760 }, permissions: ['camera', 'microphone'] });
+    await openChat(vctx);
     const viewer = await vctx.newPage();
     const errors = [];
     viewer.on('pageerror', (e) => errors.push('viewer: ' + e.message));
@@ -119,6 +121,7 @@ async function until(fn, ms = 15000, step = 250) {
 
     // ---- studio ------------------------------------------------------------
     const sctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1380, height: 900 }, permissions: ['camera', 'microphone'] });
+    await openChat(sctx);
     const studio = await sctx.newPage();
     studio.on('pageerror', (e) => errors.push('studio: ' + e.message));
     studio.on('dialog', (d) => d.accept());
@@ -178,12 +181,46 @@ async function until(fn, ms = 15000, step = 250) {
     check('viewer receives the invitation', (await until(() => viewer.locator('#inviteDlg[open]').isVisible())) !== null);
     await viewer.click('#inviteYes');
     check('guest is on stage (camera published, sees the host in real time)', (await until(() => viewer.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.videoWidth > 0 && v.srcObject.getAudioTracks().length === 1; }), 20000)) !== null);
-    check('studio mixes the guest picture + voice', (await until(() => studio.locator('#guestName', { hasText: 'على المنصة' }).isVisible(), 20000)) !== null && (await until(() => studio.evaluate(() => !!document.querySelector('#guestAudio').srcObject), 8000)) !== null);
+    check('studio mixes the guest picture + voice', (await until(() => studio.locator('#onStage li', { hasText: 'على المنصة' }).isVisible(), 20000)) !== null && (await until(() => studio.evaluate(() => { const st = window.__studio.stage.get(1); return !!(st && st.node && st.sink && st.sink.srcObject); }), 8000)) !== null);
     await sleep(1500);
-    check('media sessions opened: ' + seen.posts.join(' '), ['whip:studio_main', 'whip:backstage_main', 'whip:guest_main', 'whep:studio_main', 'whep:backstage_main', 'whep:guest_main'].every((k) => seen.posts.includes(k)));
+    check('media sessions opened: ' + seen.posts.join(' '), ['whip:studio_main', 'whip:backstage1_main', 'whip:guest1_main', 'whep:studio_main', 'whep:backstage1_main', 'whep:guest1_main'].every((k) => seen.posts.includes(k)));
     check('viewers are told who is on stage', true === await (async () => { const p = await vctx.newPage(); await p.goto(BASE + '/'); const ok = (await until(() => p.locator('#guestLine', { hasText: 'كريم' }).isVisible())) !== null; await p.close(); return ok; })());
     await studio.screenshot({ path: path.join(OUT, 'studio-guest.png') });
     await viewer.screenshot({ path: path.join(OUT, 'viewer-onstage.png') });
+
+    // ---- a second guest joins the first -------------------------------------------------------
+    check('the stage controls are a bar at the bottom of the screen, off the picture', await viewer.evaluate(() => { const bar = document.querySelector('#stageBar').getBoundingClientRect(), pic = document.querySelector('#player').getBoundingClientRect(); return bar.height > 0 && bar.top >= pic.bottom - 1 && Math.abs(bar.bottom - innerHeight) < 2 && bar.width >= innerWidth - 2; }));
+    const g2ctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 900, height: 700 }, permissions: ['camera', 'microphone'] });
+    const g2 = await g2ctx.newPage();
+    g2.on('pageerror', (e) => errors.push('guest2: ' + e.message));
+    await g2.goto(BASE + '/');
+    check('comments are folded for a new visitor, with a counter of what arrives', (await until(() => g2.locator('#liveBadge.on').isVisible())) !== null && await g2.locator('.composer').isHidden() && await g2.locator('.msgs').isHidden());
+    await studio.fill('.composer input', 'مرحبا بالضيف الثاني'); await studio.click('.composer button');
+    check('the counter shows the new comment, and a click opens the comments', (await until(async () => (await g2.textContent('.chat-unread')) === '1' && await g2.locator('.chat-unread').isVisible(), 6000)) !== null
+      && (await g2.click('.chat-head'), await g2.locator('.msg', { hasText: 'مرحبا بالضيف الثاني' }).isVisible()) && await g2.locator('.chat-unread').isHidden());
+    await g2.click('#handBtn'); await g2.fill('#nameInput', 'سلمى'); await g2.click('#nameForm button[type=submit]');
+    await until(() => studio.locator('#hands li', { hasText: 'سلمى' }).isVisible());
+    await studio.click('#hands li button');
+    await until(() => g2.locator('#inviteDlg[open]').isVisible()); await g2.click('#inviteYes');
+    check('two guests are on stage together, each on their own media paths', (await until(() => studio.evaluate(() => { const a = window.__studio.stage.get(1), b = window.__studio.stage.get(2); return !!(a && a.node && b && b.node); }), 25000)) !== null
+      && (await sfu.evaluate(() => ['guest1_main', 'guest2_main', 'backstage1_main', 'backstage2_main'].every((k) => !!window.paths[k]))) && (await studio.locator('#onStage li').count()) === 2);
+    check('each guest gets a sound mix (host + the others) and the picture stays 1280x720', (await until(() => g2.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.srcObject.getAudioTracks().length === 1 && v.videoWidth > 0; }), 20000)) !== null && (await dim()) === '1280x720');
+    await studio.click('.who-btn');
+    check('a click on the viewer count lists who is watching, the host first', (await until(async () => { const t = await studio.locator('.who-list li').allTextContents(); return t.length >= 3 && t[0].startsWith('Pro') && t.some((x) => x === 'كريم') && t.some((x) => x === 'سلمى'); }, 8000)) !== null, (await studio.locator('.who-list li').allTextContents()).join(' | '));
+    await studio.click('.who-dlg .btn');
+    check('paths beyond the twelve stage slots are refused', (await fetch(BASE + '/api/rtc/whep/guest13', { method: 'POST', body: 'x', headers: { Authorization: 'Bearer ' + await studio.evaluate(() => sessionStorage.getItem('regam.studio')) } })).status >= 404);
+    await sleep(1200);
+    await studio.screenshot({ path: path.join(OUT, 'studio-3-people.png') });
+    await g2.screenshot({ path: path.join(OUT, 'guest-phone-stage.png') });
+    await studio.locator('#onStage li', { hasText: 'سلمى' }).locator('button').click();
+    const gone = [
+      (await until(() => g2.evaluate(() => !document.querySelector('#video').srcObject), 10000)) !== null,
+      (await until(() => sfu.evaluate(() => !window.paths.guest2_main && !!window.paths.guest1_main))) !== null,
+      (await until(async () => (await studio.locator('#onStage li').count()) === 1, 5000)) !== null,
+      await viewer.evaluate(() => !!document.querySelector('#video').srcObject),
+    ];
+    check('removing one guest leaves the other on stage', gone.every(Boolean), gone.join(','));
+    await g2ctx.close();
 
     // ---- screen share ------------------------------------------------------------
     await studio.evaluate(() => {   // headless has no screen to capture: hand the page a drawn "screen"
@@ -237,10 +274,10 @@ async function until(fn, ms = 15000, step = 250) {
     check('back to the camera after both are off', (await until(async () => (await dim()) === '1280x720')) !== null);
 
     // ---- host removes the guest -------------------------------------------------
-    await studio.click('#unstageBtn');
+    await studio.locator('#onStage li button').first().click();
     check('guest is taken off stage and returns to the normal player', (await until(() => viewer.evaluate(() => !document.querySelector('#video').srcObject && document.querySelector('#stageBar').hidden))) !== null);
-    check('guest media session is closed on the relay', (await until(() => sfu.evaluate(() => !window.paths.guest_main && !window.paths.backstage_main))) !== null);
-    check('a removed guest can no longer use the stage token', (await viewer.evaluate(() => fetch('/api/rtc/whip/guest', { method: 'POST', body: 'x', headers: { Authorization: 'Bearer stage.x.1.y' } }).then((r) => r.status))) === 401);
+    check('guest media session is closed on the relay', (await until(() => sfu.evaluate(() => !window.paths.guest1_main && !window.paths.backstage1_main))) !== null);
+    check('a removed guest can no longer use the stage token', (await viewer.evaluate(() => fetch('/api/rtc/whip/guest1', { method: 'POST', body: 'x', headers: { Authorization: 'Bearer stage.x.1.y' } }).then((r) => r.status))) === 401);
 
     // ---- ban -----------------------------------------------------------------------
     await studio.locator('.msg', { hasText: 'سلام من المتفرج' }).hover();
@@ -262,11 +299,12 @@ async function until(fn, ms = 15000, step = 250) {
 
     // ---- languages ----------------------------------------------------------------------
     const frCtx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1280, height: 760 } });
+    await openChat(frCtx);
     const fr = await frCtx.newPage();
     fr.on('pageerror', (e) => errors.push('fr: ' + e.message));
     await fr.goto(BASE + '/');
     await until(() => fr.locator('#liveBadge.on').isVisible());
-    const frText = await fr.evaluate(() => [document.documentElement.lang, document.documentElement.dir, document.querySelector('#liveBadge').textContent, document.querySelector('#handBtn').textContent, document.querySelector('.composer input').placeholder, document.querySelector('.chat-head').textContent, document.querySelector('#shareBtn').textContent].join(' | '));
+    const frText = await fr.evaluate(() => [document.documentElement.lang, document.documentElement.dir, document.querySelector('#liveBadge').textContent, document.querySelector('#handBtn').textContent, document.querySelector('.composer input').placeholder, document.querySelector('.chat-head span').textContent, document.querySelector('#shareBtn').textContent].join(' | '));
     check('a French browser gets the page in French, left to right', frText === 'fr | ltr | En direct | Demander à monter | Écrire un commentaire… | Commentaires | Partager', frText);
     check('no Arabic interface text is left on the French page', await fr.evaluate(() => { const skip = ['.msgs', '.pinned', '#title', '#guestLine', '.lang']; const c = document.body.cloneNode(true); skip.forEach((q) => c.querySelectorAll(q).forEach((n) => n.remove())); c.querySelectorAll('[hidden],dialog,script').forEach((n) => n.remove()); return !/[\u0600-\u06FF]/.test(c.textContent); }));
     await fr.screenshot({ path: path.join(OUT, 'viewer-fr.png') });
@@ -284,6 +322,7 @@ async function until(fn, ms = 15000, step = 250) {
 
     // ---- rooms and teachers ----------------------------------------------------------------
     const adminCtx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1280, height: 860 }, permissions: ['camera', 'microphone'] });
+    await openChat(adminCtx);
     const adm = await adminCtx.newPage();
     adm.on('pageerror', (e) => errors.push('admin: ' + e.message));
     adm.on('dialog', (d) => d.accept());
@@ -307,6 +346,7 @@ async function until(fn, ms = 15000, step = 250) {
     await home.screenshot({ path: path.join(OUT, 'home.png') });
 
     const tctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1380, height: 900 }, permissions: ['camera', 'microphone'] });
+    await openChat(tctx);
     const teacher = await tctx.newPage();
     teacher.on('pageerror', (e) => errors.push('teacher: ' + e.message));
     await teacher.goto(BASE + '/studio');
@@ -355,6 +395,7 @@ async function until(fn, ms = 15000, step = 250) {
     const lg = (body) => fetch(BASE + '/api/login', { method: 'POST', body: JSON.stringify(body) });
     check("the administrator's password works whatever is typed in the login field", (await lg({ login: 'regam-live', password: 'studio-pass-1' })).status === 200 && (await lg({ login: 'me@example.com', password: 'studio-pass-1' })).status === 200 && (await lg({ login: 'regam-live', password: 'nope-nope-1' })).status === 401);
     const actx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1100, height: 900 } });
+    await openChat(actx);
     const apply = await actx.newPage();
     apply.on('pageerror', (e) => errors.push('apply: ' + e.message));
     const admin2 = { Authorization: 'Bearer ' + (await (await lg({ password: 'studio-pass-1' })).json()).token, 'Content-Type': 'application/json' };

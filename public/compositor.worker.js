@@ -1,11 +1,12 @@
 // REGAM Live - picture mixer. Runs in a worker so it keeps producing frames
 // while the studio tab is in the background (e.g. during a screen share).
-// Inputs: "cam", "screen", "guest" (streams of VideoFrame). Output: one mixed stream.
+// Inputs: "cam", "screen", "guest1".."guest12" (streams of VideoFrame). Output: one mixed stream.
 'use strict';
 
 const FPS = 25;
 const inputs = {};           // name -> { reader, frame }
-let writer = null, canvas = null, ctx = null, guestName = '', brand = 'REGAM Live', busy = false;
+let writer = null, canvas = null, ctx = null, brand = 'REGAM Live', busy = false;
+const guestNames = {};        // slot -> name shown on the guest's picture
 
 onmessage = ({ data }) => {
   if (data.type === 'init') {
@@ -18,7 +19,7 @@ onmessage = ({ data }) => {
     drop(data.name);
     pump(data.name, data.readable.getReader());
   } else if (data.type === 'remove') drop(data.name);
-  else if (data.type === 'guestName') guestName = data.name || '';
+  else if (data.type === 'guestName') guestNames[data.slot] = data.name || '';
 };
 
 function drop(name) {
@@ -76,25 +77,39 @@ function nameTag(text, x, y, w, h, size) {
 
 async function draw() {
   if (!writer || busy) return;
-  const screen = frameOf('screen'), cam = frameOf('cam'), guest = frameOf('guest');
+  const screen = frameOf('screen'), cam = frameOf('cam');
+  // the people on screen: the host first, then the guests in the order of their slots
+  const people = [];
+  if (cam) people.push({ frame: cam, label: '' });
+  for (let slot = 1; slot <= 12; slot++) { const f = frameOf('guest' + slot); if (f) people.push({ frame: f, label: guestNames[slot] || '' }); }
   const W = screen ? 1920 : 1280, H = screen ? 1080 : 720;
   if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
 
   ctx.fillStyle = '#0c0f14';
   ctx.fillRect(0, 0, W, H);
   if (screen) {
+    // the screen (or the whiteboard) fills the picture; people are small tiles down the right side
     contain(screen, 0, 0, W, H);
-    const tw = Math.round(W * 0.19), th = Math.round(tw * 0.75), m = Math.round(W * 0.012);
-    let y = H - m - th;
-    if (cam) { tile(cam, W - m - tw, y, tw, th, ''); y -= th + m; }
-    if (guest) tile(guest, W - m - tw, y, tw, th, guestName);
-  } else if (cam && guest) {
-    cover(cam, 0, 0, W / 2 - 2, H);
-    cover(guest, W / 2 + 2, 0, W / 2 - 2, H);
-    if (guestName) nameTag(guestName, W / 2 + 2, 0, W / 2 - 2, H, Math.round(H * 0.04));
-  } else if (cam || guest) {
-    cover(cam || guest, 0, 0, W, H);
-    if (!cam && guestName) nameTag(guestName, 0, 0, W, H, Math.round(H * 0.04));
+    const m = Math.round(W * 0.012), n = people.length;
+    const perCol = n > 6 ? Math.ceil(n / 2) : Math.max(n, 1);            // more than six: two columns
+    const tw = Math.round(Math.min(W * 0.19, ((H - m * (perCol + 1)) / perCol) / 0.75)), th = Math.round(tw * 0.75);
+    people.forEach((p, i) => {
+      const col = Math.floor(i / perCol), row = i % perCol;
+      tile(p.frame, W - (m + tw) * (col + 1), H - (m + th) * (row + 1), tw, th, p.label);
+    });
+  } else if (people.length) {
+    // no screen: an even grid. 1 full, 2 side by side, up to 4 in two columns, up to 9 in three, then four
+    const n = people.length, cols = n === 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4, rows = Math.ceil(n / cols), gap = n === 1 ? 0 : 4;
+    const cw = (W - gap * (cols - 1)) / cols, ch = (H - gap * (rows - 1)) / rows;
+    people.forEach((p, i) => {
+      const row = Math.floor(i / cols), inRow = Math.min(cols, n - row * cols);
+      const x0 = (W - (inRow * cw + (inRow - 1) * gap)) / 2;            // centre a short last row
+      const x = x0 + (i - row * cols) * (cw + gap), y = row * (ch + gap);
+      ctx.save(); ctx.beginPath(); ctx.rect(x, y, cw, ch); ctx.clip();
+      cover(p.frame, x, y, cw, ch);
+      if (p.label) nameTag(p.label, x, y, cw, ch, Math.round(H * (rows > 1 ? 0.034 : 0.04)));
+      ctx.restore();
+    });
   } else {
     ctx.fillStyle = '#e9e4d8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `700 ${Math.round(H * 0.11)}px system-ui, sans-serif`;

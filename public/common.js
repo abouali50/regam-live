@@ -27,6 +27,10 @@ function myUid() {
 
 // ---------------------------------------------------------------- socket --
 // One WebSocket with automatic reconnect. on(type, fn) to listen.
+// On phones, a field focused by the page itself (not by a tap) gets no keyboard, and on iPhone a tap
+// on it afterwards may not bring the keyboard either. So fields are only focused for mouse users.
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+const focusSoon = (node) => { if (!TOUCH) setTimeout(() => node.focus(), 0); };
 // --------------------------------------------------------------- account --
 // A viewer's account: name, e-mail and password, opened with a code sent by e-mail.
 const account = {
@@ -79,7 +83,7 @@ function openAccount(view = 'login') {
       : v === 'signup' ? [linkTo(T('عندي حساب: ندخل'), 'login')]
         : v === 'code' ? [el('button', { class: 'acc-link', type: 'button', onclick: async () => { const r = await post('login', { email: email.i.value, password: pass.i.value }); if (r.data.error === 'unverified') show('code', T('صيفطنا ليك كود جديد. شوف الإيميل ديالك (وحتى Spam).')); else fail(r); } }, T('صيفط كود جديد'))]
           : [linkTo(T('رجع للدخول'), 'login')]));
-    setTimeout(() => (v === 'signup' ? name.i : v === 'code' || v === 'reset' ? code.i : email.i).focus(), 0);
+    focusSoon(v === 'signup' ? name.i : v === 'code' || v === 'reset' ? code.i : email.i);
   }
   form.onsubmit = async (e) => {
     e.preventDefault();
@@ -111,6 +115,7 @@ function openAccount(view = 'login') {
   addPasswordEyes(dlg);
   show(view);
   dlg.showModal();
+  if (TOUCH && document.activeElement && dlg.contains(document.activeElement)) document.activeElement.blur();
 }
 // The link in the e-mail (…?e=<address>&v=<code>) validates the account in one tap.
 (async function verifyByLink() {

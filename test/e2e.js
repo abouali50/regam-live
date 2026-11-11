@@ -327,8 +327,9 @@ async function until(fn, ms = 15000, step = 250) {
       await anon.fill('#accountDlg input[type=email]', 'samira@example.com'); await anon.click('#accountDlg button[type=submit]');
       await until(() => anon.locator('#accountDlg .acc-code').isVisible());
       await anon.fill('#accountDlg .acc-code', codeIn(lastMail())); await anon.fill('#accountDlg input[type=password]', 'nouveaupass2'); await anon.click('#accountDlg button[type=submit]');
+      const signedIn = (await until(() => anon.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null;
       const oldPw = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'samira@example.com', password: 'motdepasse1' }) });
-      check('a forgotten password is replaced with a code sent by e-mail', (await until(() => anon.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null && oldPw.status === 401);
+      check('a forgotten password is replaced with a code sent by e-mail', signedIn && oldPw.status === 401);
       // administration
       const adminData = await (await fetch(BASE + '/api/admin', { headers: { Authorization: 'Bearer ' + tok } })).json();
       const noMailLock = await (await fetch(BASE + '/api/member/me')).status;
@@ -344,6 +345,35 @@ async function until(fn, ms = 15000, step = 250) {
     check('and stops it with the same button', (await until(() => seen.recConf.air_main === false, 6000)) !== null && (await until(async () => !(await studio.locator('#recBtn.rec-on').count()), 6000)) !== null);
     await studio.click('#recBtn');
     await until(() => seen.recConf.air_main === true, 6000);
+    // ---- entry code and invitation, like a meeting passcode
+    {
+      await studio.check('#codeChk');
+      const code = (await until(async () => ((await studio.textContent('#codeShow')) || '').replace(/\D/g, '').length === 6 && (await studio.textContent('#codeShow')).replace(/\D/g, ''), 6000));
+      const open1 = async (q = '') => { const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 800, height: 640 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('code: ' + e.message)); await p.goto(BASE + '/r/main' + q); return p; };
+      const c1 = await open1();
+      check('with an entry code, a visitor is asked for it and gets no stream', !!code && (await until(() => c1.locator('#codeDlg[open]').isVisible())) !== null
+        && (await c1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && (await c1.evaluate(async () => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=000000')).status)) === 403);
+      await c1.fill('#codeInput', code === '111111' ? '222222' : '111111'); await c1.click('#codeForm button[type=submit]');
+      check('a wrong code is refused', (await until(() => c1.locator('#codeErr').isVisible(), 6000)) !== null && await c1.locator('#liveBadge.off').isVisible());
+      await c1.fill('#codeInput', code); await c1.click('#codeForm button[type=submit]');
+      check('the right code lets the person in', (await until(() => c1.locator('#liveBadge.on').isVisible(), 8000)) !== null
+        && (await until(() => c1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null && await c1.locator('#codeDlg').isHidden());
+      check('guests on stage are not cut when the code is switched on', await studio.evaluate(() => window.__studio.stage.size === 2) && await viewer.locator('#stageBar').isVisible());
+      // the invitation: date, link carrying the code, the code itself
+      const soon = new Date(Date.now() + 26 * 3600e3), two = (n) => String(n).padStart(2, '0');
+      await studio.fill('#nextAt', `${soon.getFullYear()}-${two(soon.getMonth() + 1)}-${two(soon.getDate())}T${two(soon.getHours())}:${two(soon.getMinutes())}`);
+      await studio.fill('#nextTitle', 'MetaMask الدرس الثاني'); await studio.click('#nextSave');
+      const invite = await until(async () => { const t = await studio.inputValue('#inviteText'); return t.includes('MetaMask') && t; }, 6000);
+      const url = (String(invite).match(/https?:\/\/\S+/) || [''])[0];
+      check('the invitation text carries the date, the link and the code', !!invite && invite.includes(code.slice(0, 3) + ' ' + code.slice(3)) && url.endsWith('?code=' + code) && invite.split('\n').length >= 4, String(invite));
+      const c2 = await open1('?code=' + code);
+      check('the invitation link enters directly and shows the announced session', (await until(() => c2.locator('#liveBadge.on').isVisible(), 8000)) !== null && !/code=/.test(c2.url())
+        && (await c2.evaluate(async () => (await fetch('/api/config?room=main')).json())).next.title === 'MetaMask الدرس الثاني' && (await c2.evaluate(() => document.querySelector('#nextLine').textContent)).includes('MetaMask'));
+      await studio.click('#nextClear'); await studio.uncheck('#codeChk');
+      const c3 = await open1();
+      check('without the code option, the room is open again', (await until(() => c3.locator('#liveBadge.on').isVisible(), 8000)) !== null && (await (await fetch(BASE + '/api/config')).json()).locked === false);
+      for (const p of [c1, c2, c3]) await p.context().close();
+    }
     // ---- waiting room: people give a name, the host lets them in or not
     await studio.check('#gateChk');
     await sleep(500);

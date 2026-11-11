@@ -171,7 +171,17 @@ function serveFile(res, file, cache = 'no-cache') {
 const clean = (s, max) => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 const acct = require('./accounts')({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle: SITE_TITLE, env });
 // the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
-const passNeeded = (room) => !!room.cfg.gate || acct.access() === 'watch';
+const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || acct.access() === 'watch';
+// Entry code of a room (like a meeting passcode): the host sends it with the invitation.
+const codeOk = (room, code) => !room.cfg.code || safeEq(room.cfg.code, String(code || '').replace(/\D/g, ''));
+const codeTries = new Map();     // ip -> [timestamps of wrong codes]
+function codeAllowed(ip, wrong) {
+  const now = Date.now(), list = (codeTries.get(ip) || []).filter((t) => t > now - 10 * 60e3);
+  if (wrong) list.push(now);
+  codeTries.set(ip, list);
+  return list.length <= 12;
+}
+const nextOf = (room) => (room.cfg.next && room.cfg.next.at > Date.now() - 3 * 3600e3 ? room.cfg.next : null);   // the announced session, until a few hours after its time
 const cookieOf = (req, name) => {
   for (const part of String(req.headers.cookie || '').split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim(); }
   return '';
@@ -525,7 +535,7 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
-        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, sound: soundUrl(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
+        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sound: soundUrl(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
         access: acct.access(), accounts: acct.mailReady(),
       });
     }
@@ -540,6 +550,7 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       if (room.cfg.gate && !room.admitted.has(String(url.searchParams.get('uid') || ''))) return send(res, 403, { error: 'not admitted' });
       if (acct.access() === 'watch' && !acct.memberOf(bearer(req))) return send(res, 401, { error: 'sign in' });
+      if (!codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
       return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 12 * 3600e3)}; Path=/hls/; Max-Age=43200; HttpOnly; SameSite=Lax` });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
@@ -686,6 +697,11 @@ wss.on('connection', (ws, req) => {
       const host = canHost(user, room);
       const member = host ? null : acct.memberOf(d.mt);
       if (!host && !member && acct.access() === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
+      if (!host && room.cfg.code) {             // the room has an entry code
+        const wrong = !codeOk(room, d.code);
+        if (!codeAllowed(ws.ip, wrong && !!d.code)) return tx(ws, { t: 'code', wait: true });
+        if (wrong) return tx(ws, { t: 'code', bad: !!d.code });
+      }
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full
         return ws.close();
@@ -714,6 +730,7 @@ wss.on('connection', (ws, req) => {
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
+        code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room),
         rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod ? waitingList(room) : undefined,
       });
     }
@@ -828,6 +845,17 @@ wss.on('connection', (ws, req) => {
         toUid(room, uid, { t: 'invite', slot, token: sign('stage', `${cfg.slug}_${uid}_${slot}_${g.nonce}`, 4 * 3600e3) });
         broadcast(room, { t: 'guests', guests: guestsPublic(room) });
         return toMods(room, { t: 'hands', list: handsList(room) });
+      }
+      case 'code':                         // entry code on (a new one is drawn) or off
+        cfg.code = d.on ? String(crypto.randomInt(0, 1000000)).padStart(6, '0') : '';
+        save();
+        if (cfg.code) for (const c of [...room.clients]) if (!c.mod && !slotOf(room, c.uid)) c.close();     // viewers come back through the code; guests on stage stay
+        return toMods(room, { t: 'code', code: cfg.code });
+      case 'next': {                       // announce the next session (or clear it)
+        const at = Number(d.at);
+        cfg.next = at > Date.now() - 3600e3 && at < Date.now() + 366 * 24 * 3600e3 ? { at, title: clean(d.title, 80) } : null;
+        save();
+        return broadcast(room, { t: 'next', next: nextOf(room) });
       }
       case 'rec':                          // record this live, or stop recording it
         if (d.on && !room.live) return tx(ws, { t: 'rec', on: false, err: 'offline' });

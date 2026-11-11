@@ -338,3 +338,10 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .pic-list button { position: absolute; top: 3px; inset-inline-end: 3px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(0,0,0,.7); color: #fff; cursor: pointer; font-size: 15px; line-height: 1; }
 .watch .offline-mark { text-shadow: 0 2px 14px rgba(0,20,40,.8); }
 .watch .offline-mark b { background: rgba(2,20,36,.7); color: #d7efff; }
+
+/* invitation and entry code */
+.code-show { font-size: 30px; font-weight: 800; letter-spacing: .12em; color: var(--gold); margin: 0; font-variant-numeric: tabular-nums; }
+.invite-text { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; resize: vertical; }
+.next-line { background: rgba(2,20,36,.72); color: #ffe7a8; font-weight: 700; padding: 6px 14px; border-radius: 999px; margin: 0; }
+#codeForm { display: grid; gap: 10px; }
+#codeForm input { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }

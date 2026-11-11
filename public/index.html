@@ -25,6 +25,7 @@
         <div class="reef" aria-hidden="true"></div><div class="reef" aria-hidden="true"></div>
         <canvas id="sea" class="sea" aria-hidden="true"></canvas>
         <div class="offline-mark">REGAM<b>Live</b></div>
+        <p id="nextLine" class="next-line" hidden></p>
         <p id="offlineText">اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.</p>
         <span id="signBtns" class="sign-btns" hidden><button id="signUp" class="btn primary" type="button">إنشاء حساب</button><button id="signIn" class="btn" type="button">الدخول</button></span>
         <button id="knockBtn" class="btn primary" type="button" hidden>كتب سميتك باش تدخل</button>
@@ -57,6 +58,18 @@
   </section>
   <aside class="chat" id="chat" aria-label="التعليقات"></aside>
 </main>
+
+<dialog id="codeDlg" class="dlg">
+  <form method="dialog" id="codeForm">
+    <h2>كود الدخول</h2>
+    <p>هاد القاعة كيدخلو ليها بالكود اللي صيفط ليك صاحب اللايف مع الدعوة.</p>
+    <input id="codeInput" class="acc-code" type="text" inputmode="numeric" maxlength="9" required autocomplete="off" aria-label="كود الدخول" dir="ltr">
+    <p id="codeErr" class="err" hidden></p>
+    <div class="dlg-actions">
+      <button class="btn primary" type="submit">دخل</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="nameDlg" class="dlg">
   <form method="dialog" id="nameForm">

@@ -561,7 +561,7 @@ async function until(fn, ms = 15000, step = 250) {
       // a live planned for now: during its time, only its own code opens the room
       const nowish = new Date(Date.now() + 10 * 60e3);
       await plan(nowish, 45, 'Maintenant');
-      const nowCode = await until(async () => { const m = (await studio.inputValue('#inviteText')).match(/code=(\d{6})/); return (await studio.inputValue('#inviteText')).includes('Maintenant') && m && m[1]; }, 6000);
+      const nowCode = await until(async () => { const t = await studio.inputValue('#inviteText'), m = t.match(/code=(\d{6})/); return t.includes('Maintenant') && m && m[1]; }, 6000);   // one reading: the text changes between two
       const withRoom = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${code}`), withOwn = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${nowCode}`);
       const viaJoin = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: nowCode }) })).json();
       const srvCodes = withOwn.status === 200 ? '' : await studio.evaluate(() => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'sessiontester0002', token: sessionStorage.getItem('regam.studio') })); w.onmessage = (m) => { const d = JSON.parse(m.data); if (d.sessions) { res(JSON.stringify({ room: d.code, s: d.sessions.map((x) => [x.title, x.code]) })); w.close(); } }; setTimeout(() => res('none'), 4000); }));
@@ -659,6 +659,61 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.screenshot({ path: path.join(OUT, 'studio-board.png') });
     await studio.click('#boardUndo');
     check('undo removes the last item', (await studio.evaluate(() => window.__studio.board.count)) === 2);
+    check('the host hears a chime when people come into the room', (await studio.evaluate(() => window.__studio.bells)) >= 1 && await studio.isChecked('#joinSoundChk'), String(await studio.evaluate(() => window.__studio.bells)));
+    {
+      // ---- a document on the whiteboard: PDF, Word, video; drawings stay with their page
+      const fx = path.join(OUT, 'fx'); fs.mkdirSync(fx, { recursive: true });
+      const pageObj = (n, rgb) => `${n} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${n + 1} 0 R >>\nendobj\n${n + 1} 0 obj\n<< /Length 34 >>\nstream\n${rgb} rg 100 100 400 400 re f\nendstream\nendobj\n`;
+      fs.writeFileSync(path.join(fx, 'lesson.pdf'), `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>\nendobj\n${pageObj(3, '1 0 0')}${pageObj(5, '0 0 1')}trailer\n<< /Root 1 0 R >>\n%%EOF\n`);
+      const zipOf = (name, text) => {                     // a stored (uncompressed) zip with one file
+        const n = Buffer.from(name), d = Buffer.from(text), lh = Buffer.alloc(30), ch = Buffer.alloc(46), eo = Buffer.alloc(22);
+        lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt32LE(d.length, 18); lh.writeUInt32LE(d.length, 22); lh.writeUInt16LE(n.length, 26);
+        ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt32LE(d.length, 20); ch.writeUInt32LE(d.length, 24); ch.writeUInt16LE(n.length, 28);
+        eo.writeUInt32LE(0x06054b50, 0); eo.writeUInt16LE(1, 8); eo.writeUInt16LE(1, 10); eo.writeUInt32LE(46 + n.length, 12); eo.writeUInt32LE(30 + n.length + d.length, 16);
+        return Buffer.concat([lh, n, d, ch, n, eo]);
+      };
+      fs.writeFileSync(path.join(fx, 'cours.docx'), zipOf('word/document.xml', '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Chapitre 1 : les fractions</w:t></w:r></w:p><w:p><w:r><w:t>الدرس الأول</w:t></w:r></w:p></w:body></w:document>'));
+      fs.writeFileSync(path.join(fx, 'slides.pptx'), 'x');
+      const hasVideo = require('child_process').spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=size=320x240:rate=25:duration=4', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=4', '-c:v', 'libvpx', '-c:a', 'libvorbis', path.join(fx, 'clip.webm')]).status === 0;
+      const px = (x, y) => studio.evaluate(([x, y]) => [...document.getElementById('board').getContext('2d').getImageData(x, y, 1, 1).data].slice(0, 3).join(','), [x, y]);
+      const info = () => studio.evaluate(() => window.__studio.board.info());
+      const drawn = () => studio.evaluate(() => window.__studio.board.count);
+      await studio.setInputFiles('#docFile', path.join(fx, 'lesson.pdf'));
+      const red = await until(async () => (await px(950, 670)) === '255,0,0', 15000);
+      const d1 = await info();
+      check('a PDF opens on the whiteboard, page by page', red !== null && d1.kind === 'pages' && d1.pages === 2 && d1.page === 1 && (await px(100, 100)) === '255,255,255'
+        && (await studio.textContent('#docPage')).trim() === '1 / 2' && await studio.locator('#docPlay').isHidden() && (await drawn()) === 0, JSON.stringify(d1) + ' ' + await px(950, 670));
+      await studio.click('#boardBar [data-tool="pen"]');
+      await studio.locator('#board').scrollIntoViewIfNeeded();
+      box = await studio.locator('#board').boundingBox();
+      await studio.mouse.move(box.x + box.width * 0.1, box.y + box.height * 0.1); await studio.mouse.down(); await studio.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.15); await studio.mouse.up();
+      const onP1 = await drawn();
+      await studio.click('#docNext');
+      const blue = await until(async () => (await px(950, 670)) === '0,0,255', 15000);
+      const onP2 = await drawn();
+      await studio.click('#docPrev');
+      check('each page keeps its own drawings', onP1 === 1 && blue !== null && onP2 === 0 && (await drawn()) === 1 && (await px(950, 670)) === '255,0,0' && await studio.locator('#docPrev').isDisabled());
+      await studio.screenshot({ path: path.join(OUT, 'studio-doc.png') });
+      await studio.setInputFiles('#docFile', path.join(fx, 'cours.docx'));
+      const word = await until(async () => { const d = await info(); return d && d.name === 'cours.docx' ? d : null; }, 8000);
+      const dark = await studio.evaluate(() => { const d = document.getElementById('board').getContext('2d').getImageData(130, 90, 700, 60).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 90) n++; return n; });
+      check('a Word file opens as pages of text', word !== null && word.kind === 'pages' && word.pages === 1 && dark > 300, `${JSON.stringify(word)} dark ${dark}`);
+      await studio.setInputFiles('#docFile', path.join(fx, 'slides.pptx'));
+      check('a file the board cannot show is refused with advice', (await until(async () => (await studio.textContent('#status')).includes('PDF'), 5000)) !== null && (await info()).name === 'cours.docx');
+      if (hasVideo) {
+        await studio.setInputFiles('#docFile', path.join(fx, 'clip.webm'));
+        const vid = await until(async () => { const d = await info(); return d && d.kind === 'video' ? d : null; }, 8000);
+        await studio.click('#docPlay');
+        const rolling = await until(async () => { const d = await info(); return d.playing && d.time > 0.4 ? d : null; }, 10000);
+        const frame = await px(960, 540);
+        await studio.click('#docPlay');
+        const paused = await until(async () => !(await info()).playing, 5000);
+        check('a video plays on the whiteboard, with play, pause and its sound wired into the mix', vid !== null && vid.duration > 3 && rolling !== null && frame !== '255,255,255' && frame !== '0,0,0' && paused !== null
+          && await studio.locator('#docSeek').isVisible() && await studio.locator('#docNext').isHidden() && (await studio.evaluate(() => window.__studio.mediaWired())), `${JSON.stringify(rolling)} ${frame}`);
+      }
+      await studio.click('#docClose');
+      check('closing the document gives the white board back, with what was written on it', (await info()) === null && await studio.locator('#docBar').isHidden() && (await drawn()) === 2 && (await px(1500, 900)) === '255,255,255');
+    }
     await studio.click('#screenBtn');
     check('sharing the screen closes the whiteboard', await studio.locator('#board').isHidden() && (await until(async () => (await dim()) === '1920x1080')) !== null);
     await studio.click('#screenBtn');

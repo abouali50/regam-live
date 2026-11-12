@@ -204,6 +204,52 @@
     $('#boardVoice').hidden = !boardVoice;
     $('#boardVoice').onclick = () => boardVoice && boardVoice.toggle();
     $('#boardClear').onclick = () => { if (confirm(T('تمسح السبورة كاملة؟'))) board.clear(); };
+    // ---- a document on the board: PDF, picture, Word or text file, video, sound. It is read here, in the
+    // browser; viewers get it as part of the picture, and the sound of a video or recording goes into the live.
+    let mediaBus = null;                             // where the sound of a played file enters the mix
+    const wired = new WeakSet();
+    function wireMedia() {
+      const m = board.media;
+      if (!audioCtx || !m) return;
+      if (!mediaBus) { mediaBus = audioCtx.createGain(); mediaBus.connect(audioCtx.destination); mediaBus.toMix = false; }      // the teacher hears it too
+      if (mixOut && !mediaBus.toMix) { mediaBus.connect(mixOut); mediaBus.toMix = true; }
+      for (const b of Object.values(buses)) if (b && !b.media) { mediaBus.connect(b.gain); b.media = true; }                  // and so do the guests on stage
+      if (!wired.has(m)) { wired.add(m); try { audioCtx.createMediaElementSource(m).connect(mediaBus); } catch (e) { console.error('media sound', e); } }
+    }
+    const clock = (t) => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+    board.onDoc = (d) => {
+      $('#docBar').hidden = !d;
+      if (!d) return;
+      const paged = d.kind === 'pages', played = !paged;
+      $('#docPrev').hidden = $('#docNext').hidden = $('#docPage').hidden = !paged || d.pages < 2;
+      $('#docPlay').hidden = $('#docSeek').hidden = $('#docTime').hidden = !played;
+      $('#docPage').textContent = `${d.page} / ${d.pages}`;
+      $('#docPrev').disabled = d.page <= 1; $('#docNext').disabled = d.page >= d.pages;
+      press($('#docPlay'), d.playing); $('#docPlay').textContent = T(d.playing ? '⏸ وقف' : '▶ شغل');
+      if (document.activeElement !== $('#docSeek')) $('#docSeek').value = d.duration ? Math.round((d.time / d.duration) * 1000) : 0;
+      $('#docTime').textContent = clock(d.time) + ' / ' + clock(d.duration);
+    };
+    $('#docOpen').onclick = () => {
+      // the sound engine starts inside the click, so a video or recording can be heard and sent
+      try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume().catch(() => {}); } catch {}
+      $('#docFile').click();
+    };
+    $('#docFile').onchange = async () => {
+      const file = $('#docFile').files[0];
+      $('#docFile').value = '';
+      if (!file) return;
+      if (file.size > 500 * 1024 * 1024) { status(T('هاد الملف كبير بزاف (أكثر من 500 ميغا).')); return; }
+      status(T('كنحلو الوثيقة…'));
+      const bad = await board.open(file);
+      if (bad) { status(T(bad === 'type' ? 'هاد النوع ما كيتحلش فالسبورة. حل PDF، صورة، Word (docx)، فيديو ولا صوت. PowerPoint و Excel: حولهم ل PDF أولا.' : 'ما قدرناش نحلو هاد الملف.')); return; }
+      wireMedia();
+      status(T('الوثيقة فالسبورة: {name}', { name: file.name }));
+    };
+    $('#docPrev').onclick = () => board.page(-1);
+    $('#docNext').onclick = () => board.page(1);
+    $('#docPlay').onclick = () => { wireMedia(); board.toggle(); };
+    $('#docSeek').oninput = () => board.seek(Number($('#docSeek').value) / 1000);
+    $('#docClose').onclick = () => board.closeDoc();
 
     async function ensureMic() {
       if (micTrack) return true;
@@ -264,6 +310,7 @@
           micGain.gain.value = micOn ? 1 : 0;
           audioCtx.createMediaStreamSource(new MediaStream([micTrack])).connect(micGain).connect(mixOut);
         }
+        wireMedia();                                 // a video or recording open on the board is heard in the live
         step = 'peer';
         pc = new RTCPeerConnection();
         pc.addTransceiver(mixOut.stream.getAudioTracks()[0], { direction: 'sendonly' });
@@ -318,6 +365,7 @@
         micGain.connect(gain);
         for (const [other, st] of onStage) if (other !== slot && st.node) st.node.connect(gain);
         buses[slot] = { gain, dest };
+        wireMedia();
       }
       return buses[slot];
     }
@@ -606,6 +654,28 @@
         o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.6); o.onended = () => ac.close();
       } catch { /* no sound, the bar is enough */ }
     }
+    // somebody came into the room: two soft rising notes, like a meeting app's doorbell
+    let lastBell = 0, bells = 0;
+    function doorbell() {
+      if (Date.now() - lastBell < 2500) return;
+      lastBell = Date.now(); bells++;
+      try {
+        const ac = new (window.AudioContext || window.webkitAudioContext)(), t = ac.currentTime;
+        [[659.25, 0], [880, 0.16]].forEach(([f, at]) => {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'sine'; o.frequency.value = f;
+          g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(0.16, t + at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.55);
+          o.connect(g).connect(ac.destination); o.start(t + at); o.stop(t + at + 0.6);
+        });
+        setTimeout(() => ac.close(), 1200);
+      } catch { /* no sound */ }
+    }
+    try { $('#joinSoundChk').checked = localStorage.getItem('regam.joinSound') !== '0'; } catch {}
+    $('#joinSoundChk').onchange = () => { try { localStorage.setItem('regam.joinSound', $('#joinSoundChk').checked ? '1' : '0'); } catch {} if ($('#joinSoundChk').checked) { lastBell = 0; doorbell(); } };
+    link.on('joined', (d) => {
+      if ($('#joinSoundChk').checked) doorbell();
+      if (d.name) status(T('{name} دخل للقاعة.', { name: d.name }));
+    });
     function paintBar() {
       const bar = $('#waitBar');
       bar.hidden = doorList.length + handList.length === 0;
@@ -795,7 +865,7 @@
 
     addEventListener('pagehide', () => { if (liveOn) stopLive(); });
     addEventListener('beforeunload', (e) => { if (liveOn) e.preventDefault(); });
-    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board, stage: onStage };   // for diagnostics
+    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board, stage: onStage, get bells() { return bells; }, mediaWired: () => !!(mediaBus && board.media && wired.has(board.media)) };   // for diagnostics
     camOn();
   }
 })();

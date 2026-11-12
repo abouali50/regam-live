@@ -642,3 +642,10 @@ a, .room-url, .acc-link { color: var(--mauve-light); }
 .room-row .room-enter { color: #1b1400; text-shadow: none; padding: 6px 12px; font-size: 14px; }
 .room-row-main > .room-name { white-space: normal; overflow-wrap: anywhere; }
 .room-row .badge { font-size: 12px; white-space: nowrap; }
+
+/* a document on the whiteboard: pages or playback */
+.doc-bar[hidden] { display: none; }
+.doc-bar { flex-wrap: wrap; padding: 4px 8px; border-radius: 12px; border: 1px solid var(--gold); }
+.doc-page { font-weight: 700; color: #fff; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.doc-bar [hidden] { display: none; }
+#docSeek { width: 160px; accent-color: var(--gold); }

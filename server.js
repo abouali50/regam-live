@@ -882,6 +882,14 @@ wss.on('connection', (ws, req) => {
       ws.name = ws.mod ? user.name : member ? member.name : clean(d.name, MAX_NAME);
       ws.color = colorOf(d.color);
       room.clients.add(ws);
+      // somebody came in: the host and the assistants hear it (once per person, not at every reconnection)
+      if (!ws.mod && !ws.helper && !room.byUid.has(ws.uid)) {
+        room.seen = room.seen || new Map();
+        const now = Date.now();
+        if (now - (room.seen.get(ws.uid) || 0) > 5 * 60e3) toMods(room, { t: 'joined', name: ws.name || '' });
+        room.seen.set(ws.uid, now);
+        if (room.seen.size > 5000) room.seen.clear();
+      }
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {

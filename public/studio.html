@@ -99,6 +99,17 @@
         <option value="1">صغير</option><option value="2" selected>متوسط</option><option value="3">كبير</option>
       </select>
       <button type="button" class="btn" id="boardVoice" aria-pressed="false" hidden>إملاء بالصوت</button>
+      <button type="button" class="btn" id="docOpen">📄 حل وثيقة</button>
+      <input id="docFile" type="file" hidden accept=".pdf,.docx,.txt,image/*,video/*,audio/*,application/pdf">
+      <span id="docBar" class="seg doc-bar" hidden>
+        <button type="button" class="btn" id="docPrev" aria-label="الصفحة اللي قبل">◀</button>
+        <span id="docPage" class="doc-page" dir="ltr"></span>
+        <button type="button" class="btn" id="docNext" aria-label="الصفحة اللي بعد">▶</button>
+        <button type="button" class="btn" id="docPlay" aria-pressed="false">▶ شغل</button>
+        <input id="docSeek" type="range" min="0" max="1000" value="0" aria-label="التقدم فالتسجيل">
+        <span id="docTime" class="doc-page" dir="ltr"></span>
+        <button type="button" class="btn danger" id="docClose">✕ سد الوثيقة</button>
+      </span>
       <button type="button" class="btn" id="boardUndo">تراجع</button>
       <button type="button" class="btn" id="boardClear">مسح الكل</button>
     </div>
@@ -167,6 +178,7 @@
     <div class="panel" id="gatePanel">
       <h2>قاعة الانتظار</h2>
       <label class="check"><input id="gateChk" type="checkbox"> <span>اللي بغا يدخل يكتب سميتو، وأنا اللي نقبلو (بحال Zoom)</span></label>
+      <label class="check"><input id="joinSoundChk" type="checkbox" checked> <span>🔔 صوت ملي يدخل شي واحد للقاعة</span></label>
       <p id="noWaiting" class="muted" hidden>ما كاين حتى واحد كيتسنى.</p>
       <ul id="waiting" class="hands"></ul>
       <button id="admitAll" class="btn" type="button" hidden>دخل الجميع</button>

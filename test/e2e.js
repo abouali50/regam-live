@@ -486,7 +486,7 @@ async function until(fn, ms = 15000, step = 250) {
       const nowCode = await until(async () => { const m = (await studio.inputValue('#inviteText')).match(/code=(\d{6})/); return (await studio.inputValue('#inviteText')).includes('Maintenant') && m && m[1]; }, 6000);
       const withRoom = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${code}`), withOwn = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${nowCode}`);
       const viaJoin = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: nowCode }) })).json();
-      check('during a planned live, its own code opens the room and the room\'s general code does not', !!nowCode && nowCode !== code && withRoom.status === 403 && withOwn.status === 200 && viaJoin.slug === 'main' && !viaJoin.early, `${withRoom.status} ${withOwn.status}`);
+      check('during a planned live, its own code opens the room and the room\'s general code does not', !!nowCode && nowCode !== code && withRoom.status === 403 && withOwn.status === 200 && viaJoin.slug === 'main' && !viaJoin.early, `${withRoom.status} ${withOwn.status} code=${nowCode} cards=${await studio.locator('#sessList li').count()} dlg=${await studio.locator('#schedDlg').isVisible()} err=${await studio.textContent('#schedErr')} invite=${(await studio.inputValue('#inviteText')).slice(0, 80)}`);
       for (let i = 0; i < 3; i++) await studio.locator('#sessList li button.danger').first().click();
       await until(async () => (await studio.locator('#sessList li').count()) === 0, 6000);
       await studio.uncheck('#codeChk');

@@ -53,6 +53,7 @@
 
     showSettings(data);
     showAi(data.ai);
+    showBackup(data.backup);
     showAccounts(data.accounts);
     $('#roomList').replaceChildren(...data.rooms.map((r) => el('li', {},
       el('span', { class: 'admin-main-cell' },
@@ -135,6 +136,51 @@
     say(r.ok ? T('تصيفطات الرسالة. شوف الإيميل ديالك (وحتى Spam).') + ($('#accessSel').value === 'watch' ? ' ' + T('من دابا، خاص كل واحد يسجل باش يدخل.') : '') : T('ما تصيفطاتش الرسالة. تأكد من العنوان وكلمة السر ديال الإيميل.') + (d.error ? ' — ' + d.error : ''));
   };
   addPasswordEyes($('#mailForm'));
+
+  // ---- backups
+  function showBackup(b) {
+    const when = (ms) => new Date(ms).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' });
+    $('#bakState').textContent = [
+      b.count ? T('فالسيرفر: {n} نسخة، الأخيرة ديال {day}.', { n: b.count, day: b.last }) : T('مازال ما كاينة حتى نسخة فالسيرفر.'),
+      b.lastMail ? T('آخر نسخة تصيفطات فالإيميل: {when}.', { when: when(b.lastMail) }) : T('مازال ما تصيفطات حتى نسخة فالإيميل.'),
+      b.mailReady ? '' : T('ركب الإيميل الفوق أولا باش النسخ يتصيفطو.'),
+      b.lastError ? T('آخر محاولة فشلات: {why}', { why: b.lastError }) : '',
+    ].filter(Boolean).join(' ');
+    const f = $('#bakForm').elements;
+    if (document.activeElement !== f.email) f.email.value = b.email;
+    f.every.value = b.every;
+  }
+  $('#bakForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target.elements;
+    api('/backup', { method: 'POST', body: JSON.stringify({ email: f.email.value, every: f.every.value }) }).then((r) => done(r, T('تحفظ.')));
+  };
+  $('#bakSend').onclick = async () => {
+    const f = $('#bakForm').elements;
+    if (!f.email.value) { say(T('كتب الإيميل اللي غادي توصلو النسخة أولا.')); return; }
+    say(T('كنصيفطو…'));
+    await api('/backup', { method: 'POST', body: JSON.stringify({ email: f.email.value, every: f.every.value }) });
+    const r = await api('/backupsend', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    await load();
+    say(r.ok ? T('تصيفطات النسخة. شوف الإيميل ديالك (وحتى Spam).') : T('ما تصيفطاتش النسخة.') + (d.error ? ' — ' + d.error : ''));
+  };
+  $('#bakGet').onclick = async () => {
+    const r = await api('/backup');
+    if (!r.ok) { say(T('ما قدرناش نديرو هاد العملية.')); return; }
+    const a = el('a', { href: URL.createObjectURL(await r.blob()), download: `regam-live-${new Date().toISOString().slice(0, 10)}.json` });
+    document.body.append(a); a.click(); a.remove();
+    say(T('تحملات النسخة. خبيها فبلاصة آمنة: فيها الحسابات والإعدادات كاملين.'));
+  };
+  $('#bakRestore').onclick = async () => {
+    const file = $('#bakFile').files[0];
+    if (!file) { say(T('اختار ملف النسخة أولا.')); return; }
+    if (!confirm(T('هادشي غادي يبدل كلشي باللي فهاد النسخة: الحسابات، القاعات والبرنامج. اللايفات الخدامين غادي يتقطعو. تكمل؟'))) return;
+    const r = await api('/restore', { method: 'POST', body: await file.text() });
+    if (!r.ok) { say(T('هاد الملف ماشي نسخة ديال REGAM Live.')); return; }
+    say(T('رجعات النسخة. الموقع كيعاود يشعل، تسنى شوية…'));
+    setTimeout(() => location.reload(), 8000);
+  };
 
   // ---- plans and payment instructions
   let plans = [];

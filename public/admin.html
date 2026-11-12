@@ -87,6 +87,23 @@
     <ul id="members" class="admin-list"></ul>
   </section>
 
+  <section class="panel" id="backup">
+    <h2>النسخ الاحتياطي</h2>
+    <p class="muted">الحسابات، القاعات، البرنامج والإعدادات كيتحفظو فنسخة كل نهار فالسيرفر. باش تبقى نسخة خارج السيرفر، خليها توصلك فالإيميل.</p>
+    <p class="muted" id="bakState"></p>
+    <form id="bakForm" class="admin-form">
+      <label>صيفط النسخة لهاد الإيميل<input name="email" type="email" maxlength="200" dir="ltr" autocomplete="off"></label>
+      <label>شحال من مرة<select name="every"><option value="off">ما تصيفطش</option><option value="day">كل نهار</option><option value="week">كل سيمانة</option></select></label>
+      <button class="btn primary" type="submit">حفظ</button>
+      <button class="btn" type="button" id="bakSend">صيفط نسخة دابا</button>
+    </form>
+    <div class="admin-form">
+      <button class="btn" type="button" id="bakGet">حمل النسخة دابا</button>
+      <label>رجع نسخة قديمة (ملف)<input id="bakFile" type="file" accept=".json,application/json"></label>
+      <button class="btn danger" type="button" id="bakRestore">رجع هاد النسخة</button>
+    </div>
+  </section>
+
   <section class="panel">
     <h2>العروض والخلاص</h2>
     <p class="muted">كل عرض: الاسم، الثمن بالدولار فالشهر، وعدد المتابعين الأقصى فالقاعة.</p>

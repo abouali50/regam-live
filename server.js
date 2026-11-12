@@ -45,11 +45,13 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const db = { users: [], rooms: [], plans: [{ id: 'p100', name: '100', price: 500, capacity: 100 }], payInfo: '' };
 try { Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch { /* first run */ }
-let saveTimer = null;
+let saveTimer = null, frozen = false;         // frozen: a backup was just put back, the running state must not be written over it
 function save() {
+  if (frozen) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    fs.writeFile(DB_FILE + '.tmp', JSON.stringify(db), (err) => { if (!err) fs.rename(DB_FILE + '.tmp', DB_FILE, () => {}); });
+    if (frozen) return;
+    fs.writeFile(DB_FILE + '.tmp', JSON.stringify(db), (err) => { if (!err && !frozen) fs.rename(DB_FILE + '.tmp', DB_FILE, () => {}); });
   }, 200);
 }
 if (!db.rooms.length) {
@@ -171,6 +173,7 @@ function serveFile(res, file, cache = 'no-cache') {
 const clean = (s, max) => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 const acct = require('./accounts')({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle: SITE_TITLE, env });
 const ai = require('./ai')({ db, save, clean, env });
+const bak = require('./backup')({ db, dataDir: DATA_DIR, dbFile: DB_FILE, freeze: () => { frozen = true; clearTimeout(saveTimer); }, mail: acct.mail, mailReady: acct.mailReady, siteTitle: SITE_TITLE });
 const SITE_TZ = env.SITE_TZ || 'Africa/Casablanca';
 const QUESTION = /[?؟]|^\s*(comment|pourquoi|quand|où|ou est|est-ce|c'est quoi|combien|how|why|what|when|where|who|can |is |does |كيف|كيفاش|شنو|شنا|علاش|واش|فين|فوقاش|شحال|متى|هل|ماذا|لماذا|أين|كم)|@ai\b|@assistant|المساعد/i;
 // What the help assistant may know about the site (nothing private: no codes, no e-mails).
@@ -487,7 +490,7 @@ async function handleAdmin(req, res, url, what) {
   if (!what && req.method === 'GET') {
     return send(res, 200, {
       users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
-      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(), ai: ai.adminView(),
+      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(),
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
     });
   }
@@ -582,6 +585,18 @@ async function handleAdmin(req, res, url, what) {
     }
     save();
     return send(res, 200, { ok: true });
+  }
+  // backups: download the whole file, choose where a copy is mailed and how often, send one now, put one back
+  if (what === 'backup' && req.method === 'GET') {
+    return send(res, 200, bak.download(), { 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="regam-live-${new Date().toISOString().slice(0, 10)}.json"`, 'Cache-Control': 'no-store' });
+  }
+  if (what === 'backup' && req.method === 'POST') { const bad = bak.adminSet(await readJson(req)); if (bad) return send(res, 400, { error: bad }); save(); return send(res, 200, { ok: true }); }
+  if (what === 'backupsend' && req.method === 'POST') { const bad = await bak.sendNow(); save(); return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true }); }
+  if (what === 'restore' && req.method === 'POST') {
+    let text = '';
+    try { text = String(await readBody(req, 20 * 1024 * 1024)); } catch { return send(res, 413, { error: 'not a backup' }); }
+    const bad = bak.restore(text);
+    return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true });
   }
   if (what === 'aitest' && req.method === 'POST') { const bad = await ai.adminTest(); return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true }); }
   if (what === 'mailtest' && req.method === 'POST') {
@@ -703,7 +718,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { user: me, rooms: [...rooms.values()].filter((r) => canHost(me, r)).map(publicRoom) });
     }
     if (p === '/api/recordings') return handleRecordings(req, res, url);
-    const a = p.match(/^\/api\/admin(?:\/(user|room|settings|mailtest|member|aitest))?$/);
+    const a = p.match(/^\/api\/admin(?:\/(user|room|settings|mailtest|member|aitest|backup|backupsend|restore))?$/);
     if (a) return handleAdmin(req, res, url, a[1]);
     const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+(?:[1-9]|1[0-2])?)$/);
     if (m) return handleRtc(req, res, url, m[1], m[2]);

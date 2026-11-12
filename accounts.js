@@ -42,10 +42,10 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     }
     return transport;
   }
-  async function deliver(to, subject, text) {
-    if (OUTBOX) { fs.appendFileSync(OUTBOX, JSON.stringify({ to, subject, text }) + '\n'); return; }
+  async function deliver(to, subject, text, attachments) {
+    if (OUTBOX) { fs.appendFileSync(OUTBOX, JSON.stringify({ to, subject, text, files: (attachments || []).map((f) => ({ name: f.filename, content: f.content })) }) + '\n'); return; }
     const from = db.mail.from || db.mail.user;
-    await mailer().sendMail({ from: `"${siteTitle.replace(/"/g, '')}" <${from}>`, to, subject, text });
+    await mailer().sendMail({ from: `"${siteTitle.replace(/"/g, '')}" <${from}>`, to, subject, text, attachments });
   }
   const TEXT = {
     ar: { s: 'الكود ديال التفعيل: {code}', b: 'السلام عليكم {name}،\n\nالكود ديالك ف {site} هو:\n\n    {code}\n\nالكود صالح 15 دقيقة. إلا ما طلبتيش هاد الكود، تجاهل هاد الرسالة.', l: 'ولا ورك على هاد الرابط باش تفعل الحساب مباشرة:' },
@@ -164,5 +164,5 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
 
   const find = (email) => { const m = byEmail(emailOf(email)); return m && m.verified ? m : null; };
   const byId = (id) => db.members.find((m) => m.id === id) || null;
-  return { find, byId, handle, memberOf, mailReady, adminView, adminSet, adminTest, adminRemove, access: () => db.access };
+  return { find, byId, handle, memberOf, mailReady, adminView, adminSet, adminTest, adminRemove, mail: deliver, access: () => db.access };
 };

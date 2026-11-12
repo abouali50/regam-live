@@ -891,6 +891,45 @@ async function until(fn, ms = 15000, step = 250) {
       await sp.click('#schedCancel'); await sp.click('#sideNav button[data-tab=home]'); await sp.screenshot({ path: path.join(OUT, 'studio-home.png') });
       await sp.context().close();
     }
+    {
+      // ---- backups (last: putting one back restarts the server)
+      const tk = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
+      const H = { Authorization: 'Bearer ' + tk, 'Content-Type': 'application/json' };
+      const dataDir = path.join(OUT, 'data');
+      const daily = fs.readdirSync(path.join(dataDir, 'backups')).filter((f) => /^db-\d{4}-\d\d-\d\d\.json$/.test(f));
+      check('a copy of the data is kept on the server for the day', daily.length === 1 && JSON.parse(fs.readFileSync(path.join(dataDir, 'backups', daily[0]), 'utf8')).rooms.length > 0);
+      await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: H, body: JSON.stringify({ mail: { host: 'smtp.test.local', port: 465, user: 'live@test.local', from: 'live@test.local', pass: 'secret-pass' }, ai: { key: 'sk-ant-test-key-000' } }) });
+      const badMail = await fetch(BASE + '/api/admin/backup', { method: 'POST', headers: H, body: JSON.stringify({ email: 'nope', every: 'day' }) });
+      const setOk = await fetch(BASE + '/api/admin/backup', { method: 'POST', headers: H, body: JSON.stringify({ email: 'pro@example.com', every: 'week' }) });
+      const sent = await fetch(BASE + '/api/admin/backupsend', { method: 'POST', headers: H });
+      const mails = fs.readFileSync(path.join(OUT, 'outbox.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+      const bm = mails[mails.length - 1], att = bm.files && bm.files[0] ? JSON.parse(bm.files[0].content) : null;
+      const view = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).backup;
+      check('the backup is sent by e-mail on request, to the address chosen in the administration', badMail.status === 400 && setOk.ok && sent.ok && bm.to === 'pro@example.com' && /\.json$/.test(bm.files[0].name)
+        && att.members.some((m) => m.email === 'samira@example.com') && view.every === 'week' && view.lastMail > 0 && view.count === 1, JSON.stringify(view));
+      check('the mailed copy carries neither the mailbox password nor the AI key', att.mail && !att.mail.pass && att.ai && !att.ai.key && !bm.files[0].content.includes('sk-ant'));
+      const dl = await fetch(BASE + '/api/admin/backup', { headers: H });
+      const full = await dl.json();
+      check('the administrator downloads the whole backup; nobody else does', /attachment/.test(dl.headers.get('content-disposition')) && full.rooms.length > 0 && !!full.mail.pass
+        && (await fetch(BASE + '/api/admin/backup')).status === 401);
+      const junk = await fetch(BASE + '/api/admin/restore', { method: 'POST', headers: H, body: '{"hello":1}' });
+      const junk2 = await fetch(BASE + '/api/admin/restore', { method: 'POST', headers: H, body: 'not json' });
+      const admPage = await (await browser.newContext({ locale: 'fr-FR' })).newPage();
+      admPage.on('pageerror', (e) => errors.push('admin backup: ' + e.message));
+      await admPage.addInitScript((t) => sessionStorage.setItem('regam.studio', t), tk);
+      await admPage.goto(BASE + '/admin');
+      const shown = (await until(async () => (await admPage.textContent('#bakState')).includes('Sur le serveur'))) !== null && (await admPage.inputValue('#bakForm [name=email]')) === 'pro@example.com';
+      await admPage.screenshot({ path: path.join(OUT, 'admin-backup.png'), fullPage: true });
+      await admPage.context().close();
+      check('a file that is not a backup is refused; the administration page shows the backups', junk.status === 400 && junk2.status === 400 && shown);
+      att.payInfo = 'RESTORED';
+      const gone = new Promise((r) => app.once('exit', r));
+      const back = await fetch(BASE + '/api/admin/restore', { method: 'POST', headers: H, body: JSON.stringify(att) });
+      await Promise.race([gone, sleep(5000)]);
+      const after = JSON.parse(fs.readFileSync(path.join(dataDir, 'db.json'), 'utf8'));
+      check('putting a backup back replaces the data, keeps the keys the mailed copy left out, and restarts the server', back.ok && app.exitCode === 0 && after.payInfo === 'RESTORED'
+        && after.mail.pass === full.mail.pass && after.ai.key === full.ai.key && fs.readdirSync(path.join(dataDir, 'backups')).some((f) => f.startsWith('before-restore-')), `exit ${app.exitCode}`);
+    }
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);
   } finally {

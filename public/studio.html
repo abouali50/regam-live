@@ -4,9 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#0c0f14">
+<meta name="theme-color" content="#0d1737">
 <title>الاستوديو · REGAM Live</title>
 <link rel="stylesheet" href="/app.css">
+<link rel="stylesheet" href="/studio-theme/studio.css">
 </head>
 <body class="studio">
 <header class="top">
@@ -81,6 +82,15 @@
       <div id="hearts" class="hearts" aria-hidden="true"></div>
       <div class="onair" id="onAir" hidden>على الهواء</div>
     </div>
+    <div class="controls">
+      <button id="goBtn" class="btn primary big" type="button">ابدأ اللايف</button>
+      <button id="recBtn" class="btn" type="button" aria-pressed="false" disabled>⏺ سجل اللايف</button>
+      <button id="camBtn" class="btn" type="button" aria-pressed="true">الكاميرا</button>
+      <button id="screenBtn" class="btn" type="button" aria-pressed="false">شارك الشاشة</button>
+      <button id="boardBtn" class="btn" type="button" aria-pressed="false">السبورة</button>
+      <span id="pageBar" class="page-bar" hidden role="group" aria-label="الصفحة اللي كتبان"><button id="pageBoard" class="btn" type="button" aria-pressed="true">◀ السبورة</button><button id="pagePeople" class="btn" type="button" aria-pressed="false">الضيوف ▶</button></span>
+      <button id="micBtn" class="btn" type="button" aria-pressed="true">الميكرو</button>
+    </div>
     <div class="reactions"><div id="reactions" class="react-row" role="group" aria-label="التفاعلات"></div></div>
     <div class="boardbar" id="boardBar" hidden>
       <div class="seg" role="group" aria-label="الأداة">
@@ -104,16 +114,6 @@
     </div>
     <p id="status" class="status" role="status">جاهز. اختار المصدر وبدا اللايف.</p>
     <p id="build" class="build" dir="ltr"></p>
-
-    <div class="controls">
-      <button id="goBtn" class="btn primary big" type="button">ابدأ اللايف</button>
-      <button id="recBtn" class="btn" type="button" aria-pressed="false" disabled>⏺ سجل اللايف</button>
-      <button id="camBtn" class="btn" type="button" aria-pressed="true">الكاميرا</button>
-      <button id="screenBtn" class="btn" type="button" aria-pressed="false">شارك الشاشة</button>
-      <button id="boardBtn" class="btn" type="button" aria-pressed="false">السبورة</button>
-      <span id="pageBar" class="page-bar" hidden role="group" aria-label="الصفحة اللي كتبان"><button id="pageBoard" class="btn" type="button" aria-pressed="true">◀ السبورة</button><button id="pagePeople" class="btn" type="button" aria-pressed="false">الضيوف ▶</button></span>
-      <button id="micBtn" class="btn" type="button" aria-pressed="true">الميكرو</button>
-    </div>
 
     <div class="panel" id="stagePanel">
       <h2>المنصة</h2>

@@ -54,6 +54,7 @@
     showSettings(data);
     showAi(data.ai);
     showBackup(data.backup);
+    showPay(data.pay);
     showAccounts(data.accounts);
     $('#roomList').replaceChildren(...data.rooms.map((r) => el('li', {},
       el('span', { class: 'admin-main-cell' },
@@ -136,6 +137,32 @@
     say(r.ok ? T('تصيفطات الرسالة. شوف الإيميل ديالك (وحتى Spam).') + ($('#accessSel').value === 'watch' ? ' ' + T('من دابا، خاص كل واحد يسجل باش يدخل.') : '') : T('ما تصيفطاتش الرسالة. تأكد من العنوان وكلمة السر ديال الإيميل.') + (d.error ? ' — ' + d.error : ''));
   };
   addPasswordEyes($('#mailForm'));
+
+  // ---- online payment (PayPal)
+  function showPay(p) {
+    $('#payState').textContent = T(p.ready ? (p.sandbox ? 'الخلاص مركب فوضع التجربة: ما كاين حتى خلاص حقيقي.' : 'الخلاص أونلاين خدام.') : 'الخلاص أونلاين ما خدامش: دخل المفاتيح أولا.');
+    $('#payState').className = p.ready && !p.sandbox ? 'ok-text' : 'err';
+    const when = (ms) => new Date(ms).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' });
+    $('#payLog').replaceChildren(...(p.log.length ? p.log.map((l) => el('li', {}, el('span', { class: 'admin-main-cell' }, el('strong', {}, l.name), el('span', { class: 'muted', dir: 'ltr' }, l.login),
+      el('span', {}, T('{amount} دولار، {n} شهر', { amount: l.amount, n: l.months })), el('span', { class: 'muted' }, when(l.at)))))
+      : [el('li', { class: 'muted' }, T('مازال ما كاين حتى خلاص.'))]));
+    const f = $('#payKeys').elements;
+    if ($('#payKeys').contains(document.activeElement)) return;
+    f.clientId.value = p.clientId; f.sandbox.checked = p.sandbox;
+    f.secret.placeholder = p.hasSecret ? '••••••••' : '';
+  }
+  $('#payKeys').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target.elements;
+    api('/settings', { method: 'POST', body: JSON.stringify({ pay: { clientId: f.clientId.value.trim(), secret: f.secret.value.trim(), sandbox: f.sandbox.checked } }) })
+      .then((r) => { f.secret.value = ''; document.activeElement.blur(); return done(r, T('تحفظ. جرب المفاتيح دابا.')); });
+  };
+  $('#payTest').onclick = async () => {
+    say(T('كنجربو المفاتيح…'));
+    const r = await api('/paytest', { method: 'POST' });
+    say(T(r.ok ? 'PayPal قبل المفاتيح: الخلاص خدام.' : 'PayPal ما قبلش المفاتيح. تأكد من Client ID و Secret، وواش ديال Live ولا Sandbox.'));
+  };
+  addPasswordEyes($('#payKeys'));
 
   // ---- backups
   function showBackup(b) {

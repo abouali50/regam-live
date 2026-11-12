@@ -13,6 +13,7 @@
   <div class="meta"><a class="btn" href="/studio">الاستوديو</a></div>
 </header>
 <main class="admin-main teach-main">
+  <p id="paidMsg" class="panel pay-msg" role="status" hidden></p>
   <section class="panel" id="applyBox">
     <h1 class="home-title">تسجيل الأساتذة</h1>
     <p class="muted">افتح القاعة ديالك وقدم الدروس ديالك مباشرة. عمر الطلب، خلص الاشتراك، ومن بعد كنفعلو ليك القاعة.</p>
@@ -28,10 +29,25 @@
       <button class="btn primary big" type="submit">صيفط الطلب</button>
     </form>
   </section>
+  <section class="panel" id="renewBox" hidden>
+    <h2>خلص ولا جدد الاشتراك</h2>
+    <p class="muted">عندك حساب ديال أستاذ؟ دخل اسم الدخول وكلمة السر، اختار المدة، وخلص ب PayPal ولا بالكارط.</p>
+    <form id="renewForm" class="admin-form pay-online">
+      <label>اسم الدخول<input name="login" type="text" maxlength="30" autocapitalize="off" spellcheck="false" autocomplete="username" required dir="ltr"></label>
+      <label>كلمة السر<input name="password" type="password" autocomplete="current-password" required dir="ltr"></label>
+      <label>المدة<select name="months"></select></label>
+      <button class="btn primary" type="submit">خلص دابا ب PayPal</button>
+    </form>
+  </section>
   <section class="panel" id="applyDone" hidden>
     <h1 class="home-title">وصل الطلب ديالك</h1>
     <p>الحساب ديالك مازال ما تفعلش. خلص الاشتراك بالطريقة اللي تحت، وغادي نفعلو ليك القاعة ملي يوصل الخلاص.</p>
     <p id="donePlan" class="guest-line"></p>
+    <form id="payNow" class="admin-form pay-online" hidden>
+      <label>المدة<select name="months"></select></label>
+      <button class="btn primary big" type="submit">خلص دابا ب PayPal</button>
+      <p class="muted wide">ملي يدوز الخلاص، الحساب والقاعة كيتفعلو بوحدهم.</p>
+    </form>
     <pre id="payInfo" class="pay-info"></pre>
     <p class="muted">ملي يتفعل الحساب، دخل للاستوديو باسم الدخول وكلمة السر اللي اختاريتي.</p>
   </section>

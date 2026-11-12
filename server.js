@@ -483,6 +483,23 @@ function closeRoom(room) {
   db.rooms = db.rooms.filter((c) => c !== room.cfg);
 }
 
+// A payment was received (noted by the administrator, or collected online): the subscription runs longer.
+function addMonths(u, months) {
+  u.paidUntil = Math.max(Date.now(), u.paidUntil || 0) + months * 30 * 24 * 3600e3;
+  u.active = true;
+}
+function openIfApproved(u) {                     // first approval: open the room they asked for
+  if (!u.active || !u.pending) return;
+  u.pending = false;
+  const plan = db.plans.find((x) => x.id === u.planId);
+  if (u.wantRoom && !db.rooms.some((c) => c.ownerId === u.id) && rooms.size < 200) {
+    const cfg = { slug: slugFor(u.wantRoom), title: u.wantRoom, topic: u.wantTopic || '', ownerId: u.id, slow: 3, pinned: '', liveTitle: '', banned: {}, capacity: plan ? plan.capacity : 0 };
+    db.rooms.push(cfg); openRoom(cfg);
+  }
+}
+const pay = require('./pay')({ db, save, env, grant: (u, months) => { addMonths(u, months); openIfApproved(u); save(); } });
+const originOf = (req) => { const h = String(req.headers.host || ''); return /^[a-z0-9.-]+(:\d+)?$/i.test(h) ? `${/^(localhost|127\.)/.test(h) ? 'http' : 'https'}://${h}` : ''; };
+
 async function handleAdmin(req, res, url, what) {
   const me = whoIs(bearer(req));
   if (!me || me.role !== 'admin') return send(res, me ? 403 : 401, { error: 'administrator only' });
@@ -490,7 +507,7 @@ async function handleAdmin(req, res, url, what) {
   if (!what && req.method === 'GET') {
     return send(res, 200, {
       users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
-      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(),
+      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(),
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
     });
   }
@@ -509,18 +526,8 @@ async function handleAdmin(req, res, url, what) {
       if (name) u.name = name;
       if (typeof b.active === 'boolean') u.active = b.active;
       const months = Number(b.months);
-      if (Number.isInteger(months) && months > 0 && months <= 24) {   // payment received: extend the subscription
-        u.paidUntil = Math.max(Date.now(), u.paidUntil || 0) + months * 30 * 24 * 3600e3;
-        u.active = true;
-      }
-      if (u.active && u.pending) {                                    // first approval: open the room they asked for
-        u.pending = false;
-        const plan = db.plans.find((x) => x.id === u.planId);
-        if (u.wantRoom && !db.rooms.some((c) => c.ownerId === u.id) && rooms.size < 200) {
-          const cfg = { slug: slugFor(u.wantRoom), title: u.wantRoom, topic: u.wantTopic || '', ownerId: u.id, slow: 3, pinned: '', liveTitle: '', banned: {}, capacity: plan ? plan.capacity : 0 };
-          db.rooms.push(cfg); openRoom(cfg);
-        }
-      }
+      if (Number.isInteger(months) && months > 0 && months <= 24) addMonths(u, months);   // payment received: extend the subscription
+      openIfApproved(u);
       if (password && password.length < 8) return send(res, 400, { error: 'password too short' });
     }
     if (password) { u.salt = crypto.randomBytes(12).toString('hex'); u.hash = hashPass(password, u.salt); }
@@ -569,6 +576,7 @@ async function handleAdmin(req, res, url, what) {
   }
   if (what === 'settings' && req.method === 'POST') {       // payment instructions and the plans on offer
     const b = await readJson(req);
+    pay.adminSet(b.pay);                                       // online payment: the PayPal keys
     ai.adminSet(b.ai);                                         // the AI assistant: key, model, what it should know
     if (b.ai) for (const r of rooms.values()) toMods(r, { t: 'aichat', ready: ai.inChat(), on: !r.cfg.aiOff });
     const bad = acct.adminSet(b);                              // who must have an account, and the mailbox that sends the codes
@@ -598,6 +606,7 @@ async function handleAdmin(req, res, url, what) {
     const bad = bak.restore(text);
     return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true });
   }
+  if (what === 'paytest' && req.method === 'POST') { const bad = await pay.adminTest(); return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true }); }
   if (what === 'aitest' && req.method === 'POST') { const bad = await ai.adminTest(); return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true }); }
   if (what === 'mailtest' && req.method === 'POST') {
     const bad = await acct.adminTest((await readJson(req)).to);
@@ -677,7 +686,28 @@ const server = http.createServer(async (req, res) => {
       return room ? send(res, 200, { slug: room.cfg.slug, early }) : send(res, 404, { error: 'bad code' });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
-    if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans });
+    if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans, pay: pay.ready(), months: pay.MONTHS });
+    // Online payment of a subscription. The teacher proves who they are with their login and password
+    // (their account may be waiting for approval or run out, so they have no studio session).
+    if (p === '/api/pay/start' && req.method === 'POST') {
+      const ip = clientIp(req);
+      if (!loginAllowed(ip)) return send(res, 429, { error: 'too many attempts' });
+      const b = await readJson(req);
+      const u = db.users.find((x) => x.login === clean(b.login, 30).toLowerCase());
+      const got = hashPass(String(b.password || ''), u ? u.salt : 'no-such-user');
+      if (!u || !u.hash || !safeEq(got, u.hash)) { loginFailed(ip); return send(res, 401, { error: 'wrong login or password' }); }
+      if (!u.active && !u.pending) return send(res, 403, { error: 'account suspended' });
+      let out;
+      try { out = await pay.start(u, Number(b.months), originOf(req)); } catch (e) { console.error('payment start failed', e.message); out = { error: 'paypal refused' }; }
+      return out.error ? send(res, out.error === 'paypal refused' ? 502 : 400, out) : send(res, 200, out);
+    }
+    if (p === '/pay/return') {
+      const out = await pay.finish(String(url.searchParams.get('token') || '').slice(0, 64));
+      const u = out.ok ? db.users.find((x) => x.id === out.uid) : null;
+      res.writeHead(302, { Location: u ? `/teach?paid=1&until=${u.paidUntil || 0}` : `/teach?paid=${out.pending ? 'wait' : '0'}`, 'Cache-Control': 'no-store' });
+      return res.end();
+    }
+    if (p === '/pay/cancel') { res.writeHead(302, { Location: '/teach?paid=cancel' }); return res.end(); }
     if (p === '/api/apply' && req.method === 'POST') {            // a teacher asks for an account; nothing is open until approved
       const ip = clientIp(req);
       if (!applyAllowed(ip)) return send(res, 429, { error: 'too many requests' });
@@ -693,7 +723,7 @@ const server = http.createServer(async (req, res) => {
       const salt = crypto.randomBytes(12).toString('hex');
       db.users.push({ id: 'u' + crypto.randomBytes(6).toString('hex'), name, login, active: false, pending: true, salt, hash: hashPass(password, salt), contact, wantRoom, wantTopic, planId: plan.id, askedAt: Date.now() });
       save();
-      return send(res, 200, { ok: true, payInfo: db.payInfo, plan });
+      return send(res, 200, { ok: true, payInfo: db.payInfo, plan, pay: pay.ready() });
     }
     if (p === '/api/login' && req.method === 'POST') {
       const ip = clientIp(req);
@@ -718,7 +748,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { user: me, rooms: [...rooms.values()].filter((r) => canHost(me, r)).map(publicRoom) });
     }
     if (p === '/api/recordings') return handleRecordings(req, res, url);
-    const a = p.match(/^\/api\/admin(?:\/(user|room|settings|mailtest|member|aitest|backup|backupsend|restore))?$/);
+    const a = p.match(/^\/api\/admin(?:\/(user|room|settings|mailtest|member|aitest|paytest|backup|backupsend|restore))?$/);
     if (a) return handleAdmin(req, res, url, a[1]);
     const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+(?:[1-9]|1[0-2])?)$/);
     if (m) return handleRtc(req, res, url, m[1], m[2]);

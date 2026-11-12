@@ -21,12 +21,13 @@ module.exports = function backup({ db, dataDir, dbFile, freeze, mail, mailReady,
       for (const old of files().slice(0, -KEEP)) fs.unlinkSync(path.join(DIR, old));
     } catch (e) { console.error('backup failed', e.message); }
   }
-  // The copy that travels by e-mail carries no key that opens something else: the mailbox password and
-  // the AI key are left out (they are typed again after a restore). Passwords of accounts are never stored in clear.
+  // The copy that travels by e-mail carries no key that opens something else: the mailbox password,
+  // the AI key and the PayPal secret are left out (they are typed again after a restore). Passwords of accounts are never stored in clear.
   function portable() {
     const copy = JSON.parse(JSON.stringify(db));
     if (copy.mail) delete copy.mail.pass;
     if (copy.ai) delete copy.ai.key;
+    if (copy.pay) delete copy.pay.secret;
     return JSON.stringify(copy);
   }
   async function sendNow() {
@@ -74,6 +75,7 @@ module.exports = function backup({ db, dataDir, dbFile, freeze, mail, mailReady,
       || !next.rooms.every((r) => r && typeof r.slug === 'string' && /^[a-z0-9-]+$/.test(r.slug))) return 'not a backup';
     if (next.mail && !next.mail.pass && db.mail && db.mail.pass && next.mail.user === db.mail.user) next.mail.pass = db.mail.pass;
     if (next.ai && !next.ai.key && db.ai && db.ai.key) next.ai.key = db.ai.key;
+    if (next.pay && !next.pay.secret && db.pay && db.pay.secret && next.pay.clientId === db.pay.clientId) next.pay.secret = db.pay.secret;
     freeze();                                             // nothing from the running site is written over it
     fs.writeFileSync(path.join(DIR, `before-restore-${Date.now()}.json`), JSON.stringify(db));
     fs.writeFileSync(dbFile + '.tmp', JSON.stringify(next)); fs.renameSync(dbFile + '.tmp', dbFile);

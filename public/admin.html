@@ -87,6 +87,21 @@
     <ul id="members" class="admin-list"></ul>
   </section>
 
+  <section class="panel" id="payPanel">
+    <h2>الخلاص أونلاين (PayPal)</h2>
+    <p class="muted">الأستاذ كيخلص الاشتراك ب PayPal ولا بالكارط، والحساب ديالو كيتفعل ولا كيتجدد بوحدو. خاص جوج مفاتيح من developer.paypal.com (Apps &amp; Credentials ← Live ← Create App): Client ID و Secret.</p>
+    <p id="payState" class="err"></p>
+    <form id="payKeys" class="admin-form">
+      <label>Client ID<input name="clientId" type="text" maxlength="200" dir="ltr" autocomplete="off" spellcheck="false"></label>
+      <label>Secret<input name="secret" type="password" maxlength="200" dir="ltr" autocomplete="new-password"></label>
+      <label class="check"><input name="sandbox" type="checkbox"> <span>وضع التجربة (Sandbox): بلا فلوس حقيقية</span></label>
+      <button class="btn primary" type="submit">حفظ</button>
+      <button class="btn" type="button" id="payTest">جرب المفاتيح</button>
+    </form>
+    <h3 class="sub">آخر الخلاصات</h3>
+    <ul id="payLog" class="admin-list"></ul>
+  </section>
+
   <section class="panel" id="backup">
     <h2>النسخ الاحتياطي</h2>
     <p class="muted">الحسابات، القاعات، البرنامج والإعدادات كيتحفظو فنسخة كل نهار فالسيرفر. باش تبقى نسخة خارج السيرفر، خليها توصلك فالإيميل.</p>

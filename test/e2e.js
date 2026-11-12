@@ -98,6 +98,33 @@ async function until(fn, ms = 15000, step = 250) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ translatedText: `[${q.target}] ${q.q}` }));
   }).listen(15000);
+  const pp = { orders: {}, n: 0, badAuth: 0 };               // stands in for PayPal
+  const ppSrv = http.createServer(async (req, res) => {
+    let body = ''; for await (const c of req) body += c;
+    const u = new URL(req.url, 'http://x'), J = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+    if (u.pathname === '/v1/oauth2/token') {
+      if (req.headers.authorization !== 'Basic ' + Buffer.from('client-1:secret-1').toString('base64')) { pp.badAuth++; return J(401, { error: 'invalid_client' }); }
+      return J(200, { access_token: 'tok-1', expires_in: 3600 });
+    }
+    if (u.pathname === '/approve') {                         // the buyer says yes on PayPal's page, and is sent back to the site
+      const o = pp.orders[u.searchParams.get('token')]; o.approved = true;
+      res.writeHead(302, { Location: o.returnUrl + '?token=' + o.id + '&PayerID=P1' }); return res.end();
+    }
+    if (req.headers.authorization !== 'Bearer tok-1') return J(401, {});
+    if (u.pathname === '/v2/checkout/orders') {
+      const b = JSON.parse(body), id = 'ORDER' + (++pp.n);
+      pp.orders[id] = { id, unit: b.purchase_units[0], returnUrl: b.payment_source.paypal.experience_context.return_url, approved: false, captures: 0 };
+      return J(201, { id, status: 'PAYER_ACTION_REQUIRED', links: [{ rel: 'self', href: 'x' }, { rel: 'payer-action', href: 'http://127.0.0.1:15002/approve?token=' + id }] });
+    }
+    const m = u.pathname.match(/^\/v2\/checkout\/orders\/(\w+)\/capture$/);
+    if (m && pp.orders[m[1]]) {
+      const o = pp.orders[m[1]];
+      if (!o.approved) return J(422, { name: 'UNPROCESSABLE_ENTITY', details: [{ issue: 'ORDER_NOT_APPROVED' }] });
+      o.captures++;
+      return J(201, { id: o.id, status: 'COMPLETED', purchase_units: [{ payments: { captures: [{ id: 'CAP' + o.id, status: 'COMPLETED', amount: o.unit.amount, custom_id: o.unit.custom_id }] } }] });
+    }
+    J(404, {});
+  }).listen(15002);
   const aiSrv = http.createServer(async (req, res) => {       // stands in for the AI service
     let body = ''; for await (const c of req) body += c;
     const q = JSON.parse(body || '{}'), sys = String(q.system || ''), last = q.messages[q.messages.length - 1].content;
@@ -121,7 +148,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -892,6 +919,56 @@ async function until(fn, ms = 15000, step = 250) {
       await sp.context().close();
     }
     {
+      // ---- online payment of a teacher's subscription (PayPal)
+      const tk = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
+      const H = { Authorization: 'Bearer ' + tk, 'Content-Type': 'application/json' }, JH = { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.9.9' };
+      const post = (p, b, h = JH) => fetch(BASE + p, { method: 'POST', headers: h, body: JSON.stringify(b) });
+      const before = await (await fetch(BASE + '/api/plans')).json();
+      const plan = before.plans[0];
+      const applied = await post('/api/apply', { planId: plan.id, name: 'Youssef Alami', contact: '+212 611 111 111', roomTitle: 'Maths Bac', topic: 'Maths', login: 'youssef', password: 'youssef-pass-1' });
+      const appliedOut = await applied.json();
+      const noKeys = await post('/api/pay/start', { login: 'youssef', password: 'youssef-pass-1', months: 3 });
+      check('without PayPal keys, nothing is offered online', before.pay === false && applied.ok && appliedOut.pay === false && noKeys.status === 400, `${applied.status} ${noKeys.status}`);
+      await post('/api/admin/settings', { pay: { clientId: 'client-1', secret: 'wrong' } }, H);
+      const badKeys = await fetch(BASE + '/api/admin/paytest', { method: 'POST', headers: H });
+      await post('/api/admin/settings', { pay: { clientId: 'client-1', secret: 'secret-1' } }, H);
+      const goodKeys = await fetch(BASE + '/api/admin/paytest', { method: 'POST', headers: H });
+      const adm1 = await (await fetch(BASE + '/api/admin', { headers: H })).json();
+      check('the administrator sets the PayPal keys and tests them; the secret is never sent back', badKeys.status === 400 && goodKeys.ok && adm1.pay.ready && adm1.pay.hasSecret && !JSON.stringify(adm1).includes('secret-1')
+        && (await (await fetch(BASE + '/api/plans')).json()).pay === true);
+      const wrongPw = await post('/api/pay/start', { login: 'youssef', password: 'nope-nope-1', months: 3 });
+      const badMonths = await post('/api/pay/start', { login: 'youssef', password: 'youssef-pass-1', months: 7 });
+      const started = await (await post('/api/pay/start', { login: 'youssef', password: 'youssef-pass-1', months: 3 })).json();
+      const oid = new URL(started.url).searchParams.get('token'), ord = pp.orders[oid];
+      check('a teacher starts a payment with their login and password, for the price of their plan', wrongPw.status === 401 && badMonths.status === 400 && !!ord
+        && ord.unit.amount.value === (plan.price * 3).toFixed(2) && ord.unit.amount.currency_code === 'USD' && ord.returnUrl === BASE + '/pay/return', JSON.stringify(started));
+      const early = await fetch(BASE + '/pay/return?token=' + oid, { redirect: 'manual' });
+      const stillPending = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).users.find((u) => u.login === 'youssef');
+      check('coming back without having paid opens nothing', early.status === 302 && early.headers.get('location') === '/teach?paid=0' && stillPending.pending && !stillPending.active
+        && (await fetch(BASE + '/api/login', { method: 'POST', body: '{"login":"youssef","password":"youssef-pass-1"}' })).status === 401);
+      ord.approved = true;
+      const paidBack = await fetch(BASE + '/pay/return?token=' + oid, { redirect: 'manual' });
+      const again = await fetch(BASE + '/pay/return?token=' + oid, { redirect: 'manual' });
+      const adm2 = await (await fetch(BASE + '/api/admin', { headers: H })).json();
+      const yo = adm2.users.find((u) => u.login === 'youssef'), days = (yo.paidUntil - Date.now()) / 86400e3;
+      check('a payment collected opens the account and its room, for the months paid, once', /^\/teach\?paid=1&until=\d+$/.test(paidBack.headers.get('location')) && /paid=1/.test(again.headers.get('location'))
+        && yo.active && !yo.pending && days > 89.9 && days < 90.1 && ord.captures === 1 && adm2.rooms.some((r) => r.title === 'Maths Bac')
+        && (await fetch(BASE + '/api/login', { method: 'POST', body: '{"login":"youssef","password":"youssef-pass-1"}' })).ok
+        && adm2.pay.log.length === 1 && adm2.pay.log[0].login === 'youssef' && adm2.pay.log[0].months === 3, `days ${days} captures ${ord.captures}`);
+      const tp = await (await browser.newContext({ locale: 'fr-FR' })).newPage();
+      tp.on('pageerror', (e) => errors.push('teach pay: ' + e.message));
+      await tp.goto(BASE + '/teach');
+      await tp.waitForSelector('#renewBox:not([hidden])');
+      await tp.fill('#renewForm [name=login]', 'youssef'); await tp.fill('#renewForm [name=password]', 'youssef-pass-1'); await tp.selectOption('#renewForm [name=months]', '1');
+      await tp.screenshot({ path: path.join(OUT, 'teach-pay.png'), fullPage: true });
+      await tp.click('#renewForm button[type=submit]');
+      const thanked = (await until(async () => (await tp.textContent('#paidMsg')).includes('Paiement reçu'), 10000)) !== null;
+      await tp.screenshot({ path: path.join(OUT, 'teach-paid.png') });
+      const yo2 = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).users.find((u) => u.login === 'youssef');
+      check('renewing from the teachers page goes through PayPal and adds the month', thanked && Math.abs((yo2.paidUntil - yo.paidUntil) / 86400e3 - 30) < 0.01 && tp.url().endsWith('/teach'), await tp.textContent('#paidMsg'));
+      await tp.context().close();
+    }
+    {
       // ---- backups (last: putting one back restarts the server)
       const tk = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
       const H = { Authorization: 'Bearer ' + tk, 'Content-Type': 'application/json' };
@@ -907,7 +984,7 @@ async function until(fn, ms = 15000, step = 250) {
       const view = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).backup;
       check('the backup is sent by e-mail on request, to the address chosen in the administration', badMail.status === 400 && setOk.ok && sent.ok && bm.to === 'pro@example.com' && /\.json$/.test(bm.files[0].name)
         && att.members.some((m) => m.email === 'samira@example.com') && view.every === 'week' && view.lastMail > 0 && view.count === 1, JSON.stringify(view));
-      check('the mailed copy carries neither the mailbox password nor the AI key', att.mail && !att.mail.pass && att.ai && !att.ai.key && !bm.files[0].content.includes('sk-ant'));
+      check('the mailed copy carries neither the mailbox password nor the AI key', att.mail && !att.mail.pass && att.ai && !att.ai.key && !bm.files[0].content.includes('sk-ant') && att.pay.clientId === 'client-1' && !att.pay.secret && !bm.files[0].content.includes('secret-1'));
       const dl = await fetch(BASE + '/api/admin/backup', { headers: H });
       const full = await dl.json();
       check('the administrator downloads the whole backup; nobody else does', /attachment/.test(dl.headers.get('content-disposition')) && full.rooms.length > 0 && !!full.mail.pass
@@ -928,12 +1005,12 @@ async function until(fn, ms = 15000, step = 250) {
       await Promise.race([gone, sleep(5000)]);
       const after = JSON.parse(fs.readFileSync(path.join(dataDir, 'db.json'), 'utf8'));
       check('putting a backup back replaces the data, keeps the keys the mailed copy left out, and restarts the server', back.ok && app.exitCode === 0 && after.payInfo === 'RESTORED'
-        && after.mail.pass === full.mail.pass && after.ai.key === full.ai.key && fs.readdirSync(path.join(dataDir, 'backups')).some((f) => f.startsWith('before-restore-')), `exit ${app.exitCode}`);
+        && after.mail.pass === full.mail.pass && after.ai.key === full.ai.key && after.pay.secret === 'secret-1' && fs.readdirSync(path.join(dataDir, 'backups')).some((f) => f.startsWith('before-restore-')), `exit ${app.exitCode}`);
     }
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);
   } finally {
-    ff.kill('SIGKILL'); app.kill(); await browser.close(); rtc.close(); api.close(); hlsSrv.close(); lt.close(); aiSrv.close();
+    ff.kill('SIGKILL'); app.kill(); await browser.close(); rtc.close(); api.close(); hlsSrv.close(); lt.close(); aiSrv.close(); ppSrv.close();
   }
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

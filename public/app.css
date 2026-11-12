@@ -611,3 +611,9 @@ a, .room-url, .acc-link { color: var(--mauve-light); }
 @media (max-width: 900px) { .side button, .side-link { border-radius: 999px; } .side-link { margin-top: 0; padding-top: 8px; border-top: 1px solid #9a6bd6; } }
 .brand, #dashRoom { text-shadow: none; }
 .brand b, .brand-sub { background-clip: border-box; -webkit-background-clip: border-box; }
+
+/* online payment: the message shown when coming back from PayPal */
+.pay-msg { font-weight: 700; }
+.pay-msg.ok { border-color: #2dd4bf; color: #7ff5e4; }
+.pay-msg.bad { border-color: var(--live); color: #ffb4b4; }
+.pay-online .wide { grid-column: 1 / -1; margin: 0; }

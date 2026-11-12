@@ -124,7 +124,13 @@
 
     async function camOn() {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 25 }, facingMode: 'user' } });
+        const video = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 25 }, facingMode: 'user' };
+        const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+        let s;
+        // Phones: camera and microphone are asked for together, in one go. Asking for the microphone
+        // later, while the camera is already running, can freeze or cut the camera on iPhone.
+        if (simple && !micTrack) { try { s = await navigator.mediaDevices.getUserMedia({ video, audio }); micTrack = s.getAudioTracks()[0] || null; } catch { s = null; } }
+        if (!s) s = await navigator.mediaDevices.getUserMedia({ video });
         camTrack = s.getVideoTracks()[0];
         camTrack.onended = camOff;
         setInput('cam', camTrack);
@@ -244,7 +250,7 @@
         const woke = audioCtx.resume().catch(() => {});
         replaySources();
         step = 'mic';
-        if (!(await ensureMic())) return;
+        if (!(await within(ensureMic(), 40000, 'mic'))) return;
         await Promise.race([woke, new Promise((r) => setTimeout(r, 1500))]);
         step = 'mix';
         if (!mixOut) {
@@ -263,7 +269,7 @@
           if (pc.connectionState === 'failed') { stopLive(); status(T('تقطع الاتصال بالسيرفر. تأكد من الأنترنيت وعاود بدا اللايف.')); }
         };
         step = 'server';
-        await rtcNegotiate(pc, 'whip', 'studio', token);
+        await within(rtcNegotiate(pc, 'whip', 'studio', token), 20000, 'server');
         liveOn = true;
         try { tune(); } catch { /* a hint the browser does not know: the live goes on without it */ }
         $('#goBtn').textContent = T('وقف اللايف');

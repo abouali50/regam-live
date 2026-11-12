@@ -897,7 +897,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('a recording downloads in full', dl.status === 200 && (await dl.arrayBuffer()).byteLength === 2_500_000);
     await studio.reload(); await studio.waitForSelector('#recs li .rec-actions', { timeout: 20000 });
     check('studio lists the recording with date and size', /10\/11\/2026 · 20:30 · (2|3) MB/.test(await studio.textContent('#recs li')), await studio.textContent('#recs li'));
-    await studio.click('#recs li button');
+    await studio.click('#recs li .rec-actions button >> nth=-1');
     check('deleting a recording removes the file', (await until(() => !fs.existsSync(path.join(OUT, 'rec', 'air_main', '2026-11-10_20-30-00-000000.mp4')), 5000)) !== null && (await until(() => studio.locator('#noRecs').isVisible(), 5000)) !== null);
     await studio.click('#goBtn');
     await until(() => studio.evaluate(() => window.__studio.pc && window.__studio.pc.connectionState === 'connected'));
@@ -1154,6 +1154,106 @@ async function until(fn, ms = 15000, step = 250) {
       check('a signed-in visitor sees the price, pays, and is let in', door !== null && through !== null, await vp2.textContent('#offlineText'));
       await tp2.check('#feeForm input[value="free"]'); await tp2.click('#feeForm button[type=submit]');
       await tctx2.close(); await vctx2.close();
+    }
+    {
+      // ---- replays, files to download, questions, polls, statistics
+      const WS = require('ws');
+      const tk = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
+      const H = { Authorization: 'Bearer ' + tk }, J = { 'Content-Type': 'application/json' };
+      const teacher = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"login":"youssef","password":"youssef-pass-1"}' })).json()).token, TH = { Authorization: 'Bearer ' + teacher };
+      const memberOf = async (email) => (await (await fetch(BASE + '/api/member/login', { method: 'POST', headers: J, body: JSON.stringify({ email, password: 'motdepasse1' }) })).json()).token;
+      const lina = await memberOf('lina.class@example.com'), omar = await memberOf('omar.class@example.com');
+      const slug = (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.title === 'Maths Bac').slug;
+      const extras = async (mt) => (await fetch(BASE + '/api/extras?room=' + slug, { headers: mt ? { Authorization: 'Bearer ' + mt } : {} })).json();
+      const recDir = path.join(OUT, 'rec', 'air_' + slug), recName = '2026-11-12_20-00-00-000000.mp4';
+      fs.mkdirSync(recDir, { recursive: true }); fs.writeFileSync(path.join(recDir, recName), Buffer.alloc(5000, 7));
+      const before = await extras(lina);
+      const pub = await fetch(BASE + `/api/recordings?room=${slug}&name=${recName}`, { method: 'PUT', headers: { ...TH, ...J }, body: JSON.stringify({ title: 'Leçon 1 : les limites' }) });
+      const notHost = await fetch(BASE + `/api/recordings?room=${slug}&name=${recName}`, { method: 'PUT', headers: J, body: JSON.stringify({ title: 'x' }) });
+      const listed = (await (await fetch(BASE + '/api/recordings?room=' + slug, { headers: TH })).json()).list[0];
+      const seen = await extras(lina), rp = seen.replays[0];
+      const part = rp ? await fetch(BASE + rp.url, { headers: { Range: 'bytes=0-99' } }) : null;
+      const noKey = rp ? await fetch(BASE + rp.url.split('?')[0]) : null;
+      check('the teacher publishes a recording as a replay; students watch it from the room', before.replays.length === 0 && pub.ok && notHost.status === 401 && listed.title === 'Leçon 1 : les limites' && seen.replays.length === 1
+        && rp.title === 'Leçon 1 : les limites' && part.status === 206 && (await part.arrayBuffer()).byteLength === 100 && part.headers.get('content-type') === 'video/mp4' && noKey.status === 403, JSON.stringify(seen));
+      const up = await fetch(BASE + `/api/files?room=${slug}&name=${encodeURIComponent('exercices série 1.pdf')}`, { method: 'POST', headers: { ...TH, 'Content-Type': 'application/octet-stream' }, body: Buffer.from('%PDF-1.4 exercices') });
+      const badType = await fetch(BASE + `/api/files?room=${slug}&name=virus.exe`, { method: 'POST', headers: { ...TH, 'Content-Type': 'application/octet-stream' }, body: Buffer.from('MZ') });
+      const noUp = await fetch(BASE + `/api/files?room=${slug}&name=a.pdf`, { method: 'POST', headers: { Authorization: 'Bearer ' + lina, 'Content-Type': 'application/octet-stream' }, body: Buffer.from('x') });
+      const fl = (await extras(lina)).files[0], got = fl ? await fetch(BASE + fl.url) : null;
+      check('the teacher adds files; students download them from the room', up.ok && badType.status === 415 && noUp.status === 401 && fl.name === 'exercices série 1.pdf' && got.status === 200 && (await got.text()) === '%PDF-1.4 exercices'
+        && /attachment/.test(got.headers.get('content-disposition')) && got.headers.get('x-content-type-options') === 'nosniff');
+      // what the room keeps is for those who may come in
+      const sockOf = (uid, extra = {}) => new Promise((res) => {
+        const w = new WS('ws://127.0.0.1:13000/ws'), got2 = [];
+        w.on('message', (m) => { const d = JSON.parse(m); for (const x of d.t === 'batch' ? d.ev : [d]) got2.push(x); });
+        w.on('open', () => w.send(JSON.stringify({ t: 'hello', uid, room: slug, ...extra })));
+        setTimeout(() => res({ got: got2, last: (t) => [...got2].reverse().find((d) => d.t === t), say: (o) => w.send(JSON.stringify(o)), close: () => w.close() }), 60);
+      });
+      const host = await sockOf('hostextrasock01', { token: teacher });
+      await until(() => host.last('init'), 5000);
+      const anonOpen = await extras('');
+      host.say({ t: 'closed', on: true });
+      await until(() => host.last('class') && host.last('class').closed, 5000);
+      const shut = { replays: [], files: [] }, anonShut = await extras('');
+      host.say({ t: 'closed', on: false });
+      await until(() => host.last('class') && !host.last('class').closed, 5000);
+      check('replays and files of a class kept for its students are not shown to others', anonOpen.replays.length === 1 && anonOpen.files.length === 1 && shut.replays.length === 0 && anonShut.replays.length === 0 && anonShut.files.length === 0 && (await extras(lina)).replays.length === 1);
+      // questions
+      const st = await sockOf('linaextrasock01', { mt: lina });
+      await until(() => st.last('init'), 5000);
+      st.say({ t: 'ask', text: 'Comment calculer la limite en zéro ?' });
+      const q1 = await until(() => { const q = host.last('questions'); return q && q.list.length === 1 ? q.list[0] : null; }, 5000);
+      st.say({ t: 'ask', text: 'Et en plus l\'infini ?' });
+      const tooFast = await until(() => st.got.find((d) => d.t === 'asked' && d.wait), 5000);
+      host.say({ t: 'answered', id: q1 && q1.id });
+      const emptied = await until(() => host.last('questions').list.length === 0, 5000);
+      check('a student puts a question to the teacher; it lands in a list of its own, and leaves it once answered', q1 !== null && q1.name === 'Lina Class' && q1.text.includes('limite') && !!tooFast && emptied !== null
+        && !st.got.some((d) => d.t === 'questions') && !host.got.some((d) => d.t === 'msg' && String(d.text || '').includes('limite')));
+      // a quiz
+      host.say({ t: 'poll', q: '2 + 2 ?', opts: ['3', '4', '5'], correct: 1 });
+      const asked = await until(() => { const p = st.last('poll'); return p && p.open ? p : null; }, 5000);
+      host.say({ t: 'poll', q: 'x', opts: ['seul'] });
+      st.say({ t: 'vote', id: asked.id, i: 2 }); st.say({ t: 'vote', id: asked.id, i: 1 });
+      const voted = await until(() => { const p = st.last('poll'); return p && p.mine === 1 && p.counts ? p : null; }, 5000);
+      const hostSees = await until(() => { const p = host.last('poll'); return p && p.total === 1 && p.counts && p.counts[1] === 1 ? p : null; }, 5000);
+      host.say({ t: 'poll', close: true });
+      const closed = await until(() => { const p = st.last('poll'); return p && !p.open ? p : null; }, 5000);
+      st.say({ t: 'vote', id: asked.id, i: 0 });
+      check('the teacher runs a quiz: students answer once (and may change), counts come after voting, the right answer at the end', asked.counts === undefined && asked.correct === undefined && asked.opts.length === 3
+        && voted !== null && voted.total === 1 && hostSees !== null && closed.correct === 1 && closed.counts.join() === '0,1,0' && host.got.some((d) => d.t === 'poll' && d.err === 'bad'), JSON.stringify(closed));
+      // the pages: the student sees the quiz result, the replay and the file; the teacher sees the question and the poll
+      const vctx3 = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 1000 } });
+      const vp3 = await vctx3.newPage();
+      vp3.on('pageerror', (e) => errors.push('extras viewer: ' + e.message));
+      await vp3.addInitScript((t) => { localStorage.setItem('regam.member', t); localStorage.setItem('regam.memberName', 'Omar Class'); localStorage.setItem('regam.name', 'Omar Class'); }, omar);
+      await vp3.goto(BASE + '/r/' + slug);
+      const shown = await until(async () => (await vp3.locator('#pollBox').isVisible()) && (await vp3.locator('#pollOpts .poll-opt.right').count()) === 1 && (await vp3.locator('#replays li').count()) === 1 && (await vp3.locator('#classFiles li').count()) === 1, 8000);
+      host.say({ t: 'poll', q: 'Avez-vous compris ?', opts: ['Oui', 'Non'] });
+      await until(async () => (await vp3.textContent('#pollQ')) === 'Avez-vous compris ?', 5000);
+      await vp3.click('#pollOpts .poll-opt >> nth=0');
+      const tapped = await until(async () => (await vp3.locator('#pollOpts .poll-opt.mine').count()) === 1 && (await vp3.textContent('#pollOpts .poll-opt.mine')).includes('100%'), 5000);
+      await vp3.click('#askBtn'); await vp3.fill('#askText', 'Pouvez-vous répéter ?'); await vp3.click('#askForm button[type=submit]');
+      await vp3.click('#replays li button');
+      const playing = await until(async () => (await vp3.locator('#replayDlg').evaluate((d) => d.open)) && /\/media\/replay\//.test(await vp3.getAttribute('#replayVideo', 'src')), 5000);
+      await vp3.screenshot({ path: path.join(OUT, 'viewer-extras.png'), fullPage: true });
+      await vp3.click('#replayClose');
+      check('on the room page, a student answers the poll, asks a question, and finds the replay and the file', shown !== null && tapped !== null && playing !== null && (await until(() => { const q = host.last('questions'); return q && q.list.some((x) => x.text === 'Pouvez-vous répéter ?'); }, 5000)) !== null);
+      const tctx3 = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1280, height: 1000 } });
+      const tp3 = await tctx3.newPage();
+      tp3.on('pageerror', (e) => errors.push('extras studio: ' + e.message));
+      await tp3.addInitScript((t) => sessionStorage.setItem('regam.studio', t), teacher);
+      await tp3.goto(BASE + '/studio?all=1');
+      await tp3.waitForSelector('#app:not([hidden])');
+      const studioSees = await until(async () => (await tp3.locator('#qList li').count()) === 1 && (await tp3.textContent('#qTitle')).includes('(1)') && (await tp3.textContent('#pollLive')).includes('Avez-vous compris')
+        && (await tp3.locator('#cfileList li').count()) === 1 && (await tp3.textContent('#recs')).includes('Leçon 1') && (await tp3.textContent('#attList')).includes('pic 1'), 8000);
+      await tp3.locator('#pollPanel').scrollIntoViewIfNeeded(); await tp3.screenshot({ path: path.join(OUT, 'studio-extras.png') });
+      await tp3.click('#pollEnd'); await tp3.click('#qList li button');
+      check('in the studio, the teacher sees the questions, the poll results, the files and the published replay', studioSees !== null && (await until(async () => (await tp3.locator('#qList li').count()) === 0 && await tp3.locator('#pollLive').isHidden() && await vp3.locator('#pollBox').isHidden(), 5000)) !== null);
+      const stats = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).stats.find((r) => r.title === 'Maths Bac');
+      check('the administrator sees how each room is doing', !!stats && stats.teacher === 'Youssef Alami' && stats.lives === 1 && stats.people === 1 && stats.peak === 1 && stats.last > 0, JSON.stringify(stats));
+      await fetch(BASE + `/api/recordings?room=${slug}&name=${recName}`, { method: 'PUT', headers: { ...TH, ...J }, body: JSON.stringify({ title: '' }) });
+      check('a replay taken back is no longer shown', (await extras(lina)).replays.length === 0);
+      host.close(); st.close(); await vctx3.close(); await tctx3.close();
     }
     {
       // ---- backups (last: putting one back restarts the server)

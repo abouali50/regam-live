@@ -55,6 +55,8 @@
     showAi(data.ai);
     showBackup(data.backup);
     showPay(data.pay);
+    $('#statsBody').replaceChildren(...data.stats.map((r) => el('tr', {}, ...[r.title, r.teacher, r.students, r.lives, r.people, r.peak, r.minutes,
+      r.last ? new Date(r.last).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : LANG, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'].map((v) => el('td', {}, String(v))))));
     showAccounts(data.accounts);
     $('#roomList').replaceChildren(...data.rooms.map((r) => el('li', {},
       el('span', { class: 'admin-main-cell' },

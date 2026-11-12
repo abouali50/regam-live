@@ -61,6 +61,7 @@
           </span>
         </span>
         <button id="shareBtn" class="btn" type="button">شارك</button>
+        <button id="askBtn" class="btn" type="button">❓ سول الأستاذ</button>
         <button id="handBtn" class="btn" type="button">طلب الطلوع</button>
       </div>
     </div>
@@ -68,9 +69,35 @@
       <div id="reactions" class="react-row" role="group" aria-label="التفاعلات"></div>
       <span class="likes-count" title="مجموع التفاعلات"><span id="likes">0</span></span>
     </div>
+    <section id="pollBox" class="poll-box" hidden aria-live="polite">
+      <h2 id="pollQ"></h2>
+      <div id="pollOpts" class="poll-opts"></div>
+      <p id="pollNote" class="muted"></p>
+    </section>
+    <section id="extras" class="extras" hidden>
+      <div id="replayBox" hidden><h2>الدروس اللي فاتو</h2><ul id="replays" class="extra-list"></ul></div>
+      <div id="fileBox" hidden><h2>وثائق الدرس</h2><ul id="classFiles" class="extra-list"></ul></div>
+    </section>
   </section>
   <aside class="chat" id="chat" aria-label="التعليقات"></aside>
 </main>
+
+<dialog id="askDlg" class="dlg">
+  <form method="dialog" id="askForm">
+    <h2>سول الأستاذ</h2>
+    <p>السؤال ديالك كيوصل للأستاذ فلائحة خاصة بالأسئلة.</p>
+    <textarea id="askText" maxlength="300" rows="3" required aria-label="السؤال ديالك"></textarea>
+    <div class="dlg-actions">
+      <button class="btn primary" type="submit">صيفط السؤال</button>
+      <button class="btn" type="button" id="askCancel">إلغاء</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="replayDlg" class="dlg replay-dlg">
+  <h2 id="replayTitle"></h2>
+  <video id="replayVideo" controls playsinline></video>
+  <div class="dlg-actions"><button class="btn" type="button" id="replayClose">سد</button></div>
+</dialog>
 
 <dialog id="codeDlg" class="dlg">
   <form method="dialog" id="codeForm">

@@ -672,13 +672,76 @@
     function showAtt(list) {
       $('#attNote').hidden = list.length > 0;
       $('#attList').replaceChildren(...list.map((a) => el('li', {},
-        el('span', {}, el('strong', {}, a.title || mine.title), ' ', el('span', { class: 'muted' }, dayTime(a.at)), ' · ', T('{n} حاضر', { n: a.rows.length })),
+        el('span', {}, el('strong', {}, a.title || mine.title), ' ', el('span', { class: 'muted' }, dayTime(a.at)), ' · ', T('{n} حاضر، القمة {peak}، المعدل {m} دقيقة', { n: a.rows.length, peak: a.peak, m: a.rows.length ? Math.round(a.rows.reduce((x, r) => x + r.secs, 0) / a.rows.length / 60) : 0 })),
         el('button', { class: 'btn', type: 'button', onclick: () => {
           const link2 = el('a', { href: URL.createObjectURL(new Blob([csvOf(a)], { type: 'text/csv;charset=utf-8' })), download: `presence-${new Date(a.at).toISOString().slice(0, 10)}.csv` });
           document.body.append(link2); link2.click(); link2.remove();
         } }, T('حمل اللائحة')))));
     }
     link.on('att', (d) => showAtt(d.list));
+
+    // ---- files the students download from the room
+    const filesUrl = (extra = '') => `/api/files?room=${mine.slug}${extra}`;
+    function showFiles(list) {
+      $('#cfileList').replaceChildren(...list.map((f) => el('li', {},
+        el('span', {}, '📄 ' + f.name + ' ', el('span', { class: 'muted', dir: 'ltr' }, f.size >= 1e6 ? (f.size / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(f.size / 1e3)) + ' KB')),
+        el('button', { class: 'btn danger', type: 'button', onclick: async () => {
+          const r = await fetch(filesUrl('&id=' + f.id), { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+          if (r.ok) showFiles((await r.json()).files);
+        } }, T('حذف')))));
+    }
+    fetch(filesUrl(), { headers: { Authorization: 'Bearer ' + token } }).then((r) => r.json()).then((d) => showFiles(d.files || [])).catch(() => {});
+    $('#cfileIn').onchange = async () => {
+      const file = $('#cfileIn').files[0];
+      $('#cfileIn').value = '';
+      if (!file) return;
+      $('#cfileNote').textContent = T('كنرفعو الوثيقة…');
+      const r = await fetch(filesUrl('&name=' + encodeURIComponent(file.name)), { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/octet-stream' }, body: file }).catch(() => null);
+      const d = r ? await r.json().catch(() => ({})) : {};
+      $('#cfileNote').textContent = r && r.ok ? T('تزادت الوثيقة. التلاميذ كيلقاوها فالقاعة.')
+        : T(d.error === 'too large' ? 'هاد الملف كبير بزاف (أكثر من 30 ميغا).' : d.error === 'bad type' ? 'هاد النوع ديال الملفات ما مقبولش.' : d.error === 'too many files' ? 'وصلتي ل 20 ملف. حذف شي واحد أولا.' : 'ما قدرناش نرفعو الوثيقة.');
+      if (r && r.ok) showFiles(d.files);
+    };
+
+    // ---- questions put to the teacher, apart from the comments
+    let qCount = 0;
+    function showQuestions(list) {
+      if (list.length > qCount) chime();
+      qCount = list.length;
+      $('#qTitle').textContent = list.length ? T('الأسئلة ({n})', { n: list.length }) : T('الأسئلة');
+      $('#qNote').hidden = list.length > 0; $('#qClear').hidden = !list.length;
+      $('#qList').replaceChildren(...list.map((q) => el('li', {},
+        el('span', { dir: 'auto' }, el('strong', {}, q.name + ': '), q.text),
+        el('button', { class: 'btn primary', type: 'button', onclick: () => link.send({ t: 'answered', id: q.id }) }, T('✓ جاوبت')))));
+    }
+    $('#qClear').onclick = () => link.send({ t: 'answered', all: true });
+    link.on('questions', (d) => showQuestions(d.list));
+
+    // ---- a poll, or a quiz when one answer is marked right
+    $('#pollIns').replaceChildren(...[0, 1, 2, 3].map((i) => el('span', { class: 'poll-in' },
+      el('input', { type: 'radio', name: 'pollRight', value: i, 'aria-label': T('الجواب الصحيح') }),
+      el('input', { type: 'text', class: 'poll-text', maxlength: 80, placeholder: T('الاختيار {n}', { n: i + 1 }) }))));
+    $('#pollForm').onsubmit = (e) => {
+      e.preventDefault();
+      const texts = [...document.querySelectorAll('#pollIns .poll-text')].map((x) => x.value.trim());
+      const right = document.querySelector('#pollIns input[name=pollRight]:checked');
+      const kept = texts.map((t, i) => ({ t, i })).filter((x) => x.t);
+      link.send({ t: 'poll', q: $('#pollQIn').value.trim(), opts: kept.map((x) => x.t), correct: right ? kept.findIndex((x) => x.i === Number(right.value)) : -1 });
+    };
+    $('#pollClose').onclick = () => link.send({ t: 'poll', close: true });
+    $('#pollEnd').onclick = () => { link.send({ t: 'poll', end: true }); $('#pollForm').reset(); };
+    function showPoll(p) {
+      const on = !p.off;
+      $('#pollLive').hidden = !on; $('#pollClose').hidden = !on || !p.open; $('#pollEnd').hidden = !on;
+      $('#pollState').textContent = p.err ? T('كتب السؤال وجوج اختيارات على الأقل.') : !on ? '' : T(p.open ? 'التصويت خدام: {n} جاوبو.' : 'سالا التصويت: {n} جاوبو. النتيجة باينة للجميع.', { n: p.total });
+      if (!on) return;
+      const total = Math.max(1, p.total);
+      $('#pollLive').replaceChildren(el('strong', { class: 'poll-title' }, p.q), ...p.opts.map((o, i) => {
+        const pct = Math.round((p.counts[i] / total) * 100);
+        return el('div', { class: 'poll-opt' + (p.correct === i ? ' right' : ''), style: `--pct:${pct}%` }, el('span', { class: 'poll-label' }, (p.correct === i ? '✓ ' : '') + o), el('span', { class: 'poll-pct' }, `${p.counts[i]} · ${pct}%`));
+      }));
+    }
+    link.on('poll', showPoll);
 
     // ---- assistants: members who help the host run the room
     function showHelpers(list, err) {
@@ -839,6 +902,8 @@
       if (!d.mod) return logout();            // token expired
       $('#viewers').textContent = d.viewers;
       if (d.cls) showClass(d.cls);
+      showQuestions(d.questions || []);
+      showPoll(d.poll || { off: true });
       if (d.att) showAtt(d.att);
       $('#titleInput').value = d.title || '';
       $('#pinInput').value = d.pinned || '';
@@ -876,7 +941,14 @@
         const busy = data.live && i === 0;            // still being written
         return el('li', {},
           el('span', { dir: 'ltr' }, `${fmtName(f.name)} · ${fmtSize(f.size)}`),
+          f.title ? el('span', { class: 'badge on' }, T('منشور للتلاميذ: {title}', { title: f.title })) : null,
           busy ? el('span', { class: 'muted' }, T('كيتسجل دابا…')) : el('span', { class: 'rec-actions' },
+            el('button', { class: 'btn', type: 'button', onclick: async () => {
+              const title = f.title ? '' : (prompt(T('العنوان اللي غادي يشوفو التلاميذ:'), fmtName(f.name)) || '').trim();
+              if (!f.title && !title) return;
+              await fetch(recUrl(`&name=${encodeURIComponent(f.name)}`), { method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) });
+              loadRecs();
+            } }, T(f.title ? 'حيدو من عند التلاميذ' : 'نشرو للتلاميذ')),
             el('a', { class: 'btn primary', href: recUrl(`&name=${encodeURIComponent(f.name)}&token=${encodeURIComponent(token)}`), download: '' }, T('تحميل')),
             el('button', { class: 'btn', type: 'button', onclick: async () => {
               if (!confirm(T('تحذف هاد التسجيل نهائيا؟'))) return;

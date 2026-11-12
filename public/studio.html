@@ -126,6 +126,28 @@
       <button id="micBtn" class="btn" type="button" aria-pressed="true">الميكرو</button>
     </div>
 
+    <div class="panel" id="qPanel">
+      <div class="panel-head"><h2 id="qTitle">الأسئلة</h2><button id="qClear" class="btn" type="button" hidden>مسح الكل</button></div>
+      <p id="qNote" class="muted">الأسئلة اللي كيصيفطو المتابعين بزر «سول الأستاذ» كيبانو هنا، بعاد على التعليقات.</p>
+      <ul id="qList" class="hands"></ul>
+    </div>
+    <div class="panel" id="pollPanel">
+      <h2>تصويت ولا كويز</h2>
+      <form id="pollForm" class="poll-form">
+        <label for="pollQIn">السؤال</label>
+        <input id="pollQIn" type="text" maxlength="200" required>
+        <div id="pollIns" class="poll-ins"></div>
+        <p class="muted">كتب جوج اختيارات ولا أكثر. إلا بغيتي كويز، علم على الجواب الصحيح.</p>
+        <div class="row">
+          <button class="btn primary" type="submit">بدا التصويت</button>
+          <button class="btn" type="button" id="pollClose" hidden>سالي التصويت وبين النتيجة</button>
+          <button class="btn danger" type="button" id="pollEnd" hidden>حيد التصويت</button>
+        </div>
+      </form>
+      <div id="pollLive" class="poll-opts" hidden></div>
+      <p id="pollState" class="muted"></p>
+    </div>
+
     <div class="panel" id="stagePanel">
       <h2>المنصة</h2>
       <p id="noGuests" class="muted">ما كاين حتى واحد على المنصة. تقدر تطلع حتى ل 12 واحد معاك.</p>
@@ -171,6 +193,11 @@
       </form>
       <p id="studentNote" class="muted"></p>
       <ul id="studentList" class="hands"></ul>
+      <h3 class="sub">وثائق للتحميل</h3>
+      <p class="muted">PDF، Word، PowerPoint، Excel، صور… التلاميذ كيلقاوهم فالقاعة وكيحملوهم. حتى ل 20 ملف، 30 ميغا لكل واحد.</p>
+      <div class="row"><input id="cfileIn" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.zip,.mp3" aria-label="زيد وثيقة"></div>
+      <p id="cfileNote" class="muted"></p>
+      <ul id="cfileList" class="hands"></ul>
       <h3 class="sub">ورقة الحضور</h3>
       <p id="attNote" class="muted">من بعد كل لايف، كتلقى هنا شكون حضر وشحال بقى.</p>
       <ul id="attList" class="hands"></ul>

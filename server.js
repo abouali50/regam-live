@@ -70,6 +70,7 @@ function openRoom(cfg) {
     clients: new Set(), byUid: new Map(), lastMsgAt: new Map(), outbox: [],
     likes: 0, reacts: zeros(), totals: zeros(), likesDirty: false, lastViewers: -1,
     waiters: new Set(), admitted: new Set(), refused: new Set(),     // waiting room: sockets at the door, people let in, people turned away
+    questions: [], poll: null,                                       // questions put to the teacher; the poll or quiz in progress
   };
   rooms.set(cfg.slug, room);
   fs.mkdir(path.join(REC_ROOT, `air_${cfg.slug}`), { recursive: true }, () => {});   // ours, so we may delete recordings
@@ -448,7 +449,7 @@ function handleRecordings(req, res, url) {
       const list = [];
       for (const f of err ? [] : files) {
         if (!REC_NAME.test(f)) continue;
-        try { const st = fs.statSync(path.join(dir, f)); list.push({ name: f, size: st.size, mtime: st.mtimeMs }); } catch { /* removed meanwhile */ }
+        try { const st = fs.statSync(path.join(dir, f)); list.push({ name: f, size: st.size, mtime: st.mtimeMs, title: ((room.cfg.replays || {})[f] || {}).title || '' }); } catch { /* removed meanwhile */ }
       }
       list.sort((x, y) => (x.name < y.name ? 1 : -1));
       // while on air, the newest file is still being written
@@ -457,13 +458,96 @@ function handleRecordings(req, res, url) {
   }
   if (!REC_NAME.test(name)) return send(res, 400, { error: 'bad name' });
   const file = path.join(dir, name);
-  if (req.method === 'DELETE') return fs.unlink(file, (err) => send(res, err ? 404 : 200, { ok: !err }));
+  if (req.method === 'DELETE') { if (room.cfg.replays) { delete room.cfg.replays[name]; save(); } return fs.unlink(file, (err) => send(res, err ? 404 : 200, { ok: !err })); }
+  if (req.method === 'PUT') {                    // show this recording to the students as a replay (with a title), or take it back
+    return readJson(req).then((b) => {
+      const title = clean(b.title, 80);
+      if (title && !fs.existsSync(file)) return send(res, 404, { error: 'not found' });
+      room.cfg.replays = room.cfg.replays || {};
+      if (title) room.cfg.replays[name] = { title }; else delete room.cfg.replays[name];
+      save();
+      send(res, 200, { ok: true });
+    });
+  }
   if (req.method !== 'GET') return send(res, 405, { error: 'method' });
   fs.stat(file, (err, st) => {
     if (err) return send(res, 404, { error: 'not found' });
     res.writeHead(200, { 'Content-Type': 'video/mp4', 'Content-Length': st.size, 'Content-Disposition': `attachment; filename="${room.cfg.slug}_${name}"` });
     fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
   });
+}
+
+// ---- what a class keeps for its students: replays of past lives, and files to download
+// A file sent in pieces when asked (players and phones ask for ranges).
+function serveRanged(req, res, file, head) {
+  fs.stat(file, (e, st) => {
+    if (e) return send(res, 404, 'Not found');
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    let from = 0, to = st.size - 1, code = 200;
+    if (m && (m[1] || m[2])) {
+      if (m[1]) { from = Number(m[1]); if (m[2]) to = Math.min(to, Number(m[2])); } else from = Math.max(0, st.size - Number(m[2]));
+      if (from > to || from >= st.size) { res.writeHead(416, { 'Content-Range': `bytes */${st.size}` }); return res.end(); }
+      code = 206; head['Content-Range'] = `bytes ${from}-${to}/${st.size}`;
+    }
+    res.writeHead(code, { ...head, 'Accept-Ranges': 'bytes', 'Content-Length': to - from + 1, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=3600' });
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(file, { start: from, end: to }).on('error', () => res.destroy()).pipe(res);
+  });
+}
+// May this person see what the room keeps for its students? The host, and whoever could walk in without being asked anything.
+function mayEnter(req, room) {
+  if (canHost(whoIs(bearer(req)), room)) return true;
+  const who = acct.memberOf(bearer(req));
+  if (acct.access() === 'watch' && !who) return false;
+  if (cls.entry(room, who)) return false;
+  return !room.cfg.code || cls.known(room, who);
+}
+const FILE_OK = /\.(pdf|docx?|pptx?|xlsx?|txt|csv|png|jpe?g|zip|mp3)$/i, FILE_MAX = 30 * 1024 * 1024, FILES_PER_ROOM = 20;
+const classFile = (slug, id) => path.join(DATA_DIR, `file_${slug}_${id}`);
+const filesOf = (room) => (room.cfg.files || []).map((f) => ({ id: f.id, name: f.name, size: f.size }));
+function handleFiles(req, res, url) {
+  const room = roomOf(url);
+  if (!room) return send(res, 404, { error: 'no such room' });
+  if (!canHost(whoIs(bearer(req)), room)) return send(res, 401, { error: 'unauthorized' });
+  const files = (room.cfg.files = room.cfg.files || []);
+  if (req.method === 'GET') return send(res, 200, { files: filesOf(room) });
+  if (req.method === 'DELETE') {
+    const id = String(url.searchParams.get('id') || '');
+    if (!files.some((f) => f.id === id)) return send(res, 404, { error: 'no such file' });
+    room.cfg.files = files.filter((f) => f.id !== id); save();
+    fs.unlink(classFile(room.cfg.slug, id), () => {});
+    return send(res, 200, { files: filesOf(room) });
+  }
+  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+  const name = clean(path.basename(String(url.searchParams.get('name') || '')), 100);
+  if (!FILE_OK.test(name)) return send(res, 415, { error: 'bad type' });
+  if (files.length >= FILES_PER_ROOM) return send(res, 409, { error: 'too many files' });
+  const id = crypto.randomBytes(6).toString('hex'), dest = classFile(room.cfg.slug, id);
+  receiveFile(req, res, dest, FILE_MAX, () => {
+    room.cfg.files.push({ id, name, size: fs.statSync(dest).size, at: Date.now() }); save();
+    send(res, 200, { files: filesOf(room) });
+  });
+}
+// The replays and files of a room, with links good for six hours, for those who may come in.
+function handleExtras(req, res, url) {
+  const room = roomOf(url);
+  if (!room) return send(res, 404, { error: 'no such room' });
+  if (!mayEnter(req, room)) return send(res, 200, { replays: [], files: [] });
+  const slug = room.cfg.slug, dir = path.join(REC_ROOT, `air_${slug}`), key = (kind) => encodeURIComponent(sign(kind, slug, 6 * 3600e3));
+  const replays = Object.entries(room.cfg.replays || {}).map(([name, r]) => {
+    try { const st = fs.statSync(path.join(dir, name)); return { title: r.title, at: st.mtimeMs, url: `/media/replay/${slug}/${name}?k=${key('replay')}` }; } catch { return null; }
+  }).filter(Boolean).sort((x, y) => y.at - x.at);
+  send(res, 200, { replays, files: (room.cfg.files || []).map((f) => ({ name: f.name, size: f.size, url: `/media/file/${slug}/${f.id}?k=${key('file')}` })) });
+}
+function serveReplay(req, res, url, rest) {
+  const [slug, name] = rest.split('/'), room = rooms.get(slug);
+  if (!room || verify(String(url.searchParams.get('k') || ''), 'replay') !== slug || !REC_NAME.test(name || '') || !(room.cfg.replays || {})[name]) return send(res, 403, 'Forbidden');
+  serveRanged(req, res, path.join(REC_ROOT, `air_${slug}`, name), { 'Content-Type': 'video/mp4' });
+}
+function serveClassFile(req, res, url, rest) {
+  const [slug, id] = rest.split('/'), room = rooms.get(slug), f = room && (room.cfg.files || []).find((x) => x.id === id);
+  if (!f || verify(String(url.searchParams.get('k') || ''), 'file') !== slug) return send(res, 403, 'Forbidden');
+  serveRanged(req, res, classFile(slug, id), { 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(f.name)}` });
 }
 
 // ---------------------------------------------------------- administration --
@@ -515,7 +599,7 @@ async function handleAdmin(req, res, url, what) {
   if (!what && req.method === 'GET') {
     return send(res, 200, {
       users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
-      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(),
+      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(), stats: cls.stats(),
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
     });
   }
@@ -676,6 +760,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/sound') return handleSound(req, res, url);
     if (p === '/api/pics') return handlePics(req, res, url);
+    if (p === '/api/files') return handleFiles(req, res, url);
+    if (p === '/api/extras') return handleExtras(req, res, url);
+    if (p.startsWith('/media/replay/')) return serveReplay(req, res, url, p.slice(14));
+    if (p.startsWith('/media/file/')) return serveClassFile(req, res, url, p.slice(12));
     if (p.startsWith('/media/pic/')) return servePic(res, p.slice(11));
     if (p.startsWith('/media/sound/')) return serveSound(req, res, p.slice(13));
     if (p === '/api/pass') {                      // the pass that lets an admitted person's player fetch the stream
@@ -817,7 +905,21 @@ const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod || ws.
 const toHost = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws, obj); };      // the class list carries e-mails: for the host only
 // Assistants: members the host chose to help in a room. They can accept or refuse people, bring guests
 // up or down, close a microphone, delete comments and ban; nothing else (no broadcast, no settings).
-const HELPER_ACTS = new Set(['del', 'ban', 'admit', 'stage', 'unstage', 'mute']);
+const HELPER_ACTS = new Set(['del', 'ban', 'admit', 'stage', 'unstage', 'mute', 'answered']);
+// The poll or quiz in progress, as one person sees it: the counts come once they have voted (or it is closed).
+function pollFor(room, ws) {
+  const p = room.poll;
+  if (!p) return { t: 'poll', off: true };
+  const mine = p.votes.get(ws.member || ws.uid), show = ws.mod || ws.helper || !p.open || mine !== undefined;
+  const counts = p.opts.map(() => 0);
+  for (const i of p.votes.values()) counts[i]++;
+  return { t: 'poll', id: p.id, q: p.q, opts: p.opts, open: p.open, mine, total: p.votes.size, counts: show ? counts : undefined, correct: !p.open && p.correct >= 0 ? p.correct : undefined };
+}
+function tellPoll(room) {                        // at most once a second, however fast the votes come
+  if (room.pollTimer) return;
+  room.pollTimer = setTimeout(() => { room.pollTimer = null; for (const c of room.clients) tx(c, pollFor(room, c)); }, 800);
+}
+const askedAt = new Map();                       // person -> when they last put a question
 const helpersOf = (room) => (room.cfg.helpers || []).map((id) => acct.byId(id)).filter(Boolean).map((m) => ({ id: m.id, name: m.name, email: m.email }));
 const toUid = (room, uid, obj) => { for (const ws of room.byUid.get(uid) || []) tx(ws, obj); };
 const viewersOf = (room) => { let n = 0; for (const ws of room.clients) if (!ws.mod) n++; return n; };
@@ -936,6 +1038,7 @@ wss.on('connection', (ws, req) => {
         code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? plannedOf(room) : undefined,
         aiChat: ws.mod ? { ready: ai.inChat(), on: !room.cfg.aiOff } : undefined,
         cls: ws.mod ? { ...cls.view(room), payReady: pay.ready() } : undefined, att: ws.mod ? cls.sheets(room) : undefined,
+        questions: ws.mod || ws.helper ? room.questions : undefined, poll: room.poll ? pollFor(room, ws) : undefined,
         rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
       });
     }
@@ -975,6 +1078,26 @@ wss.on('connection', (ws, req) => {
       }
 
       // ---- stage requests (viewer side)
+      case 'ask': {                        // a question for the teacher: it goes to a list of its own, not into the comments
+        const text = clean(d.text, 300);
+        if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });
+        if (!text || !ws.name || cfg.banned[ws.uid]) return;
+        const now = Date.now(), who = ws.member || ws.uid;
+        if (now - (askedAt.get(who) || 0) < 20e3) return tx(ws, { t: 'asked', wait: true });
+        askedAt.set(who, now); if (askedAt.size > 20000) askedAt.clear();
+        room.questions.push({ id: 'q' + (++room.seq), name: ws.name, text, at: now });
+        if (room.questions.length > 100) room.questions.shift();
+        tx(ws, { t: 'asked' });
+        return toMods(room, { t: 'questions', list: room.questions });
+      }
+      case 'vote': {                       // an answer to the poll in progress (it can be changed while the poll is open)
+        const p = room.poll, i = Number(d.i);
+        if (!p || !p.open || d.id !== p.id || !Number.isInteger(i) || i < 0 || i >= p.opts.length || ws.mod) return;
+        if (p.votes.size >= 5000 && !p.votes.has(ws.member || ws.uid)) return;
+        p.votes.set(ws.member || ws.uid, i);
+        tx(ws, pollFor(room, ws));
+        return tellPoll(room);
+      }
       case 'hand':
         if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });
         if (!ws.name || cfg.banned[ws.uid] || slotOf(room, ws.uid)) return;
@@ -1115,6 +1238,19 @@ wss.on('connection', (ws, req) => {
         else { cfg.left = (cfg.left || []).filter((id) => id !== m.id); cfg.students = [...new Set([...(cfg.students || []), m.id])].slice(0, 3000); }
         save();
         return toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
+      }
+      case 'answered':                     // a question was answered (or set aside): off the list
+        room.questions = d.all ? [] : room.questions.filter((q) => q.id !== d.id);
+        return toMods(room, { t: 'questions', list: room.questions });
+      case 'poll': {                       // the host starts a poll (or a quiz, when one answer is marked right), closes it, or takes it away
+        if (d.end) { room.poll = null; return broadcast(room, { t: 'poll', off: true }); }
+        if (d.close) { if (room.poll) { room.poll.open = false; for (const c of room.clients) tx(c, pollFor(room, c)); } return; }
+        const q = clean(d.q, 200), opts = (Array.isArray(d.opts) ? d.opts : []).map((o) => clean(o, 80)).filter(Boolean).slice(0, 6);
+        if (!q || opts.length < 2) return tx(ws, { t: 'poll', off: !room.poll, err: 'bad' });
+        const correct = Number.isInteger(d.correct) && d.correct >= 0 && d.correct < opts.length ? d.correct : -1;
+        room.poll = { id: 'p' + (++room.seq), q, opts, correct, open: true, votes: new Map() };
+        for (const c of room.clients) tx(c, pollFor(room, c));
+        return;
       }
       case 'aichat':                       // the assistant answers in this room's comments, or stays out of them
         cfg.aiOff = d.on === false; save();

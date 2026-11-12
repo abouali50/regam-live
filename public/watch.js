@@ -401,6 +401,49 @@
   const capDelay = () => (onStage ? 0 : hls && hls.latency > 0 ? Math.min(30, hls.latency) * 1000 : 7000);
   link.on('cap', (d) => { if (capLang) setTimeout(() => showCap(d), capDelay()); });
 
+  // ---- a question for the teacher: it goes to a list of its own, apart from the comments
+  $('#askBtn').onclick = async () => {
+    if (!account.token && cfg.access !== 'open') { openAccount('login'); return; }
+    if (!link.name) { const n = await askName(); if (!n) return; }
+    $('#askText').value = ''; $('#askDlg').showModal(); focusSoon($('#askText'));
+  };
+  $('#askCancel').onclick = () => $('#askDlg').close();
+  $('#askForm').onsubmit = (e) => { e.preventDefault(); const text = $('#askText').value.trim(); if (text) link.send({ t: 'ask', text }); $('#askDlg').close(); };
+  const toast = (text) => { const el0 = $('#guestLine'); el0.hidden = false; el0.textContent = text; setTimeout(() => { if (el0.textContent === text) { el0.textContent = ''; el0.hidden = true; } }, 5000); };
+  link.on('asked', (d) => toast(T(d.wait ? 'تسنى شوية قبل ما تصيفط سؤال آخر.' : 'وصل السؤال ديالك للأستاذ.')));
+
+  // ---- a poll or a quiz from the teacher: answer with one tap, see the result
+  function showPoll(p) {
+    $('#pollBox').hidden = !!p.off;
+    if (p.off) return;
+    $('#pollQ').textContent = p.q;
+    const total = Math.max(1, p.total);
+    $('#pollOpts').replaceChildren(...p.opts.map((o, i) => {
+      const n = p.counts ? p.counts[i] : 0, pct = p.counts ? Math.round((n / total) * 100) : 0;
+      return el('button', { type: 'button', class: 'poll-opt' + (p.mine === i ? ' mine' : '') + (p.correct === i ? ' right' : ''), disabled: p.open ? null : '', style: `--pct:${pct}%`,
+        onclick: () => link.send({ t: 'vote', id: p.id, i }) }, el('span', { class: 'poll-label' }, (p.correct === i ? '✓ ' : '') + o), p.counts ? el('span', { class: 'poll-pct' }, pct + '%') : null);
+    }));
+    $('#pollNote').textContent = !p.open ? T('سالا التصويت. {n} جاوبو.', { n: p.total }) : p.mine === undefined ? T('ختار جواب واحد.') : T('تسجل الجواب ديالك. تقدر تبدلو حتى يسالي التصويت.');
+  }
+  link.on('poll', showPoll);
+
+  // ---- what the class keeps for its students: replays of past lives, files to download
+  async function loadExtras() {
+    let d;
+    try { d = await (await fetch('/api/extras?room=' + encodeURIComponent(cfg.room), { headers: account.token ? { Authorization: 'Bearer ' + account.token } : {} })).json(); } catch { return; }
+    const loc = LANG === 'ar' ? 'ar-MA' : LANG;
+    $('#replayBox').hidden = !d.replays.length; $('#fileBox').hidden = !d.files.length; $('#extras').hidden = !d.replays.length && !d.files.length;
+    $('#replays').replaceChildren(...d.replays.map((r) => el('li', {},
+      el('span', {}, el('strong', {}, r.title), ' ', el('span', { class: 'muted' }, new Date(r.at).toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric' }))),
+      el('button', { class: 'btn primary', type: 'button', onclick: () => { $('#replayTitle').textContent = r.title; $('#replayVideo').src = r.url; $('#replayDlg').showModal(); $('#replayVideo').play().catch(() => {}); } }, T('▶ شوف')))));
+    $('#classFiles').replaceChildren(...d.files.map((f) => el('li', {},
+      el('span', {}, '📄 ' + f.name + ' ', el('span', { class: 'muted', dir: 'ltr' }, f.size >= 1e6 ? (f.size / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(f.size / 1e3)) + ' KB')),
+      el('a', { class: 'btn', href: f.url, download: f.name }, T('تحميل')))));
+  }
+  const stopReplay = () => { $('#replayVideo').pause(); $('#replayVideo').removeAttribute('src'); $('#replayVideo').load(); };
+  $('#replayClose').onclick = () => $('#replayDlg').close();
+  $('#replayDlg').addEventListener('close', stopReplay);
+
   // ---- a paid class: pay with PayPal, come back, come in
   const payBtn = $('#payBtn');
   const priceLine = (fee) => T(fee.days === 1 ? 'هاد الدرس بالخلاص: {amount} دولار لنهار واحد.' : 'هاد الدرس بالخلاص: {amount} دولار ل 30 يوم.', { amount: fee.amount });
@@ -479,6 +522,8 @@
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
     if ($('#codeDlg').open) $('#codeDlg').close();
     showNext(d.next);
+    showPoll(d.poll || { off: true });
+    loadExtras();
     if (d.needPass) await pass();                 // lets the player fetch the stream
     setLive(d.live);
     $('#viewers').textContent = d.viewers;

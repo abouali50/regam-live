@@ -654,3 +654,30 @@ a, .room-url, .acc-link { color: var(--mauve-light); }
 #feeForm { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 #feeForm > * { flex: 0 0 auto; width: auto; margin: 0; }
 #feeAmount { width: 110px; }
+
+/* polls and quizzes */
+.poll-box { margin-top: 12px; padding: 14px 16px; border-radius: var(--radius); border: 1px solid var(--gold); background: linear-gradient(160deg, #141b4a, #080b20); display: grid; gap: 10px; }
+.poll-box[hidden], .extras[hidden], .extras [hidden] { display: none; }
+.poll-box h2, .extras h2 { font-size: 18px; color: #fff; margin: 0; }
+.poll-opts { display: grid; gap: 8px; }
+.poll-opts[hidden] { display: none; }
+.poll-opt { position: relative; display: flex; justify-content: space-between; gap: 12px; align-items: center; width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #4a56a8; background: linear-gradient(90deg, rgba(160,120,255,.38) var(--pct, 0%), rgba(255,255,255,.05) var(--pct, 0%)); color: #fff; font: inherit; font-weight: 700; text-align: start; cursor: pointer; }
+div.poll-opt, .poll-opt:disabled { cursor: default; }
+.poll-opt.mine { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255,216,74,.35); }
+.poll-opt.right { border-color: #2dd4bf; background: linear-gradient(90deg, rgba(45,212,191,.45) var(--pct, 0%), rgba(45,212,191,.1) var(--pct, 0%)); }
+.poll-pct { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.poll-title { color: #fff; }
+.poll-form { display: grid; gap: 10px; }
+.poll-ins { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.poll-in { display: flex; align-items: center; gap: 8px; }
+.poll-in .poll-text { flex: 1; min-width: 0; }
+/* replays and class files on the viewer page */
+.extras { margin-top: 12px; display: grid; gap: 14px; }
+.extra-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.extra-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid #2c3672; background: rgba(255,255,255,.04); color: #fff; }
+.replay-dlg { width: min(96vw, 900px); }
+.replay-dlg video { width: 100%; max-height: 70vh; background: #000; border-radius: 10px; }
+#askText { width: 100%; }
+.table-wrap { overflow-x: auto; }
+table.stats { width: 100%; border-collapse: collapse; color: #fff; }
+table.stats th, table.stats td { padding: 8px 10px; border-bottom: 1px solid #2c3672; text-align: start; white-space: nowrap; }

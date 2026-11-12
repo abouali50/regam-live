@@ -82,7 +82,7 @@ module.exports = function school({ db, save, rooms, acct, sign, env, toMods, own
   setInterval(() => {
     for (const room of rooms.values()) {
       if (!room.live) { if (room.att) closeSheet(room); continue; }
-      if (!room.att) room.att = { at: now(), rows: new Map() };
+      if (!room.att) room.att = { at: now(), rows: new Map(), peak: 0 };
       const seen = new Set();
       for (const ws of room.clients) {
         if (ws.mod) continue;
@@ -95,17 +95,24 @@ module.exports = function school({ db, save, rooms, acct, sign, env, toMods, own
         row.secs += STEP / 1000;
         if (room.att.rows.size < 3000) room.att.rows.set(key, row);
       }
+      room.att.peak = Math.max(room.att.peak, seen.size);
     }
   }, STEP).unref();
   function closeSheet(room) {
     const sheet = room.att; room.att = null;
     if (!sheet || !sheet.rows.size) return;
     const s = plannedOf(room).find((x) => sheet.at >= x.at - 30 * 60e3 && sheet.at < (x.end || x.at + 3 * 3600e3));
-    room.cfg.att = [{ at: sheet.at, end: now(), title: room.cfg.liveTitle || (s && s.title) || '', rows: [...sheet.rows.values()].filter((r) => r.name || r.email).sort((a, b) => a.first - b.first) }, ...(room.cfg.att || [])].slice(0, 20);
+    room.cfg.att = [{ at: sheet.at, end: now(), peak: sheet.peak, title: room.cfg.liveTitle || (s && s.title) || '', rows: [...sheet.rows.values()].filter((r) => r.name || r.email).sort((a, b) => a.first - b.first) }, ...(room.cfg.att || [])].slice(0, 20);
     save();
     toMods(room, { t: 'att', list: sheets(room) });
   }
-  const sheets = (room) => (room.cfg.att || []).map((a) => ({ at: a.at, end: a.end, title: a.title, rows: a.rows }));
+  const sheets = (room) => (room.cfg.att || []).map((a) => ({ at: a.at, end: a.end, peak: a.peak || a.rows.length, title: a.title, rows: a.rows }));
+  // For the administrator: how each room is doing, from its attendance sheets (the last twenty lives).
+  const stats = () => [...rooms.values()].map((room) => {
+    const a = room.cfg.att || [], people = a.reduce((n, x) => n + x.rows.length, 0), secs = a.reduce((n, x) => n + x.rows.reduce((m, r) => m + r.secs, 0), 0);
+    return { title: room.cfg.title, teacher: ownerName(room), students: (room.cfg.students || []).length, lives: a.length, people, peak: a.reduce((n, x) => Math.max(n, x.peak || x.rows.length), 0),
+      minutes: people ? Math.round(secs / people / 60) : 0, last: a.length ? a[0].at : 0 };
+  });
 
-  return { feeOf, entry, known, enroll, paidFor, view, sheets, tick, isStudent, hasPaid };
+  return { feeOf, entry, known, enroll, paidFor, view, sheets, stats, tick, isStudent, hasPaid };
 };

@@ -318,6 +318,8 @@ function iceGathered(pc, timeout = 2500) {
   });
 }
 // Sends our offer to the server (WHIP = publish, WHEP = watch) and applies the answer.
+// A step that never answers is turned into an error after a while, so nothing stays stuck.
+const within = (promise, ms, what) => Promise.race([promise, new Promise((_, no) => setTimeout(() => { const e = new Error(what + ' timeout'); e.name = 'Timeout'; no(e); }, ms))]);
 async function rtcNegotiate(pc, kind, path, token) {
   await pc.setLocalDescription(await pc.createOffer());
   await iceGathered(pc);

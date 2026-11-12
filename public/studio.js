@@ -474,42 +474,68 @@
     const loc = () => (LANG === 'ar' ? 'ar-MA' : LANG);
     const whenOf = (s) => new Date(s.at).toLocaleString(loc(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       + (s.end ? ' – ' + new Date(s.end).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) : '');
+    const timeOf = (ms) => new Date(ms).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' });
+    const lasts = (x) => { const m = Math.round((x.end - x.at) / 60000); return m < 60 ? T('{n} دقيقة', { n: m }) : m % 60 ? T('{h} س {n} د', { h: Math.floor(m / 60), n: m % 60 }) : T('{h} س', { h: m / 60 }); };
+    function inviteFor(x) {                           // the text to send: for one planned live, or (x null) for an unplanned one
+      const code = !roomCode ? '' : x ? x.code : roomCode;       // a planned live has its own code and link
+      return [
+        T('دعوة للايف: {room}', { room: mine.title }) + (x && x.title ? ' - ' + x.title : ''),
+        x ? T('الوقت: {when}', { when: whenOf(x) }) : '',
+        T('الرابط: {url}', { url: viewerUrl + (code ? '?code=' + code : '') }),
+        code ? T('كود الدخول: {code}', { code: code.slice(0, 3) + ' ' + code.slice(3) }) : '',
+        cfg.access === 'watch' ? T('خاصك تسجل بالإيميل ديالك فالموقع قبل ما تدخل.') : '',
+        x ? T('زيدو للأجندة ديالك: {url}', { url: `${location.origin}/api/ics?room=${encodeURIComponent(mine.slug)}&id=${x.id}` }) : '',
+      ].filter(Boolean).join('\n');
+    }
+    async function copyText(text, btn) {
+      const was = btn.textContent;
+      try { await navigator.clipboard.writeText(text); btn.textContent = T('✓ تنسخات'); status(T('تنسخات الدعوة. لصقها فواتساب ولا فالإيميل.')); }
+      catch { btn.textContent = T('ما تنسخاتش'); }
+      setTimeout(() => { btn.textContent = was; }, 2000);
+    }
     function showInvite() {
       $('#codeChk').checked = !!roomCode;
       $('#codeShow').hidden = !roomCode; $('#codeHelp').hidden = !roomCode;
       $('#codeShow').textContent = roomCode ? roomCode.slice(0, 3) + ' ' + roomCode.slice(3) : '';
-      const s = sessions.find((x) => x.id === picked) || sessions[0] || null;
       $('#sessNote').hidden = sessions.length > 0;
-      $('#sessList').replaceChildren(...sessions.map((x) => el('li', { class: s && x.id === s.id ? 'picked' : '' },
-        el('span', {}, el('strong', {}, whenOf(x)), x.title ? ' · ' + x.title : '', roomCode ? el('span', { class: 'sess-code', dir: 'ltr' }, x.code.slice(0, 3) + ' ' + x.code.slice(3)) : null),
-        el('span', { class: 'guest-acts' },
-          el('button', { class: 'btn', type: 'button', onclick: () => { picked = x.id; showInvite(); } }, T('الدعوة')),
-          el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'session', del: x.id }) }, T('حذف'))))));
-      const code = !roomCode ? '' : s ? s.code : roomCode;       // a planned live has its own code and link
-      $('#inviteHead').textContent = T('الدعوة') + (s ? ' : ' + whenOf(s) : '');
-      $('#inviteText').value = [
-        T('دعوة للايف: {room}', { room: mine.title }) + (s && s.title ? ' - ' + s.title : ''),
-        s ? T('الوقت: {when}', { when: whenOf(s) }) : '',
-        T('الرابط: {url}', { url: viewerUrl + (code ? '?code=' + code : '') }),
-        code ? T('كود الدخول: {code}', { code: code.slice(0, 3) + ' ' + code.slice(3) }) : '',
-        cfg.access === 'watch' ? T('خاصك تسجل بالإيميل ديالك فالموقع قبل ما تدخل.') : '',
-        s ? T('زيدو للأجندة ديالك: {url}', { url: `${location.origin}/api/ics?room=${encodeURIComponent(mine.slug)}&id=${s.id}` }) : '',
-      ].filter(Boolean).join('\n');
+      // one card per planned live, soonest first: the day as a calendar leaf, then the hours, the topic, the code
+      $('#sessList').replaceChildren(...sessions.map((x) => {
+        const d = new Date(x.at);
+        return el('li', { class: 'sess-card' },
+          el('span', { class: 'sess-day' }, el('span', {}, d.toLocaleDateString(loc(), { weekday: 'short' })), el('b', {}, String(d.getDate())), el('span', {}, d.toLocaleDateString(loc(), { month: 'short' }))),
+          el('span', { class: 'sess-main' },
+            el('strong', {}, x.title || mine.title),
+            el('span', { class: 'sess-hours', dir: 'ltr' }, timeOf(x.at) + (x.end ? ' – ' + timeOf(x.end) : '')), x.end ? el('span', { class: 'muted' }, lasts(x)) : null,
+            roomCode ? el('span', { class: 'sess-code', dir: 'ltr' }, '🔑 ' + x.code.slice(0, 3) + ' ' + x.code.slice(3)) : null),
+          el('span', { class: 'sess-acts' },
+            el('button', { class: 'btn primary', type: 'button', onclick: (e) => { picked = x.id; showInvite(); copyText(inviteFor(x), e.currentTarget); } }, T('نسخ الدعوة')),
+            el('button', { class: 'btn danger', type: 'button', onclick: () => { if (confirm(T('تحذف هاد اللايف من الأجندة؟'))) link.send({ t: 'session', del: x.id }); } }, T('حذف'))));
+      }));
+      const s = sessions.find((x) => x.id === picked) || sessions[0] || null;
+      $('#inviteText').value = inviteFor(s);
     }
     $('#codeChk').onchange = () => link.send({ t: 'code', on: $('#codeChk').checked });
-    $('#nextSave').onclick = () => {
-      const v = $('#nextAt').value, e = $('#nextEnd').value;
-      if (!v) return status(T('اختار النهار والساعة ديال البداية.'));
-      const at = new Date(v).getTime();
-      let end = 0;
-      if (e) { end = new Date(v.slice(0, 11) + e).getTime(); if (end <= at) end += 24 * 3600e3; }       // an end before the start means past midnight
-      link.send({ t: 'session', at, end, title: $('#nextTitle').value });
+    // the form, like a meeting planner: topic, day, start time, how long
+    const schedDlg = $('#schedDlg');
+    $('#schedOpen').onclick = () => {
+      const n = new Date(Date.now() + 3600e3);
+      $('#nextDate').value = `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`; const t0 = new Date(); $('#nextDate').min = `${t0.getFullYear()}-${pad(t0.getMonth() + 1)}-${pad(t0.getDate())}`;
+      $('#nextTime').value = `${pad(n.getHours())}:00`; $('#nextDur').value = '60'; $('#nextTitle').value = '';
+      $('#schedErr').hidden = true;
+      schedDlg.showModal();
     };
-    $('#inviteCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#inviteText').value); status(T('تنسخات الدعوة. لصقها فواتساب ولا فالإيميل.')); } catch { $('#inviteText').select(); } };
+    $('#schedCancel').onclick = () => schedDlg.close();
+    $('#schedForm').onsubmit = (e) => {
+      e.preventDefault();
+      const at = new Date($('#nextDate').value + 'T' + $('#nextTime').value).getTime();
+      if (!(at > Date.now() - 3600e3)) { $('#schedErr').hidden = false; $('#schedErr').textContent = T('الوقت ما مقبولش. اختار وقت جاي.'); return; }
+      link.send({ t: 'session', at, end: at + Number($('#nextDur').value) * 60000, title: $('#nextTitle').value });
+    };
+    $('#inviteCopy').onclick = (e) => copyText(inviteFor(null), e.currentTarget);
     link.on('code', (d) => { roomCode = d.code || ''; showInvite(); })
       .on('sessions', (d) => {
-        if (d.err) return status(T('الوقت ما مقبولش. اختار وقت جاي، والنهاية من بعد البداية.'));
-        if (d.list.length > sessions.length) { picked = d.list.find((x) => !sessions.some((y) => y.id === x.id)).id; $('#nextAt').value = ''; $('#nextEnd').value = ''; $('#nextTitle').value = ''; }
+        if (d.err) { $('#schedErr').hidden = false; $('#schedErr').textContent = T('الوقت ما مقبولش. اختار وقت جاي.'); return; }
+        if (d.list.length > sessions.length) { picked = d.list.find((x) => !sessions.some((y) => y.id === x.id)).id; if (schedDlg.open) schedDlg.close(); status(T('تزاد اللايف للأجندة.')); }
         sessions = d.list; showInvite();
       });
 

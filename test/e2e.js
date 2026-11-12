@@ -437,9 +437,8 @@ async function until(fn, ms = 15000, step = 250) {
       check('guests on stage are not cut when the code is switched on', await studio.evaluate(() => window.__studio.stage.size === 2) && await viewer.locator('#stageBar').isVisible(), JSON.stringify({ stage: await studio.evaluate(() => [...window.__studio.stage].map(([n, x]) => [n, !!x.rx, x.rx && x.rx.pc.connectionState])), bar: await viewer.locator('#stageBar').isVisible(), g2bar: await g2.locator('#stageBar').isVisible(), list: await studio.locator('#onStage li').allTextContents(), status: await studio.textContent('#status'), vchat: await viewer.evaluate(() => [...document.querySelectorAll('.chat .note, .chat-note, .sys')].map((n) => n.textContent).slice(-3)) }));
       // the invitation: date, link carrying the code, the code itself
       const soon = new Date(Date.now() + 26 * 3600e3), two = (n) => String(n).padStart(2, '0');
-      await studio.fill('#nextAt', `${soon.getFullYear()}-${two(soon.getMonth() + 1)}-${two(soon.getDate())}T${two(soon.getHours())}:${two(soon.getMinutes())}`);
-      await studio.fill('#nextEnd', `${two((soon.getHours() + 1) % 24)}:${two(soon.getMinutes())}`);
-      await studio.fill('#nextTitle', 'MetaMask الدرس الثاني'); await studio.click('#nextSave');
+      const plan = async (d, mins, title) => { await studio.click('#schedOpen'); await studio.fill('#nextDate', `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`); await studio.fill('#nextTime', `${two(d.getHours())}:${two(d.getMinutes())}`); await studio.selectOption('#nextDur', String(mins)); await studio.fill('#nextTitle', title); await studio.click('#nextSave'); };
+      await plan(soon, 60, 'MetaMask الدرس الثاني');
       const invite = await until(async () => { const t = await studio.inputValue('#inviteText'); return t.includes('MetaMask') && t; }, 6000);
       const url = (String(invite).match(/https?:\/\/\S+/) || [''])[0];
       const sCode = (url.match(/code=(\d{6})$/) || [])[1] || '';
@@ -462,15 +461,18 @@ async function until(fn, ms = 15000, step = 250) {
       await hp.context().close();
       // the calendar: a second session, the agenda on the home page, the calendar file
       const later = new Date(Date.now() + 5 * 24 * 3600e3);
-      await studio.fill('#nextAt', `${later.getFullYear()}-${two(later.getMonth() + 1)}-${two(later.getDate())}T15:00`); await studio.fill('#nextEnd', '16:00');
-      await studio.fill('#nextTitle', 'Cours du dimanche'); await studio.click('#nextSave');
+      later.setHours(15, 0, 0, 0);
+      await plan(later, 60, 'Cours du dimanche');
       await until(async () => (await studio.locator('#sessList li').count()) === 2, 6000);
       const cal = (await (await fetch(BASE + '/api/config')).json()).sessions;
       const ics = await fetch(BASE + `/api/ics?room=main&id=${cal[0].id}`), icsText = await ics.text();
       const ag = await (await browser.newContext({ locale: 'fr-FR', viewport: { width: 1000, height: 800 } })).newPage();
       await ag.goto(BASE + '/rooms');
+      await studio.locator('#invitePanel').scrollIntoViewIfNeeded(); await studio.locator('#invitePanel').screenshot({ path: path.join(OUT, 'agenda.png') });
+      await studio.click('#schedOpen'); await sleep(300); await studio.screenshot({ path: path.join(OUT, 'agenda-form.png') }); await studio.click('#schedCancel');
       check('several lives can be planned, each with a start and an end; the soonest is the one announced', cal.length === 2 && cal[0].title === 'MetaMask الدرس الثاني' && cal[0].end - cal[0].at === 3600e3 && cal[1].end - cal[1].at === 3600e3
-        && (await studio.inputValue('#inviteText')).includes('Cours du dimanche') && (await studio.inputValue('#inviteText')).includes('/api/ics?room=main&id=' + cal[1].id));
+        && (await studio.inputValue('#inviteText')).includes('Cours du dimanche') && (await studio.inputValue('#inviteText')).includes('/api/ics?room=main&id=' + cal[1].id)
+        && (await studio.locator('#sessList .sess-card').count()) === 2 && (await studio.textContent('#sessList .sess-card >> nth=1')).includes('15:00') && await studio.locator('#schedDlg').isHidden());
       check('each planned live can be added to a personal calendar', ics.status === 200 && /text\/calendar/.test(ics.headers.get('content-type')) && /BEGIN:VEVENT/.test(icsText)
         && /DTSTART:\d{8}T\d{6}Z/.test(icsText) && /DTEND:\d{8}T\d{6}Z/.test(icsText) && icsText.includes('/r/main') && !icsText.includes(code));
       check('the home page shows the agenda of planned lives', (await until(async () => (await ag.locator('#agendaList li').count()) === 2, 8000)) !== null && (await ag.textContent('#agendaList li >> nth=1')).includes('Cours du dimanche')
@@ -480,8 +482,7 @@ async function until(fn, ms = 15000, step = 250) {
       check('a session in the past is refused', badTime === 'bad');
       // a live planned for now: during its time, only its own code opens the room
       const nowish = new Date(Date.now() + 10 * 60e3);
-      await studio.fill('#nextAt', `${nowish.getFullYear()}-${two(nowish.getMonth() + 1)}-${two(nowish.getDate())}T${two(nowish.getHours())}:${two(nowish.getMinutes())}`); await studio.fill('#nextEnd', '');
-      await studio.fill('#nextTitle', 'Maintenant'); await studio.click('#nextSave');
+      await plan(nowish, 45, 'Maintenant');
       const nowCode = await until(async () => { const m = (await studio.inputValue('#inviteText')).match(/code=(\d{6})/); return (await studio.inputValue('#inviteText')).includes('Maintenant') && m && m[1]; }, 6000);
       const withRoom = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${code}`), withOwn = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${nowCode}`);
       const viaJoin = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: nowCode }) })).json();

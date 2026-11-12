@@ -121,27 +121,18 @@
     </div>
 
     <div class="panel" id="invitePanel">
-      <h2>الأجندة والدعوات</h2>
+      <div class="panel-head">
+        <h2>الأجندة</h2>
+        <button id="schedOpen" class="btn primary" type="button">＋ برمج لايف</button>
+      </div>
+      <p id="sessNote" class="muted">ما كاين حتى لايف مبرمج. ورك على «برمج لايف» باش تزيد واحد.</p>
+      <ul id="sessList" class="sess-cards"></ul>
+      <h3 class="sub">الدخول بالكود</h3>
       <label class="check"><input id="codeChk" type="checkbox"> <span>الدخول غير بالكود (بحال Zoom): صيفط الكود للناس اللي بغيتي</span></label>
       <p id="codeShow" class="code-show" hidden dir="ltr"></p>
       <p id="codeHelp" class="muted" hidden>هاد الكود ديال لايف بلا موعد، وكيتبدل مور كل لايف. كل لايف مبرمج عندو الكود ديالو والرابط ديالو، وكيخدمو غير فالوقت ديالو (من نص ساعة قبل حتى لنص ساعة بعد).</p>
-      <h3 class="sub">برمج لايف (الأجندة)</h3>
-      <div class="row">
-        <label for="nextAt">البداية</label>
-        <input id="nextAt" type="datetime-local">
-        <label for="nextEnd">حتى ل</label>
-        <input id="nextEnd" type="time">
-      </div>
-      <div class="row">
-        <label for="nextTitle">الموضوع</label>
-        <input id="nextTitle" type="text" maxlength="80">
-        <button id="nextSave" class="btn primary" type="button">زيدو للأجندة</button>
-      </div>
-      <p id="sessNote" class="muted">ما كاين حتى لايف مبرمج.</p>
-      <ul id="sessList" class="hands sess-list"></ul>
-      <h3 class="sub" id="inviteHead">الدعوة</h3>
-      <button id="inviteCopy" class="btn primary" type="button">نسخ الدعوة</button>
-      <textarea id="inviteText" class="invite-text" rows="6" readonly dir="auto"></textarea>
+      <button id="inviteCopy" class="btn" type="button">نسخ دعوة لايف بلا موعد</button>
+      <textarea id="inviteText" hidden readonly></textarea>
     </div>
 
     <div class="panel" id="gatePanel">
@@ -195,6 +186,26 @@
   </section>
   <aside class="chat" id="chat" aria-label="التعليقات"></aside>
 </main>
+
+<dialog id="schedDlg" class="dlg">
+  <form id="schedForm" class="sched-form">
+    <h2>برمج لايف</h2>
+    <label>الموضوع<input id="nextTitle" type="text" maxlength="80" autocomplete="off"></label>
+    <label>النهار<input id="nextDate" type="date" required></label>
+    <div class="sched-two">
+      <label>ساعة البداية<input id="nextTime" type="time" required></label>
+      <label>المدة<select id="nextDur">
+        <option value="30">30 دقيقة</option><option value="45">45 دقيقة</option><option value="60" selected>ساعة</option>
+        <option value="90">ساعة ونص</option><option value="120">ساعتين</option><option value="180">3 سوايع</option>
+      </select></label>
+    </div>
+    <p id="schedErr" class="err" hidden></p>
+    <div class="dlg-actions">
+      <button id="nextSave" class="btn primary" type="submit">حفظ فالأجندة</button>
+      <button id="schedCancel" class="btn" type="button">إلغاء</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="/i18n.js"></script>
 <script src="/common.js"></script>

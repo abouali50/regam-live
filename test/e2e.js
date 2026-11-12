@@ -142,7 +142,7 @@ async function until(fn, ms = 15000, step = 250) {
     const studio = await sctx.newPage();
     studio.on('pageerror', (e) => errors.push('studio: ' + e.message));
     studio.on('dialog', (d) => d.accept());
-    await studio.goto(BASE + '/studio');
+    await studio.goto(BASE + '/studio?all=1');
     await studio.fill('#pw', 'bad');
     const pwType = () => studio.evaluate(() => document.querySelector('#pw').type);
     const hidden1 = await pwType(); await studio.click('.pw-eye'); const shown = await pwType(); await studio.click('.pw-eye');
@@ -624,7 +624,7 @@ async function until(fn, ms = 15000, step = 250) {
     await fr.waitForLoadState('load');
     check('the language menu switches to English and remembers it', (await until(async () => (await fr.textContent('#handBtn')) === 'Ask to join' && (await fr.evaluate(() => document.documentElement.lang)) === 'en')) !== null);
     const frStudio = await frCtx.newPage();
-    await frStudio.goto(BASE + '/studio');
+    await frStudio.goto(BASE + '/studio?all=1');
     await frStudio.evaluate(() => localStorage.setItem('regam.lang', 'fr')); await frStudio.reload();
     check('studio sign-in is in French', (await frStudio.textContent('#loginForm h1')) === 'Connexion au studio' && (await frStudio.textContent('#loginForm button[type=submit]')) === 'Entrer');
     await frStudio.fill('#pw', 'studio-pass-1'); await frStudio.click('#loginForm button[type=submit]'); await frStudio.waitForSelector('#app:not([hidden])');
@@ -661,7 +661,7 @@ async function until(fn, ms = 15000, step = 250) {
     await openChat(tctx);
     const teacher = await tctx.newPage();
     teacher.on('pageerror', (e) => errors.push('teacher: ' + e.message));
-    await teacher.goto(BASE + '/studio');
+    await teacher.goto(BASE + '/studio?all=1');
     await teacher.fill('#lg', 'salma'); await teacher.fill('#pw', 'wrong-pass-00'); await teacher.click('#loginForm button[type=submit]');
     check('a teacher with a wrong password is refused', (await until(() => teacher.locator('#loginErr').isVisible(), 5000)) !== null);
     await teacher.fill('#pw', 'salma-pass-9'); await teacher.click('#loginForm button[type=submit]'); await teacher.waitForSelector('#app:not([hidden])');
@@ -806,7 +806,7 @@ async function until(fn, ms = 15000, step = 250) {
       const pctx = await browser.newContext({ ...devices['iPhone 14'], locale: 'ar-MA', permissions: ['camera', 'microphone'] });
       const ph = await pctx.newPage();
       ph.on('pageerror', (e) => errors.push('phone studio: ' + e.message));
-      await ph.goto(BASE + '/studio?mixer=simple');
+      await ph.goto(BASE + '/studio?mixer=simple&all=1');
       await ph.fill('#pw', 'studio-pass-1'); await ph.click('#loginForm button[type=submit]'); await ph.waitForSelector('#app:not([hidden])');
       check('the studio opens on a phone and is ready to go live', (await until(() => ph.evaluate(() => !document.querySelector('#goBtn').disabled && document.querySelector('#preview').videoWidth === 1280), 10000)) !== null
         && await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -821,6 +821,24 @@ async function until(fn, ms = 15000, step = 250) {
       await ph.click('#goBtn');
       await until(() => pv.locator('#liveBadge.off').isVisible());
       await pv.context().close(); await pctx.close();
+    }
+    // ---- the studio organised in sections with a side menu
+    {
+      const sp = await (await browser.newContext({ locale: 'fr-FR', viewport: { width: 1400, height: 900 }, permissions: ['camera', 'microphone'] })).newPage();
+      sp.on('pageerror', (e) => errors.push('sections: ' + e.message));
+      await sp.goto(BASE + '/studio');
+      await sp.fill('#pw', 'studio-pass-1'); await sp.click('#loginForm button[type=submit]'); await sp.waitForSelector('#app:not([hidden])');
+      check('the studio opens on a home section, with a menu to the others', (await until(() => sp.locator('#homeDash').isVisible())) !== null && await sp.locator('#goBtn').isHidden() && await sp.locator('#invitePanel').isHidden()
+        && (await sp.locator('#sideNav button').count()) === 8 && (await sp.textContent('#sideNav button.on')).includes('Accueil'));
+      await sp.click('#tileLive');
+      const liveTab = await sp.locator('#goBtn').isVisible() && await sp.locator('#homeDash').isHidden() && (await until(() => sp.evaluate(() => document.querySelector('#preview').videoWidth > 0), 8000)) !== null;
+      await sp.click('#sideNav button[data-tab=agenda]');
+      const agendaTab = await sp.locator('#schedOpen').isVisible() && await sp.locator('#goBtn').isHidden();
+      await sp.screenshot({ path: path.join(OUT, 'studio-sections.png') });
+      await sp.click('#sideNav button[data-tab=home]'); await sp.click('#tilePlan');
+      check('each menu entry shows its own section; the tiles lead to the live and to the planner', liveTab && agendaTab && await sp.locator('#schedDlg[open]').isVisible());
+      await sp.click('#schedCancel'); await sp.click('#sideNav button[data-tab=home]'); await sp.screenshot({ path: path.join(OUT, 'studio-home.png') });
+      await sp.context().close();
     }
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);

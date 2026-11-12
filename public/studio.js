@@ -468,6 +468,42 @@
     });
     window.__cap = { say: (text, src) => { capSrc = src || capSrc; capSay(text); }, send: (src, tx) => link.send({ t: 'cap', src, tx }) };     // for diagnostics
 
+    // ---- the studio is organised in sections, with a menu on the side: home, live, calendar, …
+    const TABS = [['home', '🏠', 'الرئيسية'], ['live', '🎥', 'اللايف'], ['agenda', '📅', 'الأجندة'], ['rec', '⏺', 'التسجيلات'], ['cap', '🌐', 'الترجمة'],
+      ['helpers', '👥', 'المساعدين'], ['gate', '🚪', 'قاعة الانتظار'], ['settings', '⚙️', 'الإعدادات']];
+    const TAB_OF = { homeDash: 'home', roomBar: 'home', invitePanel: 'agenda', recPanel: 'rec', capPanel: 'cap', helperPanel: 'helpers', gatePanel: 'gate' };
+    const stageBox = document.querySelector('#app > .stage');
+    for (const node of stageBox.children) node.dataset.tab = TAB_OF[node.id] || (node.classList.contains('settings') ? 'settings' : 'live');
+    if (new URLSearchParams(location.search).get('all')) document.body.classList.add('all-tabs');      // every section at once (for checks)
+    function showTab(name) {
+      for (const node of stageBox.children) node.classList.toggle('tab-off', node.dataset.tab !== name);
+      for (const b of $('#sideNav').querySelectorAll('button[data-tab]')) { const on = b.dataset.tab === name; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
+      try { sessionStorage.setItem('regam.tab', name); } catch { /* private mode */ }
+      stageBox.scrollTop = 0;
+    }
+    $('#sideNav').replaceChildren(...TABS.map(([id, icon, label]) => el('button', { type: 'button', 'data-tab': id, onclick: () => showTab(id) }, el('span', { 'aria-hidden': 'true' }, icon), T(label))),
+      me.user.role === 'admin' ? el('a', { href: '/admin', class: 'side-link' }, el('span', { 'aria-hidden': 'true' }, '🛠'), T('الإدارة')) : null);
+    showTab((() => { try { return sessionStorage.getItem('regam.tab'); } catch { return null; } })() || 'home');
+    // home: the room at a glance and the three things done most often
+    $('#dashRoom').textContent = mine.title;
+    $('#dashHello').textContent = T('مرحبا {name}', { name: me.user.name });
+    $('#dashLink').append($('#roomBar'));
+    $('#tileLive').onclick = () => showTab('live');
+    $('#tileJoin').onclick = () => window.open(viewerUrl, '_blank', 'noopener');
+    $('#tilePlan').onclick = () => { showTab('agenda'); $('#schedOpen').click(); };
+    $('#dashAgenda').onclick = () => showTab('agenda');
+    function showDash() {
+      $('#dashNone').hidden = sessions.length > 0;
+      $('#dashNext').replaceChildren(...sessions.slice(0, 3).map((x) => {
+        const d = new Date(x.at);
+        return el('li', {}, el('span', { class: 'sess-day' }, el('span', {}, d.toLocaleDateString(loc(), { weekday: 'short' })), el('b', {}, String(d.getDate())), el('span', {}, d.toLocaleDateString(loc(), { month: 'short' }))),
+          el('span', { class: 'sess-main' }, el('strong', {}, x.title || mine.title), el('span', { class: 'sess-hours', dir: 'ltr' }, timeOf(x.at) + (x.end ? ' – ' + timeOf(x.end) : ''))),
+          el('button', { class: 'btn', type: 'button', onclick: (e) => copyText(inviteFor(x), e.currentTarget) }, T('نسخ الدعوة')));
+      }));
+      $('#dashCode').hidden = !roomCode;
+      $('#dashCode').textContent = roomCode ? T('كود لايف بلا موعد: {code}', { code: roomCode.slice(0, 3) + ' ' + roomCode.slice(3) }) : '';
+    }
+
     // ---- calendar and invitations: sessions planned ahead, an entry code, and a text to send for each
     let roomCode = '', sessions = [], picked = '';        // picked: the session the invitation is about
     const pad = (n) => String(n).padStart(2, '0');
@@ -513,6 +549,7 @@
       }));
       const s = sessions.find((x) => x.id === picked) || sessions[0] || null;
       $('#inviteText').value = inviteFor(s);
+      showDash();
     }
     $('#codeChk').onchange = () => link.send({ t: 'code', on: $('#codeChk').checked });
     // the form, like a meeting planner: topic, day, start time, how long
@@ -742,6 +779,7 @@
       $('#liveBadge').textContent = T(on ? 'مباشر' : 'غير مباشر');
       $('#liveBadge').className = 'badge ' + (on ? 'on' : 'off');
       airOn = on; if (!on) recOn = false;
+      $('#dashState').textContent = T(on ? 'مباشر' : 'غير مباشر'); $('#dashState').className = 'badge ' + (on ? 'on' : 'off');
       showRec();
     }
 

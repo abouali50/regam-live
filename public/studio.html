@@ -35,7 +35,36 @@
 <pre id="fault" class="fault" hidden></pre>
 <p id="setupNote" class="setup-note" hidden>التسجيل ديال المتابعين مازال ما خدامش: بقات خطوة وحدة، ركب الإيميل اللي كيصيفط الكودات. <a href="/admin#accounts">سير للإدارة</a></p>
 <main id="app" class="layout" hidden>
+  <nav class="side" id="sideNav" aria-label="القائمة"></nav>
   <section class="stage">
+    <div class="dash" id="homeDash">
+      <div class="dash-head">
+        <div>
+          <span id="dashState" class="badge off">غير مباشر</span>
+          <h1 id="dashRoom"></h1>
+          <p class="muted" id="dashHello"></p>
+        </div>
+        <div class="dash-tiles">
+          <button id="tileLive" class="tile tile-live" type="button"><span aria-hidden="true">🎥</span>ابدأ لايف</button>
+          <button id="tileJoin" class="tile" type="button"><span aria-hidden="true">👁</span>شوف القاعة</button>
+          <button id="tilePlan" class="tile" type="button"><span aria-hidden="true">📅</span>برمج لايف</button>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="panel">
+          <h2>اللايفات الجاية</h2>
+          <p id="dashNone" class="muted">ما كاين حتى لايف مبرمج.</p>
+          <ul id="dashNext" class="dash-next"></ul>
+          <button id="dashAgenda" class="btn" type="button">شوف الأجندة كاملة</button>
+        </div>
+        <div class="panel">
+          <h2>الرابط ديال القاعة</h2>
+          <p class="muted">هاد الرابط كتعطيه للناس باش يتفرجو.</p>
+          <div id="dashLink"></div>
+          <p id="dashCode" class="muted" hidden></p>
+        </div>
+      </div>
+    </div>
     <div class="roombar" id="roomBar">
       <select id="roomSel" aria-label="القاعة" hidden></select>
       <strong id="roomName"></strong>

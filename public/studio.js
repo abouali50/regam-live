@@ -476,21 +476,22 @@
       + (s.end ? ' – ' + new Date(s.end).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) : '');
     function showInvite() {
       $('#codeChk').checked = !!roomCode;
-      $('#codeShow').hidden = !roomCode;
+      $('#codeShow').hidden = !roomCode; $('#codeHelp').hidden = !roomCode;
       $('#codeShow').textContent = roomCode ? roomCode.slice(0, 3) + ' ' + roomCode.slice(3) : '';
       const s = sessions.find((x) => x.id === picked) || sessions[0] || null;
       $('#sessNote').hidden = sessions.length > 0;
       $('#sessList').replaceChildren(...sessions.map((x) => el('li', { class: s && x.id === s.id ? 'picked' : '' },
-        el('span', {}, el('strong', {}, whenOf(x)), x.title ? ' · ' + x.title : ''),
+        el('span', {}, el('strong', {}, whenOf(x)), x.title ? ' · ' + x.title : '', roomCode ? el('span', { class: 'sess-code', dir: 'ltr' }, x.code.slice(0, 3) + ' ' + x.code.slice(3)) : null),
         el('span', { class: 'guest-acts' },
           el('button', { class: 'btn', type: 'button', onclick: () => { picked = x.id; showInvite(); } }, T('الدعوة')),
           el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'session', del: x.id }) }, T('حذف'))))));
+      const code = !roomCode ? '' : s ? s.code : roomCode;       // a planned live has its own code and link
       $('#inviteHead').textContent = T('الدعوة') + (s ? ' : ' + whenOf(s) : '');
       $('#inviteText').value = [
         T('دعوة للايف: {room}', { room: mine.title }) + (s && s.title ? ' - ' + s.title : ''),
         s ? T('الوقت: {when}', { when: whenOf(s) }) : '',
-        T('الرابط: {url}', { url: viewerUrl + (roomCode ? '?code=' + roomCode : '') }),
-        roomCode ? T('كود الدخول: {code}', { code: roomCode.slice(0, 3) + ' ' + roomCode.slice(3) }) : '',
+        T('الرابط: {url}', { url: viewerUrl + (code ? '?code=' + code : '') }),
+        code ? T('كود الدخول: {code}', { code: code.slice(0, 3) + ' ' + code.slice(3) }) : '',
         cfg.access === 'watch' ? T('خاصك تسجل بالإيميل ديالك فالموقع قبل ما تدخل.') : '',
         s ? T('زيدو للأجندة ديالك: {url}', { url: `${location.origin}/api/ics?room=${encodeURIComponent(mine.slug)}&id=${s.id}` }) : '',
       ].filter(Boolean).join('\n');

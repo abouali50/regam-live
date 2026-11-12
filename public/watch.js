@@ -413,8 +413,9 @@
       doorShut = true; setLive(false); knockBtn.hidden = true;
       $('#offlineText').textContent = T('هاد القاعة كيدخلو ليها بكود الدخول.');
       const dlg = $('#codeDlg'), err = $('#codeErr');
-      err.hidden = !d.bad && !d.wait;
-      err.textContent = T(d.wait ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط. شوف الدعوة وعاود.');
+      err.hidden = !d.bad && !d.wait && !d.early;
+      err.textContent = d.early ? T('هاد الكود ديال لايف مبرمج ل {when}. غادي يخدم نص ساعة قبل البداية.', { when: new Date(d.early).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) })
+        : T(d.wait ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط ولا سالا الوقت ديالو. شوف الدعوة وعاود.');
       $('#codeForm').onsubmit = (e) => {
         e.preventDefault();
         link.code = $('#codeInput').value.replace(/\D/g, '');

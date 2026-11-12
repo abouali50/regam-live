@@ -7,6 +7,17 @@
     try { data = await fetch('/api/rooms').then((r) => r.json()); } catch { return; }
     document.title = data.site;
     $('#noRooms').hidden = data.rooms.length > 0;
+    // the calendar: every planned session of every room, soonest first
+    const loc = LANG === 'ar' ? 'ar-MA' : LANG;
+    const planned = data.rooms.flatMap((r) => (r.sessions || []).map((s) => ({ ...s, room: r }))).sort((a, b) => a.at - b.at).slice(0, 12);
+    $('#agenda').hidden = planned.length === 0;
+    $('#agendaList').replaceChildren(...planned.map((s) => el('li', {},
+      el('span', { class: 'agenda-day' }, new Date(s.at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' })),
+      el('span', { class: 'agenda-time', dir: 'ltr' }, new Date(s.at).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) + (s.end ? ' – ' + new Date(s.end).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '')),
+      el('span', { class: 'agenda-what' }, el('strong', {}, s.room.title), s.title ? ' · ' + s.title : ''),
+      el('span', { class: 'agenda-acts' },
+        el('a', { class: 'btn small', href: `/api/ics?room=${encodeURIComponent(s.room.slug)}&id=${s.id}` }, T('زيدو للأجندة')),
+        el('a', { class: 'btn small primary', href: '/r/' + s.room.slug }, T('دخل للقاعة'))))));
     const groups = new Map();
     for (const r of data.rooms) {
       const key = r.topic || '';

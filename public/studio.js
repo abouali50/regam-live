@@ -462,30 +462,49 @@
     });
     window.__cap = { say: (text, src) => { capSrc = src || capSrc; capSay(text); }, send: (src, tx) => link.send({ t: 'cap', src, tx }) };     // for diagnostics
 
-    // ---- invitation: entry code and the time of the next session, as one text to send
-    let roomCode = '', roomNext = null;
+    // ---- calendar and invitations: sessions planned ahead, an entry code, and a text to send for each
+    let roomCode = '', sessions = [], picked = '';        // picked: the session the invitation is about
     const pad = (n) => String(n).padStart(2, '0');
+    const loc = () => (LANG === 'ar' ? 'ar-MA' : LANG);
+    const whenOf = (s) => new Date(s.at).toLocaleString(loc(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      + (s.end ? ' – ' + new Date(s.end).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) : '');
     function showInvite() {
       $('#codeChk').checked = !!roomCode;
       $('#codeShow').hidden = !roomCode;
       $('#codeShow').textContent = roomCode ? roomCode.slice(0, 3) + ' ' + roomCode.slice(3) : '';
-      if (roomNext && document.activeElement !== $('#nextAt')) { const d = new Date(roomNext.at); $('#nextAt').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-      if (!roomNext && document.activeElement !== $('#nextAt')) $('#nextAt').value = '';
-      if (document.activeElement !== $('#nextTitle')) $('#nextTitle').value = roomNext ? roomNext.title : '';
-      const when = roomNext ? new Date(roomNext.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const s = sessions.find((x) => x.id === picked) || sessions[0] || null;
+      $('#sessNote').hidden = sessions.length > 0;
+      $('#sessList').replaceChildren(...sessions.map((x) => el('li', { class: s && x.id === s.id ? 'picked' : '' },
+        el('span', {}, el('strong', {}, whenOf(x)), x.title ? ' · ' + x.title : ''),
+        el('span', { class: 'guest-acts' },
+          el('button', { class: 'btn', type: 'button', onclick: () => { picked = x.id; showInvite(); } }, T('الدعوة')),
+          el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'session', del: x.id }) }, T('حذف'))))));
+      $('#inviteHead').textContent = T('الدعوة') + (s ? ' : ' + whenOf(s) : '');
       $('#inviteText').value = [
-        T('دعوة للايف: {room}', { room: mine.title }) + (roomNext && roomNext.title ? ' - ' + roomNext.title : ''),
-        when ? T('الوقت: {when}', { when }) : '',
+        T('دعوة للايف: {room}', { room: mine.title }) + (s && s.title ? ' - ' + s.title : ''),
+        s ? T('الوقت: {when}', { when: whenOf(s) }) : '',
         T('الرابط: {url}', { url: viewerUrl + (roomCode ? '?code=' + roomCode : '') }),
         roomCode ? T('كود الدخول: {code}', { code: roomCode.slice(0, 3) + ' ' + roomCode.slice(3) }) : '',
         cfg.access === 'watch' ? T('خاصك تسجل بالإيميل ديالك فالموقع قبل ما تدخل.') : '',
+        s ? T('زيدو للأجندة ديالك: {url}', { url: `${location.origin}/api/ics?room=${encodeURIComponent(mine.slug)}&id=${s.id}` }) : '',
       ].filter(Boolean).join('\n');
     }
     $('#codeChk').onchange = () => link.send({ t: 'code', on: $('#codeChk').checked });
-    $('#nextSave').onclick = () => { const v = $('#nextAt').value; if (v) link.send({ t: 'next', at: new Date(v).getTime(), title: $('#nextTitle').value }); };
-    $('#nextClear').onclick = () => link.send({ t: 'next', at: 0 });
+    $('#nextSave').onclick = () => {
+      const v = $('#nextAt').value, e = $('#nextEnd').value;
+      if (!v) return status(T('اختار النهار والساعة ديال البداية.'));
+      const at = new Date(v).getTime();
+      let end = 0;
+      if (e) { end = new Date(v.slice(0, 11) + e).getTime(); if (end <= at) end += 24 * 3600e3; }       // an end before the start means past midnight
+      link.send({ t: 'session', at, end, title: $('#nextTitle').value });
+    };
     $('#inviteCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#inviteText').value); status(T('تنسخات الدعوة. لصقها فواتساب ولا فالإيميل.')); } catch { $('#inviteText').select(); } };
-    link.on('code', (d) => { roomCode = d.code || ''; showInvite(); }).on('next', (d) => { roomNext = d.next; showInvite(); });
+    link.on('code', (d) => { roomCode = d.code || ''; showInvite(); })
+      .on('sessions', (d) => {
+        if (d.err) return status(T('الوقت ما مقبولش. اختار وقت جاي، والنهاية من بعد البداية.'));
+        if (d.list.length > sessions.length) { picked = d.list.find((x) => !sessions.some((y) => y.id === x.id)).id; $('#nextAt').value = ''; $('#nextEnd').value = ''; $('#nextTitle').value = ''; }
+        sessions = d.list; showInvite();
+      });
 
     // ---- assistants: members who help the host run the room
     function showHelpers(list, err) {
@@ -630,7 +649,7 @@
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
       showWaiting(!!d.gate, d.waiting || []);
       recOn = !!d.rec; showRec();
-      roomCode = d.code || ''; roomNext = d.next || null; showInvite();
+      roomCode = d.code || ''; sessions = d.sessions || []; showInvite();
       showHelpers(d.helpers || []);
     })
       .on('waiting', (d) => showWaiting(d.gate, d.list))

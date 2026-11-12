@@ -48,8 +48,18 @@
     const line = $('#nextLine');
     line.hidden = !next;
     if (!next) return;
-    const when = new Date(next.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-    line.textContent = T('اللايف الجاي: {when}', { when }) + (next.title ? ' · ' + next.title : '');
+    const loc = LANG === 'ar' ? 'ar-MA' : LANG;
+    const when = new Date(next.at).toLocaleString(loc, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+      + (next.end ? ' – ' + new Date(next.end).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '');
+    // how long until it starts, kept up to date
+    const left = () => {
+      const m = Math.round((next.at - Date.now()) / 60000);
+      return m <= 0 ? T('دابا') : m < 60 ? T('من هنا {n} دقيقة', { n: m }) : m < 48 * 60 ? T('من هنا {h} ساعة و {n} دقيقة', { h: Math.floor(m / 60), n: m % 60 }) : T('من هنا {d} يوم', { d: Math.round(m / 1440) });
+    };
+    const paint = () => line.replaceChildren(el('span', {}, T('اللايف الجاي: {when}', { when }) + (next.title ? ' · ' + next.title : '')), el('span', { class: 'next-left' }, left()),
+      el('a', { class: 'next-ics', href: `/api/ics?room=${encodeURIComponent(cfg.room)}&id=${next.id}` }, T('زيدو للأجندة')));
+    clearInterval(showNext.timer); showNext.timer = setInterval(paint, 30000);
+    paint();
   }
   showNext(cfg.next);
   const chat = mountChat($('#chat'), link, { askName });

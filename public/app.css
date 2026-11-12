@@ -1,13 +1,15 @@
 /* REGAM Live */
 :root {
-  --bg: #0b0e13; --panel: #131821; --panel-2: #1a202b; --line: #262e3b;
-  --text: #ece7dc; --muted: #8e97a6; --gold: #f2b84b; --live: #ff4a4a; --ok: #3ecf8e;
+  /* turquoise blue ground, golden accents, a little light violet and turquoise green */
+  --bg: #0a4756; --panel: #0e5a6b; --panel-2: #12697b; --line: #2b8c9c;
+  --text: #f3fbfc; --muted: #b9dde3; --gold: #ffc93c; --live: #ff4a4a; --ok: #46e6c8;
+  --violet: #cdbcff; --teal: #46e6c8;
   --radius: 14px;
   --font: "SF Arabic", "Segoe UI", "Noto Sans Arabic", Tahoma, system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 var(--font); display: flex; flex-direction: column; min-height: 100dvh; }
+body { margin: 0; background: var(--bg) linear-gradient(160deg, #0c5a6c 0%, #0a4756 45%, #0a3f55 100%) fixed; color: var(--text); font: 16px/1.55 var(--font); display: flex; flex-direction: column; min-height: 100dvh; }
 [hidden] { display: none !important; }
 button, input, select { font: inherit; color: inherit; }
 h1, h2, p { margin: 0; }
@@ -41,7 +43,7 @@ h1, h2, p { margin: 0; }
 .guest-line { color: var(--gold); font-size: 14px; margin-top: 2px; }
 
 .btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600; white-space: nowrap; flex: none; }
-.btn:hover { border-color: #3a4556; }
+.btn:hover { border-color: #5cc0cf; }
 .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .btn:disabled { opacity: .5; cursor: default; }
 .btn.primary { background: var(--gold); border-color: var(--gold); color: #1b1405; }
@@ -139,7 +141,7 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .reactions { display: flex; align-items: center; gap: 10px; }
 .react-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .react { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); font-size: 22px; line-height: 1; cursor: pointer; padding: 0; transition: transform .12s; }
-.react:hover { border-color: #3a4556; }
+.react:hover { border-color: #5cc0cf; }
 .react:active { transform: scale(1.25); }
 .react:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .reactions .likes-count { margin-inline-start: auto; background: var(--panel-2); border-radius: 999px; padding: 4px 12px; font-weight: 700; color: var(--text); }
@@ -165,7 +167,7 @@ span.react { cursor: default; }
 .room-group h2 { font-size: 17px; color: var(--gold); margin-bottom: 10px; }
 .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .room-card { display: grid; gap: 6px; justify-items: start; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); text-decoration: none; }
-.room-card:hover { border-color: #3a4556; }
+.room-card:hover { border-color: #5cc0cf; }
 .room-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .room-card.is-live { border-color: var(--live); }
 .room-name { font-size: 18px; line-height: 1.3; overflow-wrap: anywhere; }
@@ -314,7 +316,7 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 /* reactions folded into one button; the box of seven opens above it */
 .react-wrap { position: relative; display: inline-flex; }
 .react-open { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
-.react-open:hover { border-color: #3a4556; }
+.react-open:hover { border-color: #5cc0cf; }
 .react-open:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .react-open[aria-expanded="true"] { border-color: var(--gold); }
 .react-open .react-e { font-size: 20px; }
@@ -483,7 +485,7 @@ body:not(.all-tabs) .tab-off { display: none !important; }
 /* the AI assistant: its answers in the comments, and the help bubble */
 .msg.ai .who { color: #7cc4ff; }
 .msg.ai { background: rgba(124,196,255,.07); border-radius: 8px; }
-.ai-bubble { position: fixed; z-index: 35; bottom: calc(18px + var(--bar-h, 0px) + env(safe-area-inset-bottom)); inset-inline-start: 16px; width: 54px; height: 54px; border-radius: 50%; border: 0; background: #2b6cb0; color: #fff; font-size: 26px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.45); }
+.ai-bubble { position: fixed; z-index: 35; bottom: calc(18px + var(--bar-h, 0px) + env(safe-area-inset-bottom)); inset-inline-start: 16px; width: 54px; height: 54px; border-radius: 50%; border: 0; background: #7a5fd6; color: #fff; font-size: 26px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.45); }
 .ai-bubble:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .ai-panel { position: fixed; z-index: 36; bottom: calc(82px + var(--bar-h, 0px) + env(safe-area-inset-bottom)); inset-inline-start: 16px; width: min(380px, calc(100vw - 32px)); height: min(520px, 70dvh); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.6); overflow: hidden; }
 .ai-panel[hidden] { display: none; }
@@ -492,10 +494,38 @@ body:not(.all-tabs) .tab-off { display: none !important; }
 .ai-log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .ai-msg { margin: 0; padding: 8px 12px; border-radius: 14px; max-width: 88%; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.45; }
 .ai-msg.assistant { background: var(--panel-2); align-self: flex-start; }
-.ai-msg.user { background: #2b6cb0; color: #fff; align-self: flex-end; }
+.ai-msg.user { background: #7a5fd6; color: #fff; align-self: flex-end; }
 .ai-msg.wait { color: var(--muted); }
 .ai-msg.err { color: #ffb4b4; }
 .ai-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
 .ai-form input { flex: 1; min-width: 0; font-size: 16px; }
 .ai-admin .wide { grid-column: 1 / -1; }
 .ai-admin textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; }
+
+/* accents of the turquoise theme */
+.ico { width: 22px; height: 22px; flex: none; fill: none; stroke: var(--gold); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.tile .ico { width: 30px; height: 30px; }
+.tile-live .ico { stroke: #1b1405; }
+.side button.on { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 3px 0 0 var(--gold); }
+[dir="rtl"] .side button.on { box-shadow: inset -3px 0 0 var(--gold); }
+.side button, .side-link { color: #d9f1f4; }
+.side button:hover, .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+a { color: var(--violet); }
+.sub, .home-title, .room-group h2 { color: var(--violet); }
+.sess-hours, .agenda-time { color: var(--teal); }
+.sess-day { border-top-color: var(--violet); }
+.badge.off { background: rgba(0,0,0,.25); color: #d9f1f4; }
+.panel, .dash-head, .room-card { box-shadow: 0 6px 20px rgba(3,30,38,.28); }
+.top { background: rgba(6,52,64,.72); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.msg.ai .who { color: var(--violet); }
+.msg.ai { background: rgba(205,188,255,.1); }
+input::placeholder, textarea::placeholder { color: #8fc3cc; }
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="datetime-local"], input[type="date"], input[type="time"], select, textarea { background: #083a47; }
+.btn { background: rgba(255,255,255,.1); border-color: #3aa0b0; }
+.btn:hover { border-color: var(--gold); }
+.btn.primary, .tile-live, .room-enter { background: var(--gold); border-color: var(--gold); color: #1b1405; }
+.btn.danger, .bar-btn.danger { background: var(--live); border-color: var(--live); color: #fff; }
+.player, .preview-wrap, video { background-color: #05212a; }
+dialog.dlg { background: #0c5262; }
+dialog.dlg::backdrop { background: rgba(3,30,38,.7); }
+.ai-admin .check { flex-direction: row; align-items: center; align-self: center; }

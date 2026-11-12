@@ -472,8 +472,8 @@
     link.on('aichat', (d) => { $('#aiChatRow').hidden = !d.ready; $('#aiChatChk').checked = d.on; });
 
     // ---- the studio is organised in sections, with a menu on the side: home, live, calendar, …
-    const TABS = [['home', '🏠', 'الرئيسية'], ['live', '🎥', 'اللايف'], ['agenda', '📅', 'الأجندة'], ['rec', '⏺', 'التسجيلات'], ['cap', '🌐', 'الترجمة'],
-      ['helpers', '👥', 'المساعدين'], ['gate', '🚪', 'قاعة الانتظار'], ['settings', '⚙️', 'الإعدادات']];
+    const TABS = [['home', 'home', 'الرئيسية'], ['live', 'video', 'اللايف'], ['agenda', 'calendar', 'الأجندة'], ['rec', 'record', 'التسجيلات'], ['cap', 'globe', 'الترجمة'],
+      ['helpers', 'users', 'المساعدين'], ['gate', 'door', 'قاعة الانتظار'], ['settings', 'gear', 'الإعدادات']];
     const TAB_OF = { homeDash: 'home', roomBar: 'home', invitePanel: 'agenda', recPanel: 'rec', capPanel: 'cap', helperPanel: 'helpers', gatePanel: 'gate' };
     const stageBox = document.querySelector('#app > .stage');
     for (const node of stageBox.children) node.dataset.tab = TAB_OF[node.id] || (node.classList.contains('settings') ? 'settings' : 'live');
@@ -484,13 +484,14 @@
       try { sessionStorage.setItem('regam.tab', name); } catch { /* private mode */ }
       stageBox.scrollTop = 0;
     }
-    $('#sideNav').replaceChildren(...TABS.map(([id, icon, label]) => el('button', { type: 'button', 'data-tab': id, onclick: () => showTab(id) }, el('span', { 'aria-hidden': 'true' }, icon), T(label))),
-      ...(me.user.role === 'admin' ? [el('a', { href: '/admin', class: 'side-link' }, el('span', { 'aria-hidden': 'true' }, '🛠'), T('الإدارة'))] : []));
+    $('#sideNav').replaceChildren(...TABS.map(([id, ic, label]) => el('button', { type: 'button', 'data-tab': id, onclick: () => showTab(id) }, icon(ic), T(label))),
+      ...(me.user.role === 'admin' ? [el('a', { href: '/admin', class: 'side-link' }, icon('tools'), T('الإدارة'))] : []));
     showTab((() => { try { return sessionStorage.getItem('regam.tab'); } catch { return null; } })() || 'home');
     // home: the room at a glance and the three things done most often
     $('#dashRoom').textContent = mine.title;
     $('#dashHello').textContent = T('مرحبا {name}', { name: me.user.name });
     $('#dashLink').append($('#roomBar'));
+    for (const [id, ic] of [['tileLive', 'video'], ['tileJoin', 'eye'], ['tilePlan', 'calendar']]) $('#' + id).querySelector('span').replaceWith(icon(ic));
     $('#tileLive').onclick = () => showTab('live');
     $('#tileJoin').onclick = () => window.open(viewerUrl, '_blank', 'noopener');
     $('#tilePlan').onclick = () => { showTab('agenda'); $('#schedOpen').click(); };

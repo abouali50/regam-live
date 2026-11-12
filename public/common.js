@@ -12,6 +12,20 @@ function el(tag, props = {}, ...kids) {
   for (const kid of kids) if (kid !== null && kid !== undefined) n.append(kid);
   return n;
 }
+// Line icons, drawn in the theme's gold (the same family everywhere, instead of emoji).
+const ICONS = {
+  home: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10', video: 'M3 7h12v10H3zM15 10l6-3v10l-6-3', calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+  record: 'M4 12a8 8 0 1 0 16 0a8 8 0 1 0-16 0M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0', globe: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M3 12h18M12 3c3.5 3 3.5 15 0 18M12 3c-3.5 3-3.5 15 0 18',
+  users: 'M9 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7zM2 20c0-4 3-6 7-6s7 2 7 6M16.5 11a3 3 0 1 0 0-6M18 14c2.5.6 4 2.6 4 6', door: 'M6 21V3h10v18M4 21h16M13 12h.01',
+  gear: 'M12 15.5a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',
+  tools: 'M14.5 5.5a4.5 4.5 0 0 0 5.6 5.6L11 20.2a2.2 2.2 0 0 1-3.1-3.1l9.1-9.1a4.5 4.5 0 0 1-2.5-2.5z', eye: 'M2 12s4-7 10-7s10 7 10 7s-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6z',
+};
+function icon(name) {
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'), path = document.createElementNS(NS, 'path');
+  svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('class', 'ico'); svg.setAttribute('aria-hidden', 'true');
+  path.setAttribute('d', ICONS[name] || ''); svg.append(path);
+  return svg;
+}
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },

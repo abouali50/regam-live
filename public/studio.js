@@ -468,6 +468,9 @@
     });
     window.__cap = { say: (text, src) => { capSrc = src || capSrc; capSay(text); }, send: (src, tx) => link.send({ t: 'cap', src, tx }) };     // for diagnostics
 
+    $('#aiChatChk').onchange = () => link.send({ t: 'aichat', on: $('#aiChatChk').checked });
+    link.on('aichat', (d) => { $('#aiChatRow').hidden = !d.ready; $('#aiChatChk').checked = d.on; });
+
     // ---- the studio is organised in sections, with a menu on the side: home, live, calendar, …
     const TABS = [['home', '🏠', 'الرئيسية'], ['live', '🎥', 'اللايف'], ['agenda', '📅', 'الأجندة'], ['rec', '⏺', 'التسجيلات'], ['cap', '🌐', 'الترجمة'],
       ['helpers', '👥', 'المساعدين'], ['gate', '🚪', 'قاعة الانتظار'], ['settings', '⚙️', 'الإعدادات']];
@@ -482,7 +485,7 @@
       stageBox.scrollTop = 0;
     }
     $('#sideNav').replaceChildren(...TABS.map(([id, icon, label]) => el('button', { type: 'button', 'data-tab': id, onclick: () => showTab(id) }, el('span', { 'aria-hidden': 'true' }, icon), T(label))),
-      me.user.role === 'admin' ? el('a', { href: '/admin', class: 'side-link' }, el('span', { 'aria-hidden': 'true' }, '🛠'), T('الإدارة')) : null);
+      ...(me.user.role === 'admin' ? [el('a', { href: '/admin', class: 'side-link' }, el('span', { 'aria-hidden': 'true' }, '🛠'), T('الإدارة'))] : []));
     showTab((() => { try { return sessionStorage.getItem('regam.tab'); } catch { return null; } })() || 'home');
     // home: the room at a glance and the three things done most often
     $('#dashRoom').textContent = mine.title;
@@ -719,6 +722,7 @@
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
       showWaiting(!!d.gate, d.waiting || []);
       recOn = !!d.rec; showRec();
+      $('#aiChatRow').hidden = !(d.aiChat && d.aiChat.ready); $('#aiChatChk').checked = !!(d.aiChat && d.aiChat.on);
       roomCode = d.code || ''; sessions = d.sessions || []; showInvite();
       showHelpers(d.helpers || []);
     })

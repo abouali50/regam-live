@@ -42,6 +42,21 @@
     <ul id="roomList" class="admin-list"></ul>
   </section>
 
+  <section class="panel" id="aiPanel">
+    <h2>المساعد الذكي (Claude)</h2>
+    <p class="muted">كيجاوب على أسئلة المتابعين فالتعليقات ديال اللايف، وعندو زر ديال المساعدة فالموقع. خاصو مفتاح (API key) من console.anthropic.com، والخلاص على حساب الاستعمال.</p>
+    <p id="aiState" class="err"></p>
+    <form id="aiForm" class="admin-form ai-admin">
+      <label>المفتاح (API key)<input name="key" type="password" maxlength="300" dir="ltr" autocomplete="new-password"></label>
+      <label>الموديل<select name="model"></select></label>
+      <label class="wide">شنو خاص المساعد يعرف (الأثمنة، المواعيد، كيفاش يتواصلو معاك…)<textarea name="about" rows="5" maxlength="4000" dir="auto"></textarea></label>
+      <label class="check"><input name="chat" type="checkbox"> <span>يجاوب فالتعليقات ديال اللايف</span></label>
+      <label class="check"><input name="help" type="checkbox"> <span>زر المساعدة فالموقع</span></label>
+      <button class="btn primary" type="submit">حفظ</button>
+      <button class="btn" type="button" id="aiTest">جرب المساعد</button>
+    </form>
+  </section>
+
   <section class="panel" id="accounts">
     <h2>حسابات المتابعين</h2>
     <p class="muted">الناس كيسجلو بالإيميل وكلمة السر، وكيوصلهم كود فالإيميل باش يفعلو الحساب.</p>

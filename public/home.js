@@ -53,6 +53,7 @@
   // the account corner, and the invitation to sign up for people who have no account yet
   fetch('/api/site').then((r) => r.json()).then((site) => {
     mountAccount(document.querySelector('.top .meta'), site);
+    if (site.assistant) mountAssistant();
     if (account.token) { $('#heroHello').hidden = false; $('#heroHello').textContent = T('مرحبا {name}', { name: account.name }); }
     else if (site.accounts) {
       $('#heroActions').hidden = false;

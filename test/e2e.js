@@ -434,10 +434,11 @@ async function until(fn, ms = 15000, step = 250) {
       await c1.fill('#codeInput', code); await c1.click('#codeForm button[type=submit]');
       check('the right code lets the person in', (await until(() => c1.locator('#liveBadge.on').isVisible(), 8000)) !== null
         && (await until(() => c1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null && await c1.locator('#codeDlg').isHidden());
-      check('guests on stage are not cut when the code is switched on', await studio.evaluate(() => window.__studio.stage.size === 2) && await viewer.locator('#stageBar').isVisible());
+      check('guests on stage are not cut when the code is switched on', await studio.evaluate(() => window.__studio.stage.size === 2) && await viewer.locator('#stageBar').isVisible(), JSON.stringify({ stage: await studio.evaluate(() => [...window.__studio.stage].map(([n, x]) => [n, !!x.rx, x.rx && x.rx.pc.connectionState])), bar: await viewer.locator('#stageBar').isVisible(), g2bar: await g2.locator('#stageBar').isVisible(), list: await studio.locator('#onStage li').allTextContents(), status: await studio.textContent('#status'), vchat: await viewer.evaluate(() => [...document.querySelectorAll('.chat .note, .chat-note, .sys')].map((n) => n.textContent).slice(-3)) }));
       // the invitation: date, link carrying the code, the code itself
       const soon = new Date(Date.now() + 26 * 3600e3), two = (n) => String(n).padStart(2, '0');
       await studio.fill('#nextAt', `${soon.getFullYear()}-${two(soon.getMonth() + 1)}-${two(soon.getDate())}T${two(soon.getHours())}:${two(soon.getMinutes())}`);
+      await studio.fill('#nextEnd', `${two((soon.getHours() + 1) % 24)}:${two(soon.getMinutes())}`);
       await studio.fill('#nextTitle', 'MetaMask الدرس الثاني'); await studio.click('#nextSave');
       const invite = await until(async () => { const t = await studio.inputValue('#inviteText'); return t.includes('MetaMask') && t; }, 6000);
       const url = (String(invite).match(/https?:\/\/\S+/) || [''])[0];
@@ -452,7 +453,27 @@ async function until(fn, ms = 15000, step = 250) {
       check('on the home page, typing the invitation code leads straight into its room', badJoin.status === 404 && (await until(() => hp.locator('#liveBadge.on').isVisible(), 10000)) !== null && hp.url().endsWith('/r/main')
         && (await hp.textContent('#handBtn')) === 'Demander à monter');
       await hp.context().close();
-      await studio.click('#nextClear'); await studio.uncheck('#codeChk');
+      // the calendar: a second session, the agenda on the home page, the calendar file
+      const later = new Date(Date.now() + 5 * 24 * 3600e3);
+      await studio.fill('#nextAt', `${later.getFullYear()}-${two(later.getMonth() + 1)}-${two(later.getDate())}T15:00`); await studio.fill('#nextEnd', '16:00');
+      await studio.fill('#nextTitle', 'Cours du dimanche'); await studio.click('#nextSave');
+      await until(async () => (await studio.locator('#sessList li').count()) === 2, 6000);
+      const cal = (await (await fetch(BASE + '/api/config')).json()).sessions;
+      const ics = await fetch(BASE + `/api/ics?room=main&id=${cal[0].id}`), icsText = await ics.text();
+      const ag = await (await browser.newContext({ locale: 'fr-FR', viewport: { width: 1000, height: 800 } })).newPage();
+      await ag.goto(BASE + '/rooms');
+      check('several lives can be planned, each with a start and an end; the soonest is the one announced', cal.length === 2 && cal[0].title === 'MetaMask الدرس الثاني' && cal[0].end - cal[0].at === 3600e3 && cal[1].end - cal[1].at === 3600e3
+        && (await studio.inputValue('#inviteText')).includes('Cours du dimanche') && (await studio.inputValue('#inviteText')).includes('/api/ics?room=main&id=' + cal[1].id));
+      check('each planned live can be added to a personal calendar', ics.status === 200 && /text\/calendar/.test(ics.headers.get('content-type')) && /BEGIN:VEVENT/.test(icsText)
+        && /DTSTART:\d{8}T\d{6}Z/.test(icsText) && /DTEND:\d{8}T\d{6}Z/.test(icsText) && icsText.includes('/r/main') && !icsText.includes(code));
+      check('the home page shows the agenda of planned lives', (await until(async () => (await ag.locator('#agendaList li').count()) === 2, 8000)) !== null && (await ag.textContent('#agendaList li >> nth=1')).includes('Cours du dimanche')
+        && (await ag.textContent('#agendaList li >> nth=1')).includes('15:00') && (await c2.textContent('#nextLine')).includes('dans') === false);
+      await ag.context().close();
+      const badTime = await studio.evaluate(() => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'sessiontester0001', token: sessionStorage.getItem('regam.studio') })); w.send(JSON.stringify({ t: 'session', at: Date.now() - 5 * 24 * 3600e3 })); }; w.onmessage = (m) => { const d = JSON.parse(m.data); if (d.t === 'sessions') { res(d.err || 'accepted'); w.close(); } }; setTimeout(() => res('none'), 4000); }));
+      check('a session in the past is refused', badTime === 'bad');
+      for (let i = 0; i < 2; i++) await studio.locator('#sessList li button.danger').first().click();
+      await until(async () => (await studio.locator('#sessList li').count()) === 0, 6000);
+      await studio.uncheck('#codeChk');
       const c3 = await open1();
       check('without the code option, the room is open again', (await until(() => c3.locator('#liveBadge.on').isVisible(), 8000)) !== null && (await (await fetch(BASE + '/api/config')).json()).locked === false);
       for (const p of [c1, c2, c3]) await p.context().close();

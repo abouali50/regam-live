@@ -121,19 +121,24 @@
     </div>
 
     <div class="panel" id="invitePanel">
-      <h2>الدعوة والدخول بالكود</h2>
+      <h2>الأجندة والدعوات</h2>
       <label class="check"><input id="codeChk" type="checkbox"> <span>الدخول غير بالكود (بحال Zoom): صيفط الكود للناس اللي بغيتي</span></label>
       <p id="codeShow" class="code-show" hidden dir="ltr"></p>
+      <h3 class="sub">برمج لايف (الأجندة)</h3>
       <div class="row">
-        <label for="nextAt">وقت اللايف الجاي</label>
+        <label for="nextAt">البداية</label>
         <input id="nextAt" type="datetime-local">
-        <button id="nextSave" class="btn" type="button">حفظ</button>
+        <label for="nextEnd">حتى ل</label>
+        <input id="nextEnd" type="time">
       </div>
       <div class="row">
         <label for="nextTitle">الموضوع</label>
         <input id="nextTitle" type="text" maxlength="80">
-        <button id="nextClear" class="btn" type="button">حيد الموعد</button>
+        <button id="nextSave" class="btn primary" type="button">زيدو للأجندة</button>
       </div>
+      <p id="sessNote" class="muted">ما كاين حتى لايف مبرمج.</p>
+      <ul id="sessList" class="hands sess-list"></ul>
+      <h3 class="sub" id="inviteHead">الدعوة</h3>
       <button id="inviteCopy" class="btn primary" type="button">نسخ الدعوة</button>
       <textarea id="inviteText" class="invite-text" rows="6" readonly dir="auto"></textarea>
     </div>

@@ -181,7 +181,24 @@ function codeAllowed(ip, wrong) {
   codeTries.set(ip, list);
   return list.length <= 12;
 }
-const nextOf = (room) => (room.cfg.next && room.cfg.next.at > Date.now() - 3 * 3600e3 ? room.cfg.next : null);   // the announced session, until a few hours after its time
+// The room's calendar: sessions planned by its host ({ id, at, end, title }, times in ms).
+// A session stays listed until its end (or three hours after its start when no end was given).
+function sessionsOf(room) {
+  const c = room.cfg, now = Date.now();
+  if (c.next && !c.sessions) { c.sessions = [{ id: 's' + c.next.at, at: c.next.at, end: 0, title: c.next.title || '' }]; delete c.next; }     // from the earlier single "next live"
+  return (c.sessions || []).filter((s) => (s.end || s.at + 3 * 3600e3) > now).sort((a, b) => a.at - b.at);
+}
+const nextOf = (room) => sessionsOf(room)[0] || null;
+// One session as a calendar file, so people can add it to their own agenda.
+function icsOf(room, s, origin) {
+  const z = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const esc = (t) => String(t).replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
+  const url = `${origin}/r/${room.cfg.slug}`, name = room.cfg.title + (s.title ? ' - ' + s.title : '');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//REGAM Live//FR', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+    `UID:${s.id}-${room.cfg.slug}@regam-live`, `DTSTAMP:${z(Date.now())}`, `DTSTART:${z(s.at)}`, `DTEND:${z(s.end || s.at + 3600e3)}`,
+    `SUMMARY:${esc(name)}`, `DESCRIPTION:${esc(url)}`, `URL:${url}`, `LOCATION:${esc(url)}`,
+    'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY', `DESCRIPTION:${esc(name)}`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n') + '\r\n';
+}
 const cookieOf = (req, name) => {
   for (const part of String(req.headers.cookie || '').split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim(); }
   return '';
@@ -387,7 +404,7 @@ function handleRecordings(req, res, url) {
 }
 
 // ---------------------------------------------------------- administration --
-const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, next: nextOf(r) });
+const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, next: nextOf(r), sessions: sessionsOf(r).slice(0, 10) });
 function slugFor(title) {
   let base = String(title).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
   if (!SLUG.test(base)) base = 'room';
@@ -535,12 +552,19 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
-        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sound: soundUrl(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
+        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
         access: acct.access(), accounts: acct.mailReady(),
       });
     }
     if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady(), build: BUILD });
     if (p.startsWith('/api/member/')) return await acct.handle(req, res, p.slice(12));
+    if (p === '/api/ics') {                       // a planned session, as a file for the person's own calendar
+      const room = roomOf(url), s = room && sessionsOf(room).find((x) => x.id === url.searchParams.get('id'));
+      if (!s) return send(res, 404, 'Not found');
+      const hostName = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+      const origin = /^[a-z0-9.-]+(:\d+)?$/i.test(hostName) ? `${/^(localhost|127\.)/.test(hostName) ? 'http' : 'https'}://${hostName}` : '';
+      return send(res, 200, icsOf(room, s, origin), { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="regam-live-${room.cfg.slug}.ics"` });
+    }
     if (p === '/api/sound') return handleSound(req, res, url);
     if (p === '/api/pics') return handlePics(req, res, url);
     if (p.startsWith('/media/pic/')) return servePic(res, p.slice(11));
@@ -742,7 +766,7 @@ wss.on('connection', (ws, req) => {
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
-        code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room),
+        code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? sessionsOf(room) : undefined,
         rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
       });
     }
@@ -880,11 +904,17 @@ wss.on('connection', (ws, req) => {
         });
         return;
       }
-      case 'next': {                       // announce the next session (or clear it)
-        const at = Number(d.at);
-        cfg.next = at > Date.now() - 3600e3 && at < Date.now() + 366 * 24 * 3600e3 ? { at, title: clean(d.title, 80) } : null;
+      case 'session': {                    // the room's calendar: plan a session, or remove one
+        const list = sessionsOf(room);
+        if (d.del) cfg.sessions = list.filter((s) => s.id !== String(d.del));
+        else {
+          const at = Number(d.at), end = Number(d.end) || 0, now = Date.now();
+          if (!(at > now - 3600e3 && at < now + 366 * 24 * 3600e3) || (end && (end <= at || end > at + 24 * 3600e3)) || list.length >= 40) return tx(ws, { t: 'sessions', list, err: 'bad' });
+          cfg.sessions = [...list, { id: 's' + crypto.randomBytes(5).toString('hex'), at, end, title: clean(d.title, 80) }];
+        }
         save();
-        return broadcast(room, { t: 'next', next: nextOf(room) });
+        broadcast(room, { t: 'next', next: nextOf(room) });
+        return toMods(room, { t: 'sessions', list: sessionsOf(room) });
       }
       case 'helper': {                     // the host names an assistant (by the e-mail of their account) or removes one
         const list = (cfg.helpers = cfg.helpers || []);
@@ -999,14 +1029,22 @@ async function setRecording(room, on) {
 }
 
 // Ask the media server which rooms are on air.
+// One slow or failed answer must not end a live: a room goes off air only when the media server
+// has answered several times in a row without it, or has been unreachable for a while.
+let pollFails = 0;
 async function pollLive() {
   const onAir = new Set();
+  let answered = false;
   try {
-    const r = await fetch(`${MTX_API}/v3/paths/list?itemsPerPage=1000`, { headers: { Authorization: MTX_AUTH }, signal: AbortSignal.timeout(1500) });
-    if (r.ok) for (const it of (await r.json()).items || []) if (it.available ?? it.ready) onAir.add(it.name);
-  } catch { /* media server down = everything offline */ }
+    const r = await fetch(`${MTX_API}/v3/paths/list?itemsPerPage=1000`, { headers: { Authorization: MTX_AUTH }, signal: AbortSignal.timeout(4000) });
+    if (r.ok) { answered = true; for (const it of (await r.json()).items || []) if (it.available ?? it.ready) onAir.add(it.name); }
+  } catch { /* counted below */ }
+  pollFails = answered ? 0 : pollFails + 1;
+  if (!answered && pollFails < 8) return;                 // no news: keep things as they are for a while
   for (const room of rooms.values()) {
-    const on = onAir.has(`air_${room.cfg.slug}`);
+    const seen = onAir.has(`air_${room.cfg.slug}`);
+    room.missed = seen ? 0 : (room.missed || 0) + 1;
+    const on = seen || (room.live && answered && room.missed < 3);
     if (on === room.live) continue;
     room.live = on;
     if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; }      // a new live starts its reactions from zero
@@ -1015,7 +1053,8 @@ async function pollLive() {
     if (!on && room.rec) setRecording(room, false);                                 // the next live starts without recording
   }
 }
-setInterval(pollLive, 2000);
+let polling = false;
+setInterval(() => { if (polling) return; polling = true; pollLive().catch(() => {}).finally(() => { polling = false; }); }, 2000);
 
 server.listen(PORT, LISTEN_HOST, () => {
   console.log(`REGAM Live listening on :${server.address().port}`);

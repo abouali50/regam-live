@@ -399,6 +399,7 @@ const DICT = {
   'تمسح السبورة كاملة؟': ['Effacer tout le tableau ?', 'Clear the whole board?'],
   'الاستوديو كيخدم على Google Chrome ولا Edge فالحاسوب. حل هاد الصفحة فواحد منهم.': ["Le studio fonctionne avec Google Chrome ou Edge sur ordinateur. Ouvrez cette page dans l'un des deux.", 'The studio works in Google Chrome or Edge on a computer. Open this page in one of them.'],
   'ما قدرناش نحلو الكاميرا. تأكد من الإذن فالمتصفح.': ["Impossible d'ouvrir la caméra. Vérifiez l'autorisation dans le navigateur.", 'Could not open the camera. Check the permission in your browser.'],
+  'الكاميرا والميكرو ممنوعين على هاد الموقع. فالأيفون: الإعدادات ← التطبيقات ← Safari ← الكاميرا والميكروفون ← «السماح»، ومن بعد عاود حل الصفحة.': ["La caméra et le micro sont refusés pour ce site. Sur iPhone : Réglages → Apps → Safari → Appareil photo et Micro → « Autoriser », puis rechargez la page.", 'The camera and microphone are blocked for this site. On iPhone: Settings → Apps → Safari → Camera and Microphone → "Allow", then reload the page.'],
   'ما قدرناش نحلو الميكرو. تأكد من الإذن فالمتصفح.': ["Impossible d'ouvrir le micro. Vérifiez l'autorisation dans le navigateur.", 'Could not open the microphone. Check the permission in your browser.'],
   'كنوجدو البث…': ['Préparation de la diffusion…', 'Preparing the broadcast…'],
   'كنتصلو…': ['Connexion…', 'Connecting…'],

@@ -122,6 +122,9 @@
 
     const press = (btn, on) => btn.setAttribute('aria-pressed', on ? 'true' : 'false');
 
+    // what the browser answered, and what to do about it when the site was refused the camera and microphone
+    const why = (e, what) => ` [${what}: ${String((e && (e.name || e.message)) || e).slice(0, 40)}]`
+      + (e && e.name === 'NotAllowedError' ? ' ' + T('الكاميرا والميكرو ممنوعين على هاد الموقع. فالأيفون: الإعدادات ← التطبيقات ← Safari ← الكاميرا والميكروفون ← «السماح»، ومن بعد عاود حل الصفحة.') : '');
     async function camOn() {
       try {
         const video = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 25 }, facingMode: 'user' };
@@ -135,7 +138,7 @@
         camTrack.onended = camOff;
         setInput('cam', camTrack);
         press($('#camBtn'), true);
-      } catch { press($('#camBtn'), false); status(T('ما قدرناش نحلو الكاميرا. تأكد من الإذن فالمتصفح.')); }
+      } catch (e) { press($('#camBtn'), false); status(T('ما قدرناش نحلو الكاميرا. تأكد من الإذن فالمتصفح.') + why(e, 'cam')); }
     }
     function camOff() {
       if (camTrack) { camTrack.onended = null; camTrack.stop(); camTrack = null; }
@@ -208,7 +211,7 @@
         const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
         micTrack = s.getAudioTracks()[0];
         return true;
-      } catch { status(T('ما قدرناش نحلو الميكرو. تأكد من الإذن فالمتصفح.')); return false; }
+      } catch (e) { status(T('ما قدرناش نحلو الميكرو. تأكد من الإذن فالمتصفح.') + why(e, 'mic')); return false; }
     }
     $('#micBtn').onclick = () => {
       micOn = !micOn;
@@ -250,6 +253,8 @@
         const woke = audioCtx.resume().catch(() => {});
         replaySources();
         step = 'mic';
+        // phones: when the camera did not open with the page, it is asked for again here, inside the tap, together with the microphone
+        if (simple && !camTrack && !micTrack) await within(camOn(), 40000, 'cam');
         if (!(await within(ensureMic(), 40000, 'mic'))) return;
         await Promise.race([woke, new Promise((r) => setTimeout(r, 1500))]);
         step = 'mix';

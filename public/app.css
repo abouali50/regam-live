@@ -617,3 +617,28 @@ a, .room-url, .acc-link { color: var(--mauve-light); }
 .pay-msg.ok { border-color: #2dd4bf; color: #7ff5e4; }
 .pay-msg.bad { border-color: var(--live); color: #ffb4b4; }
 .pay-online .wide { grid-column: 1 / -1; margin: 0; }
+
+/* front page: the rooms are folded behind one button, then picked by topic */
+.rooms-box { display: grid; gap: 12px; }
+.rooms-toggle { justify-self: start; display: inline-flex; align-items: center; gap: 10px; min-width: 220px; justify-content: center; }
+.rooms-toggle[aria-expanded="true"] .rooms-chev { transform: rotate(180deg); }
+.rooms-chev { transition: transform .15s; }
+.rooms-panel { display: grid; gap: 12px; }
+.rooms-panel[hidden] { display: none; }
+.topic-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.topic-chips[hidden] { display: none; }
+.chip { font: inherit; font-weight: 700; padding: 7px 14px; border-radius: 999px; border: 1px solid #5a4aa8; background: #1a1440; color: #fff; cursor: pointer; }
+.chip[aria-selected="true"] { background: linear-gradient(180deg, #ffe27a, #e9b21e); color: #1b1400; border-color: #ffe9a0; }
+.chip:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.room-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.room-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid #2c3672; background: rgba(255,255,255,.04); color: #fff; text-decoration: none; min-width: 0; }
+.room-row:hover, .room-row:focus-visible { border-color: var(--gold); outline: none; }
+.room-row.is-live { border-color: var(--live); }
+.room-row-main { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.room-row-main > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-row .room-by, .room-row .room-next { font-size: 13px; opacity: .8; }
+.room-row .room-enter { font-weight: 800; color: var(--gold); white-space: nowrap; }
+.room-list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+.room-row .room-enter { color: #1b1400; text-shadow: none; padding: 6px 12px; font-size: 14px; }
+.room-row-main > .room-name { white-space: normal; overflow-wrap: anywhere; }
+.room-row .badge { font-size: 12px; white-space: nowrap; }

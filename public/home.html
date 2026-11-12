@@ -34,10 +34,19 @@
     <h2 class="home-title">الأجندة: اللايفات الجاية</h2>
     <ul id="agendaList" class="agenda-list"></ul>
   </section>
-  <h2 class="home-title">القاعات</h2>
-  <p class="muted" id="homeLead">اختار القاعة اللي بغيتي تتبع. القاعات اللي فيها لايف دابا كيبانو الأولين.</p>
-  <div id="rooms" class="room-groups"></div>
-  <p id="noRooms" class="muted" hidden>ما كاين حتى قاعة دابا.</p>
+  <section id="liveNow" class="live-now" hidden>
+    <h2 class="home-title">مباشر دابا</h2>
+    <div id="liveRooms" class="room-grid"></div>
+  </section>
+  <section class="rooms-box">
+    <button id="roomsToggle" class="btn primary big rooms-toggle" type="button" aria-expanded="false" aria-controls="roomsPanel"><span id="roomsLabel">القاعات</span><span class="rooms-chev" aria-hidden="true">▾</span></button>
+    <div id="roomsPanel" class="rooms-panel panel" hidden>
+      <p class="muted" id="homeLead">اختار الموضوع، ومن بعد القاعة اللي بغيتي تدخل ليها.</p>
+      <div id="topicChips" class="topic-chips" role="tablist"></div>
+      <div id="rooms" class="room-list"></div>
+      <p id="noRooms" class="muted" hidden>ما كاين حتى قاعة دابا.</p>
+    </div>
+  </section>
 </main>
 <footer class="foot">
   <a href="/teach">بغيتي تولي أستاذ عندنا؟ سجل هنا</a>

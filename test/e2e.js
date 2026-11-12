@@ -564,7 +564,8 @@ async function until(fn, ms = 15000, step = 250) {
       const nowCode = await until(async () => { const m = (await studio.inputValue('#inviteText')).match(/code=(\d{6})/); return (await studio.inputValue('#inviteText')).includes('Maintenant') && m && m[1]; }, 6000);
       const withRoom = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${code}`), withOwn = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${nowCode}`);
       const viaJoin = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: nowCode }) })).json();
-      check('during a planned live, its own code opens the room and the room\'s general code does not', !!nowCode && nowCode !== code && withRoom.status === 403 && withOwn.status === 200 && viaJoin.slug === 'main' && !viaJoin.early, `${withRoom.status} ${withOwn.status} body=${await withOwn.text()} now=${new Date().toISOString()} cfg=${JSON.stringify((await (await fetch(BASE + '/api/config')).json()).sessions)} code=${nowCode} cards=${await studio.locator('#sessList li').count()} dlg=${await studio.locator('#schedDlg').isVisible()} err=${await studio.textContent('#schedErr')} invite=${(await studio.inputValue('#inviteText')).slice(0, 80)}`);
+      const srvCodes = withOwn.status === 200 ? '' : await studio.evaluate(() => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'sessiontester0002', token: sessionStorage.getItem('regam.studio') })); w.onmessage = (m) => { const d = JSON.parse(m.data); if (d.sessions) { res(JSON.stringify({ room: d.code, s: d.sessions.map((x) => [x.title, x.code]) })); w.close(); } }; setTimeout(() => res('none'), 4000); }));
+      check('during a planned live, its own code opens the room and the room\'s general code does not', !!nowCode && nowCode !== code && withRoom.status === 403 && withOwn.status === 200 && viaJoin.slug === 'main' && !viaJoin.early, `srv=${srvCodes} roomCode=${code} ${withRoom.status} ${withOwn.status} body=${await withOwn.text()} now=${new Date().toISOString()} cfg=${JSON.stringify((await (await fetch(BASE + '/api/config')).json()).sessions)} code=${nowCode} cards=${await studio.locator('#sessList li').count()} dlg=${await studio.locator('#schedDlg').isVisible()} err=${await studio.textContent('#schedErr')} invite=${(await studio.inputValue('#inviteText')).slice(0, 80)}`);
       for (let i = 0; i < 3; i++) await studio.locator('#sessList li button.danger').first().click();
       await until(async () => (await studio.locator('#sessList li').count()) === 0, 6000);
       await studio.uncheck('#codeChk');
@@ -732,7 +733,15 @@ async function until(fn, ms = 15000, step = 250) {
 
     const home = await vctx.newPage();
     await home.goto(BASE + '/');
-    check('with two rooms the front page lists them, the live one marked', (await until(async () => (await home.locator('.room-card').count()) === 2 && (await home.locator('.room-card.is-live').count()) === 1)) !== null && (await home.locator('.room-group').first().locator('.room-card.is-live').count()) === 1 && (await home.locator('.room-group h2').last().textContent()) === 'Programmation');
+    const liveShown = (await until(async () => (await home.locator('#liveRooms .room-card.is-live').count()) === 1)) !== null;
+    const folded = await home.locator('#roomsPanel').isHidden() && (await home.locator('.room-row:visible').count()) === 0 && /\(2\)/.test(await home.textContent('#roomsLabel'));
+    check('the front page shows what is on air, and keeps the rooms folded behind one button', liveShown && folded, await home.textContent('#roomsLabel'));
+    await home.click('#roomsToggle');
+    const allRows = (await until(async () => (await home.locator('.room-row:visible').count()) === 2)) !== null && (await home.locator('.room-row.is-live').count()) === 1 && (await home.locator('.chip').count()) === 3;
+    await home.locator('.chip', { hasText: 'Programmation' }).click();
+    const picked = (await until(async () => (await home.locator('.room-row:visible').count()) === 1)) !== null && (await home.locator('.room-row').first().getAttribute('href')) === '/r/programmation-python';
+    await sleep(10500);                                   // the list refreshes by itself: the choice must stay
+    check('the button opens the rooms, picked by topic; the choice survives a refresh', allRows && picked && await home.locator('#roomsPanel').isVisible() && (await home.locator('.room-row:visible').count()) === 1);
     await home.screenshot({ path: path.join(OUT, 'home.png') });
 
     const tctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1380, height: 900 }, permissions: ['camera', 'microphone'] });

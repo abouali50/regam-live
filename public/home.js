@@ -1,4 +1,4 @@
-// REGAM Live - front page: the rooms, grouped by topic, live ones first.
+// REGAM Live - front page: what is on air now, and all the rooms folded behind one button, picked by topic.
 'use strict';
 (function () {
   const box = $('#rooms');
@@ -18,28 +18,39 @@
       el('span', { class: 'agenda-acts' },
         el('a', { class: 'btn small', href: `/api/ics?room=${encodeURIComponent(s.room.slug)}&id=${s.id}` }, T('زيدو للأجندة')),
         el('a', { class: 'btn small primary', href: '/r/' + s.room.slug }, T('دخل للقاعة'))))));
-    const groups = new Map();
-    for (const r of data.rooms) {
-      const key = r.topic || '';
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(r);
-    }
-    const hasLive = (k) => groups.get(k).some((r) => r.live);
-    // topics with a live room first, then by name, rooms without a topic last
-    const order = [...groups.keys()].sort((x, y) => (hasLive(y) - hasLive(x)) || (x === '' ? 1 : y === '' ? -1 : x.localeCompare(y)));
-    box.replaceChildren(...order.map((topic) => el('section', { class: 'room-group' },
-      el('h2', {}, topic || T('قاعات أخرى')),
-      el('div', { class: 'room-grid' }, ...groups.get(topic)
-        .sort((x, y) => (y.live - x.live) || (y.viewers - x.viewers) || x.title.localeCompare(y.title))
-        .map((r) => el('a', { class: 'room-card' + (r.live ? ' is-live' : ''), href: '/r/' + r.slug },
-          el('span', { class: 'badge ' + (r.live ? 'on' : 'off') }, T(r.live ? 'مباشر' : 'غير مباشر')),
-          el('strong', { class: 'room-name' }, r.title),
-          r.live && r.liveTitle ? el('span', { class: 'room-now' }, r.liveTitle) : null,
-          el('span', { class: 'room-by' }, r.host),
-          r.live ? el('span', { class: 'viewers' }, el('span', { class: 'dot' }), String(r.viewers)) : null,
-          !r.live && r.next ? el('span', { class: 'room-next' }, T('اللايف الجاي: {when}', { when: new Date(r.next.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })) : null,
-          el('span', { class: 'room-enter' }, (r.locked ? '🔒 ' : '') + T('دخل للقاعة'))))))));
+    // rooms on air right now are shown at once; all the others stay folded behind one button
+    const when = (r) => new Date(r.next.at).toLocaleString(loc, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const byRank = (x, y) => (y.live - x.live) || (y.viewers - x.viewers) || x.title.localeCompare(y.title);
+    const live = data.rooms.filter((r) => r.live).sort(byRank);
+    $('#liveNow').hidden = live.length === 0;
+    $('#liveRooms').replaceChildren(...live.map((r) => el('a', { class: 'room-card is-live', href: '/r/' + r.slug },
+      el('span', { class: 'badge on' }, T('مباشر')),
+      el('strong', { class: 'room-name' }, r.title),
+      r.liveTitle ? el('span', { class: 'room-now' }, r.liveTitle) : null,
+      el('span', { class: 'room-by' }, r.host),
+      el('span', { class: 'viewers' }, el('span', { class: 'dot' }), String(r.viewers)),
+      el('span', { class: 'room-enter' }, (r.locked ? '🔒 ' : '') + T('دخل للقاعة')))));
+    $('#roomsLabel').textContent = T('القاعات ({n})', { n: data.rooms.length });
+    const topics = [...new Set(data.rooms.map((r) => r.topic || ''))].sort((x, y) => (x === '' ? 1 : y === '' ? -1 : x.localeCompare(y)));
+    if (topic !== null && !topics.includes(topic)) topic = null;
+    $('#topicChips').hidden = topics.length < 2;
+    $('#topicChips').replaceChildren(...[null, ...topics].map((t) => el('button', { class: 'chip', type: 'button', role: 'tab', 'aria-selected': String(t === topic), onclick: () => { topic = t; load(); } },
+      t === null ? T('الكل') : t || T('قاعات أخرى'))));
+    box.replaceChildren(...data.rooms.filter((r) => topic === null || (r.topic || '') === topic).sort(byRank)
+      .map((r) => el('a', { class: 'room-row' + (r.live ? ' is-live' : ''), href: '/r/' + r.slug },
+        el('span', { class: 'room-row-main' }, el('strong', { class: 'room-name' }, r.title),
+          el('span', { class: 'room-by' }, [r.host, r.topic].filter(Boolean).join(' · ')),
+          !r.live && r.next ? el('span', { class: 'room-next' }, T('اللايف الجاي: {when}', { when: when(r) })) : null),
+        el('span', { class: 'badge ' + (r.live ? 'on' : 'off') }, T(r.live ? 'مباشر' : 'غير مباشر')),
+        el('span', { class: 'room-enter' }, (r.locked ? '🔒 ' : '') + T('دخل')))));
   }
+  let topic = null;                                // the topic picked in the rooms panel (null: all)
+  $('#roomsToggle').onclick = () => {
+    const open = $('#roomsPanel').hidden;
+    $('#roomsPanel').hidden = !open;
+    $('#roomsToggle').setAttribute('aria-expanded', String(open));
+    if (open) $('#roomsPanel').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
   // "join with a code", like a meeting number: the code leads to its room
   $('#joinForm').onsubmit = async (e) => {
     e.preventDefault();

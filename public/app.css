@@ -1,16 +1,16 @@
 /* REGAM Live */
 :root {
-  /* royal blue ground, bright and clear; writing in turquoise green; golden yellow icons and
-     main buttons; light violet for secondary writing (addresses, hints, links) */
-  --bg: #1a3fd0; --panel: #2349d8; --panel-2: #2c55e6; --line: #6f8fff;
-  --text: #a9fbee; --muted: #d3caff; --gold: #ffd23f; --live: #ff4a4a; --ok: #4ff0d2;
-  --violet: #d3caff; --teal: #5cf2d6;
+  /* deep black ground; the boxes in blue-violet; golden yellow writing inside them;
+     turquoise blue writing in the side menu; light violet for secondary writing */
+  --bg: #05060a; --panel: #3a2fc4; --panel-2: #4b40e2; --line: #8a80ff;
+  --text: #ffe9a8; --muted: #dcd6ff; --gold: #ffd23f; --live: #ff4a4a; --ok: #2fe6d6;
+  --violet: #cfc6ff; --teal: #2fe6d6;
   --radius: 14px;
   --font: "SF Arabic", "Segoe UI", "Noto Sans Arabic", Tahoma, system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: radial-gradient(1100px 700px at 12% -8%, rgba(120,170,255,.55), transparent 60%), radial-gradient(900px 700px at 105% 108%, rgba(150,110,255,.38), transparent 60%), radial-gradient(700px 500px at 85% 0%, rgba(70,230,210,.16), transparent 60%), linear-gradient(165deg, #2a5cf2 0%, #1c43d6 48%, #1532b4 100%) fixed; background-color: var(--bg); color: var(--text); font: 16px/1.55 var(--font); display: flex; flex-direction: column; min-height: 100dvh; }
+body { margin: 0; background: radial-gradient(900px 600px at 8% -10%, rgba(90,70,255,.28), transparent 60%), radial-gradient(800px 600px at 108% 110%, rgba(47,230,214,.14), transparent 60%), linear-gradient(180deg, #08090f 0%, #05060a 60%, #030407 100%) fixed; background-color: var(--bg); color: var(--text); font: 16px/1.55 var(--font); display: flex; flex-direction: column; min-height: 100dvh; }
 [hidden] { display: none !important; }
 button, input, select { font: inherit; color: inherit; }
 h1, h2, p { margin: 0; }
@@ -44,7 +44,7 @@ h1, h2, p { margin: 0; }
 .guest-line { color: var(--gold); font-size: 14px; margin-top: 2px; }
 
 .btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600; white-space: nowrap; flex: none; }
-.btn:hover { border-color: #b9c8ff; }
+.btn:hover { border-color: #cfc6ff; }
 .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .btn:disabled { opacity: .5; cursor: default; }
 .btn.primary { background: var(--gold); border-color: var(--gold); color: #1b1405; }
@@ -142,7 +142,7 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .reactions { display: flex; align-items: center; gap: 10px; }
 .react-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .react { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); font-size: 22px; line-height: 1; cursor: pointer; padding: 0; transition: transform .12s; }
-.react:hover { border-color: #b9c8ff; }
+.react:hover { border-color: #cfc6ff; }
 .react:active { transform: scale(1.25); }
 .react:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .reactions .likes-count { margin-inline-start: auto; background: var(--panel-2); border-radius: 999px; padding: 4px 12px; font-weight: 700; color: var(--text); }
@@ -168,7 +168,7 @@ span.react { cursor: default; }
 .room-group h2 { font-size: 17px; color: var(--gold); margin-bottom: 10px; }
 .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .room-card { display: grid; gap: 6px; justify-items: start; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); text-decoration: none; }
-.room-card:hover { border-color: #b9c8ff; }
+.room-card:hover { border-color: #cfc6ff; }
 .room-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .room-card.is-live { border-color: var(--live); }
 .room-name { font-size: 18px; line-height: 1.3; overflow-wrap: anywhere; }
@@ -317,7 +317,7 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 /* reactions folded into one button; the box of seven opens above it */
 .react-wrap { position: relative; display: inline-flex; }
 .react-open { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
-.react-open:hover { border-color: #b9c8ff; }
+.react-open:hover { border-color: #cfc6ff; }
 .react-open:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .react-open[aria-expanded="true"] { border-color: var(--gold); }
 .react-open .react-e { font-size: 20px; }
@@ -503,55 +503,58 @@ body:not(.all-tabs) .tab-off { display: none !important; }
 .ai-admin .wide { grid-column: 1 / -1; }
 .ai-admin textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; }
 
-/* accents of the royal blue theme */
+/* accents of the black, blue-violet and gold theme */
 .ico { width: 22px; height: 22px; flex: none; fill: none; stroke: var(--gold); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .tile .ico { width: 30px; height: 30px; }
 .tile-live .ico { stroke: #1b1405; }
-h1, h2, h3, strong, .brand, .room-name { color: var(--teal); }
-.brand b { color: #fff; }
-.side button, .side-link { color: var(--text); }
-.side button:hover, .side-link:hover { background: rgba(255,255,255,.1); color: #fff; }
-.side button.on { background: rgba(255,255,255,.16); color: #fff; box-shadow: inset 3px 0 0 var(--gold); }
-[dir="rtl"] .side button.on { box-shadow: inset -3px 0 0 var(--gold); }
+h1, h2, h3, strong, .room-name { color: var(--gold); }
+.brand { color: var(--teal); } .brand b { color: #fff; }
+.side button, .side-link { color: var(--teal); }
+.side .ico { stroke: var(--teal); }
+.side button:hover, .side-link:hover { background: rgba(47,230,214,.1); color: #9ff7ee; }
+.side button.on { background: rgba(47,230,214,.14); color: #fff; }
 a, .room-url, .acc-link { color: var(--violet); }
-.sub, .home-title, .room-group h2 { color: var(--violet); }
+.sub, .home-title, .room-group h2 { color: var(--teal); }
 .sess-hours, .agenda-time { color: #fff; }
-.sess-day { border-top-color: var(--gold); background: rgba(10,26,110,.55); }
+.sess-day { border-top-color: var(--gold); background: rgba(10,8,60,.6); }
 .sess-day b { color: #fff; }
-.badge.off { background: rgba(8,20,96,.55); color: var(--violet); }
-.panel, .dash-head, .room-card, .sess-card, .agenda-list li, .chat { background: rgba(255,255,255,.09); border-color: rgba(190,205,255,.38); box-shadow: 0 10px 30px rgba(6,16,84,.3); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.top { background: rgba(18,40,160,.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom-color: rgba(190,205,255,.35); }
-.msg .txt:not([class*=" c"]) { color: #eafffb; }
-.msg.ai .who { color: var(--violet); }
-.msg.ai { background: rgba(211,202,255,.14); }
-input::placeholder, textarea::placeholder { color: #a9b9ff; }
-input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="datetime-local"], input[type="date"], input[type="time"], select, textarea { background: rgba(8,22,110,.6); border-color: rgba(190,205,255,.45); color: #eafffb; }
-.btn { background: rgba(255,255,255,.14); border-color: rgba(190,205,255,.5); color: #eafffb; }
+.badge.off { background: rgba(0,0,0,.4); color: var(--violet); }
+.panel, .dash-head, .room-card, .sess-card, .agenda-list li, .chat { background: linear-gradient(150deg, #4a3ee6 0%, #3a2fc4 55%, #2e249f 100%); border-color: #8a80ff; box-shadow: 0 12px 34px rgba(58,47,196,.35), inset 0 1px 0 rgba(255,255,255,.18); }
+.sess-card { background: linear-gradient(150deg, #5a4ef0, #4034cc); }
+.top { background: rgba(5,6,10,.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom-color: rgba(138,128,255,.45); }
+.top .meta, .top a { color: var(--teal); }
+.msg .txt:not([class*=" c"]) { color: #fff6d6; }
+.msg.ai .who { color: var(--teal); }
+.msg.ai { background: rgba(47,230,214,.12); }
+input::placeholder, textarea::placeholder { color: #b9b2f0; }
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="datetime-local"], input[type="date"], input[type="time"], select, textarea { background: #15114f; border-color: #8a80ff; color: #fff6d6; }
+.btn { background: rgba(255,255,255,.12); border-color: #a9a1ff; color: var(--gold); }
 .btn:hover { border-color: var(--gold); }
 .btn.primary, .tile-live, .room-enter { background: var(--gold); border-color: var(--gold); color: #1b1405; }
 .btn.danger, .bar-btn.danger { background: var(--live); border-color: var(--live); color: #fff; }
-.tile { background: rgba(255,255,255,.12); border-color: rgba(190,205,255,.45); color: var(--text); }
-.tile-live { color: #1b1405; }
-.player, .preview-wrap, video { background-color: #0a1a66; }
-dialog.dlg { background: #2146d2; }
-dialog.dlg::backdrop { background: rgba(8,20,90,.7); }
-.onstage, .cap-menu, .react-row.react-box, .ai-panel { background: #1f41c9; }
-.bar-btn { background: rgba(255,255,255,.14); border-color: rgba(190,205,255,.5); color: #eafffb; }
+.tile { background: linear-gradient(150deg, #5a4ef0, #3a2fc4); border-color: #a9a1ff; color: var(--gold); }
+.player, .preview-wrap, video { background-color: #000; }
+dialog.dlg { background: #3327b8; }
+dialog.dlg::backdrop { background: rgba(0,0,0,.75); }
+.onstage, .cap-menu, .react-row.react-box, .ai-panel { background: #2a2196; }
+.bar-btn { background: rgba(255,255,255,.12); border-color: #a9a1ff; color: var(--gold); }
+.react-open { background: #3a2fc4; border-color: #8a80ff; color: var(--gold); }
 .wait-bar, .setup-note { background: #4a3a06; }
+.hero p, .home-main > .muted, .login p { color: var(--violet); }
 .ai-admin .check { flex-direction: row; align-items: center; align-self: center; }
 
 /* clickable writing looks carved: raised letters on raised buttons, pressed in when clicked */
 .btn, .tile, .bar-btn, .side button, .side-link, .react-open, .chat-head {
   text-shadow: 0 1px 0 rgba(255,255,255,.28), 0 -1px 1px rgba(4,12,70,.75), 0 2px 3px rgba(4,12,70,.35);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.38), inset 0 -2px 0 rgba(4,12,70,.38), 0 3px 0 rgba(6,18,96,.55), 0 8px 16px rgba(6,16,84,.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.38), inset 0 -2px 0 rgba(4,12,70,.38), 0 3px 0 rgba(12,8,70,.7), 0 8px 16px rgba(0,0,0,.4);
   background-image: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 55%, rgba(4,12,70,.12));
   transition: transform .08s ease, box-shadow .08s ease;
 }
 .side button, .side-link { box-shadow: none; background-image: none; }
 .side button.on { box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -2px 0 rgba(4,12,70,.35), inset 3px 0 0 var(--gold), 0 3px 0 rgba(6,18,96,.5); }
 [dir="rtl"] .side button.on { box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -2px 0 rgba(4,12,70,.35), inset -3px 0 0 var(--gold), 0 3px 0 rgba(6,18,96,.5); }
-.btn.primary, .tile-live, .room-enter { text-shadow: 0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(120,80,0,.35); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -3px 0 rgba(150,100,0,.45), 0 3px 0 #a87400, 0 8px 16px rgba(6,16,84,.3); }
-.btn.danger, .bar-btn.danger { box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -3px 0 rgba(120,0,0,.4), 0 3px 0 #a31919, 0 8px 16px rgba(6,16,84,.3); }
+.btn.primary, .tile-live, .room-enter { text-shadow: 0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(120,80,0,.35); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -3px 0 rgba(150,100,0,.45), 0 3px 0 #a87400, 0 8px 16px rgba(0,0,0,.4); }
+.btn.danger, .bar-btn.danger { box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -3px 0 rgba(120,0,0,.4), 0 3px 0 #a31919, 0 8px 16px rgba(0,0,0,.4); }
 .btn:active, .tile:active, .bar-btn:active, .react-open:active { transform: translateY(3px); box-shadow: inset 0 2px 4px rgba(4,12,70,.5); }
 .btn:disabled, .bar-btn:disabled { box-shadow: none; text-shadow: none; }
 a, .room-url, .acc-link, .next-ics { text-shadow: 0 1px 0 rgba(255,255,255,.22), 0 -1px 1px rgba(4,12,70,.8); font-weight: 600; }

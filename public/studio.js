@@ -608,7 +608,7 @@
     fetch('/api/config?' + roomQ).then((r) => r.json()).then((c) => { showSound(c.sound); showPics(c.pics || []); }).catch(() => {});
     $('#soundDefault').onclick = async () => {
       const r = await fetch('/api/sound?default=1&' + roomQ, { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(() => null);
-      if (r && r.ok) { showSound((await r.json()).sound); $('#soundNote').textContent = T('رجعات تلاوة سورة الرحمن.'); }
+      if (r && r.ok) { showSound((await r.json()).sound); $('#soundNote').textContent = T('رجعات التلاوة.'); }
     };
     // ---- the pictures people see while the room is not live
     function showPics(list) {

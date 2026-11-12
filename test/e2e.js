@@ -112,7 +112,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -767,7 +767,8 @@ async function until(fn, ms = 15000, step = 250) {
     {
       const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
       const bytes = Buffer.alloc(5000, 7);
-      check('a room without its own sound plays the recitation that comes with the site', (await (await fetch(BASE + '/api/config')).json()).sound === 'https://sound.test.invalid/rahman.mp3');
+      const dflt = await (await fetch(BASE + '/api/config')).json();
+      check('a room without its own sound plays the recitations that come with the site, one after the other', dflt.sound === 'https://sound.test.invalid/rahman.mp3' && dflt.sounds.length === 3 && dflt.sounds[2] === 'https://sound.test.invalid/hadid.mp3');
       const noAuth = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg' }, body: bytes });
       const notSound = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'text/html', Authorization: 'Bearer ' + tok }, body: bytes });
       const up = await fetch(BASE + '/api/sound', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg', Authorization: 'Bearer ' + tok }, body: bytes });
@@ -778,6 +779,7 @@ async function until(fn, ms = 15000, step = 250) {
       const idle = await (await browser.newContext({ locale: 'ar-MA' })).newPage();
       await idle.goto(BASE + '/r/main');
       check('while nothing is live, viewers get a button to hear the waiting sound', (await until(() => idle.locator('#soundBtn').isVisible())) !== null);
+      check('with its own file, the room plays that one file only', (await (await fetch(BASE + '/api/config')).json()).sounds.length === 1);
       const del = await fetch(BASE + '/api/sound', { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
       check('the host can remove the sound', del.status === 200 && (await (await fetch(BASE + '/api/config')).json()).sound === '' && (await fetch(BASE + cfgNow.sound)).status === 404);
       const back = await fetch(BASE + '/api/sound?default=1', { method: 'POST', headers: { Authorization: 'Bearer ' + tok } });

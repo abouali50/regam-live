@@ -113,9 +113,17 @@
   // ------------------------------------------- sound while nothing is live --
   // The room's host can give a sound (a recitation, music) for the time before the live.
   const soundBtn = $('#soundBtn');
-  const waitSound = cfg.sound ? new Audio(cfg.sound) : null;
+  // one file, or several played one after the other and then again from the first
+  const tracks = (cfg.sounds && cfg.sounds.length ? cfg.sounds : cfg.sound ? [cfg.sound] : []);
+  const waitSound = tracks.length ? new Audio(tracks[0]) : null;
+  let trackAt = 0, trackFails = 0;
   let soundWanted = true;                       // the person has not paused it
-  if (waitSound) { waitSound.loop = true; waitSound.preload = 'none'; }
+  if (waitSound) {
+    waitSound.loop = tracks.length === 1; waitSound.preload = 'none';
+    const step = () => { trackAt = (trackAt + 1) % tracks.length; waitSound.src = tracks[trackAt]; if (soundWanted && !live && !onStage && !doorShut) waitSound.play().catch(() => {}); };
+    waitSound.addEventListener('ended', () => { trackFails = 0; if (tracks.length > 1) step(); });
+    waitSound.addEventListener('error', () => { if (tracks.length > 1 && ++trackFails < tracks.length) step(); });      // a file that cannot be read is skipped
+  }
   let doorShut = false;                         // waiting for an account, a code or the host's yes
   function syncSound() {
     if (!waitSound) return;

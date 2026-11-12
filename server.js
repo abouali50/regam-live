@@ -266,8 +266,13 @@ function handleSound(req, res, url) {
 }
 // A room without its own sound plays the recitation that comes with the site (Surat Ar-Rahman,
 // Abdulbasit Abdulsamad), unless its host switched the sound off.
-const DEFAULT_SOUND = 'WAIT_SOUND_URL' in env ? env.WAIT_SOUND_URL : 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r3/055.mp3';
-const soundUrl = (room) => (room.cfg.sound ? `/media/sound/${room.cfg.slug}?v=${room.cfg.sound.v}` : room.cfg.soundOff ? '' : DEFAULT_SOUND);
+// The recitation that comes with the site, played one surah after the other and then again from the
+// start: Ar-Rahman (55), Al-Waqi'a (56), Al-Hadid (57), by Abdulbasit Abdulsamad. WAIT_SOUND_URL
+// replaces it (several addresses separated by commas).
+const DEFAULT_SOUNDS = ('WAIT_SOUND_URL' in env ? env.WAIT_SOUND_URL : ['055', '056', '057'].map((n) => `https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r3/${n}.mp3`).join(','))
+  .split(',').map((u) => u.trim()).filter(Boolean);
+const soundList = (room) => (room.cfg.sound ? [`/media/sound/${room.cfg.slug}?v=${room.cfg.sound.v}`] : room.cfg.soundOff ? [] : DEFAULT_SOUNDS);
+const soundUrl = (room) => soundList(room)[0] || '';
 
 // Pictures shown one after the other while the room is not live (sent by its host; without any, the reef picture).
 const PIC_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
@@ -570,7 +575,7 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
-        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
+        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
         access: acct.access(), accounts: acct.mailReady(),
       });
     }

@@ -211,7 +211,7 @@ async function aiReply(room, ws, msg) {
   } catch { /* the assistant stays silent */ } finally { room.aiBusy = false; }
 }
 // the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
-const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || acct.access() === 'watch';
+const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || acct.access() === 'watch' || !!(room.cfg.fee && room.cfg.fee.amount > 0) || !!room.cfg.closed;
 // Entry code of a room (like a meeting passcode): the host sends it with the invitation.
 // Which codes open the room right now. Each planned live has its own code, good from half an hour
 // before its start until half an hour after its end, and during that time it is the only one that
@@ -467,7 +467,7 @@ function handleRecordings(req, res, url) {
 }
 
 // ---------------------------------------------------------- administration --
-const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, next: nextOf(r), sessions: sessionsOf(r).slice(0, 10) });
+const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, fee: cls.feeOf(r) || undefined, closed: !!r.cfg.closed || undefined, next: nextOf(r), sessions: sessionsOf(r).slice(0, 10) });
 function slugFor(title) {
   let base = String(title).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
   if (!SLUG.test(base)) base = 'room';
@@ -497,12 +497,20 @@ function openIfApproved(u) {                     // first approval: open the roo
     db.rooms.push(cfg); openRoom(cfg);
   }
 }
-const pay = require('./pay')({ db, save, env, grant: (u, months) => { addMonths(u, months); openIfApproved(u); save(); } });
+const cls = require('./school')({ db, save, rooms, acct, sign, env, toMods: (room, obj) => toHost(room, obj), ownerName, plannedOf });
+const pay = require('./pay')({ db, save, env, grant: (u, months) => { addMonths(u, months); openIfApproved(u); save(); },
+  grantEntry: (mid, slug, days) => {               // a student paid the entry of a room
+    const m = acct.byId(mid), room = rooms.get(slug);
+    if (!m || !room) return null;
+    cls.paidFor(room, m, days);
+    return { name: m.name, email: m.email, room: room.cfg.title, teacher: ownerName(room) };
+  } });
 const originOf = (req) => { const h = String(req.headers.host || ''); return /^[a-z0-9.-]+(:\d+)?$/i.test(h) ? `${/^(localhost|127\.)/.test(h) ? 'http' : 'https'}://${h}` : ''; };
 
 async function handleAdmin(req, res, url, what) {
   const me = whoIs(bearer(req));
   if (!me || me.role !== 'admin') return send(res, me ? 403 : 401, { error: 'administrator only' });
+  if (originOf(req) && db.origin !== originOf(req)) { db.origin = originOf(req); save(); }     // the site's own address (as the administrator reaches it), for links in the e-mails it sends by itself
 
   if (!what && req.method === 'GET') {
     return send(res, 200, {
@@ -674,8 +682,10 @@ const server = http.createServer(async (req, res) => {
       const room = roomOf(url);
       if (!room) return send(res, 404, { error: 'no such room' });
       if (room.cfg.gate && !room.admitted.has(String(url.searchParams.get('uid') || ''))) return send(res, 403, { error: 'not admitted' });
-      if (acct.access() === 'watch' && !acct.memberOf(bearer(req))) return send(res, 401, { error: 'sign in' });
-      if (!codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
+      const who = acct.memberOf(bearer(req));
+      if (acct.access() === 'watch' && !who) return send(res, 401, { error: 'sign in' });
+      if (cls.entry(room, who)) return send(res, 403, { error: 'not a student' });           // a paid or closed class
+      if (!cls.known(room, who) && !codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
       return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 6 * 3600e3)}; Path=/hls/; Max-Age=21600; HttpOnly; SameSite=Lax` });
     }
     if (p === '/api/join' && req.method === 'POST') {            // "join with a code": which room does this entry code open?
@@ -701,8 +711,26 @@ const server = http.createServer(async (req, res) => {
       try { out = await pay.start(u, Number(b.months), originOf(req)); } catch (e) { console.error('payment start failed', e.message); out = { error: 'paypal refused' }; }
       return out.error ? send(res, out.error === 'paypal refused' ? 502 : 400, out) : send(res, 200, out);
     }
+    if (p === '/api/pay/entry' && req.method === 'POST') {       // a signed-in student pays the entry of a paid room
+      const who = acct.memberOf(bearer(req)), room = roomOf(url), fee = room && cls.feeOf(room);
+      if (!who) return send(res, 401, { error: 'sign in' });
+      if (!fee) return send(res, 400, { error: 'free' });
+      let out;
+      try { out = await pay.startEntry(who, room, fee, originOf(req)); } catch (e) { console.error('payment start failed', e.message); out = { error: 'paypal refused' }; }
+      return out.error ? send(res, out.error === 'paypal refused' ? 502 : 400, out) : send(res, 200, out);
+    }
+    if (p === '/api/leave') {                    // "no more reminders": the link at the foot of a reminder
+      const room = roomOf(url), key = verify(String(url.searchParams.get('k') || ''), 'leave');
+      const [slug, mid] = String(key || '').split(':');
+      if (!room || slug !== room.cfg.slug || !mid) return send(res, 400, 'Lien invalide.');
+      room.cfg.students = (room.cfg.students || []).filter((id) => id !== mid);
+      room.cfg.left = [...new Set([...(room.cfg.left || []), mid])].slice(-3000);
+      save(); toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
+      return send(res, 200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${SITE_TITLE}</title><body style="font-family:system-ui;background:#0b0b12;color:#fff;padding:40px;text-align:center"><p>Vous ne recevrez plus les rappels de ce cours.</p><p dir="rtl">ما غاديش توصلك التذكيرات ديال هاد الدرس.</p>`, { 'Content-Type': 'text/html; charset=utf-8' });
+    }
     if (p === '/pay/return') {
       const out = await pay.finish(String(url.searchParams.get('token') || '').slice(0, 64));
+      if (out.slug) { res.writeHead(302, { Location: `/r/${out.slug}?paid=${out.ok ? '1' : out.pending ? 'wait' : '0'}`, 'Cache-Control': 'no-store' }); return res.end(); }
       const u = out.ok ? db.users.find((x) => x.id === out.uid) : null;
       res.writeHead(302, { Location: u ? `/teach?paid=1&until=${u.paidUntil || 0}` : `/teach?paid=${out.pending ? 'wait' : '0'}`, 'Cache-Control': 'no-store' });
       return res.end();
@@ -786,6 +814,7 @@ setInterval(() => {
   }
 }, 200);
 const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod || ws.helper) tx(ws, obj); };
+const toHost = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws, obj); };      // the class list carries e-mails: for the host only
 // Assistants: members the host chose to help in a room. They can accept or refuse people, bring guests
 // up or down, close a microphone, delete comments and ban; nothing else (no broadcast, no settings).
 const HELPER_ACTS = new Set(['del', 'ban', 'admit', 'stage', 'unstage', 'mute']);
@@ -855,7 +884,13 @@ wss.on('connection', (ws, req) => {
       const member = host ? null : acct.memberOf(d.mt);
       if (!host && !member && acct.access() === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
       const helper = !!member && (room.cfg.helpers || []).includes(member.id);
-      if (!host && !helper && room.cfg.code) {             // the room has an entry code
+      if (!host && !helper) {                              // a paid class, or one kept for its students
+        const why = cls.entry(room, member);
+        if (why === 'account') return tx(ws, { t: 'signin', fee: cls.feeOf(room) || undefined, closed: !!room.cfg.closed });
+        if (why === 'pay') return tx(ws, { t: 'pay', fee: cls.feeOf(room), ready: pay.ready() });
+        if (why === 'closed') return tx(ws, { t: 'closed' });
+      }
+      if (!host && !helper && room.cfg.code && !cls.known(room, member)) {             // the room has an entry code (students of the class are not asked again)
         const st = codeState(room, d.code);
         if (!codeAllowed(ws.ip, !st.ok && !st.early && !!d.code)) return tx(ws, { t: 'code', wait: true });
         if (!st.ok) return tx(ws, { t: 'code', bad: !!d.code && !st.early, early: st.early });
@@ -882,6 +917,7 @@ wss.on('connection', (ws, req) => {
       ws.name = ws.mod ? user.name : member ? member.name : clean(d.name, MAX_NAME);
       ws.color = colorOf(d.color);
       room.clients.add(ws);
+      if (member && !host) cls.enroll(room, member);
       // somebody came in: the host and the assistants hear it (once per person, not at every reconnection)
       if (!ws.mod && !ws.helper && !room.byUid.has(ws.uid)) {
         room.seen = room.seen || new Map();
@@ -899,6 +935,7 @@ wss.on('connection', (ws, req) => {
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
         code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? plannedOf(room) : undefined,
         aiChat: ws.mod ? { ready: ai.inChat(), on: !room.cfg.aiOff } : undefined,
+        cls: ws.mod ? { ...cls.view(room), payReady: pay.ready() } : undefined, att: ws.mod ? cls.sheets(room) : undefined,
         rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
       });
     }
@@ -1061,6 +1098,23 @@ wss.on('connection', (ws, req) => {
         save();
         for (const c of room.clients) if (c.member === m.id) tx(c, { t: 'helper', on });      // their page takes the new role at once
         return toMods(room, { t: 'helpers', list: helpersOf(room) });
+      }
+      case 'fee': {                        // the class is free, or paid: a price for a month or for one day
+        const amount = Math.round(Number(d.amount) * 100) / 100, days = Number(d.days) === 1 ? 1 : 30;
+        if (amount > 0 && !pay.ready()) return tx(ws, { t: 'class', ...cls.view(room), payReady: false, err: 'nopay' });
+        if (amount > 0 && amount <= 2000) cfg.fee = { amount, days }; else delete cfg.fee;
+        save();                                           // people already inside stay; the price is asked at the next entry
+        return toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
+      }
+      case 'closed': cfg.closed = !!d.on; save(); return toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
+      case 'remind': cfg.remind = d.on !== false; save(); return toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
+      case 'student': {                    // the host adds a student by the e-mail of their account, or removes one
+        const m = d.id ? acct.byId(String(d.id)) : acct.find(d.email);
+        if (!m) return tx(ws, { t: 'class', ...cls.view(room), payReady: pay.ready(), err: 'unknown' });
+        if (d.on === false) { cfg.students = (cfg.students || []).filter((id) => id !== m.id); cfg.left = [...new Set([...(cfg.left || []), m.id])].slice(-3000); }
+        else { cfg.left = (cfg.left || []).filter((id) => id !== m.id); cfg.students = [...new Set([...(cfg.students || []), m.id])].slice(0, 3000); }
+        save();
+        return toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
       }
       case 'aichat':                       // the assistant answers in this room's comments, or stays out of them
         cfg.aiOff = d.on === false; save();

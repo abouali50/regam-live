@@ -39,7 +39,7 @@
     box.replaceChildren(...data.rooms.filter((r) => topic === null || (r.topic || '') === topic).sort(byRank)
       .map((r) => el('a', { class: 'room-row' + (r.live ? ' is-live' : ''), href: '/r/' + r.slug },
         el('span', { class: 'room-row-main' }, el('strong', { class: 'room-name' }, r.title),
-          el('span', { class: 'room-by' }, [r.host, r.topic].filter(Boolean).join(' · ')),
+          el('span', { class: 'room-by' }, [r.host, r.topic, r.fee ? T(r.fee.days === 1 ? '{amount} $ / نهار' : '{amount} $ / شهر', { amount: r.fee.amount }) : T('مجانا')].filter(Boolean).join(' · ')),
           !r.live && r.next ? el('span', { class: 'room-next' }, T('اللايف الجاي: {when}', { when: when(r) })) : null),
         el('span', { class: 'badge ' + (r.live ? 'on' : 'off') }, T(r.live ? 'مباشر' : 'غير مباشر')),
         el('span', { class: 'room-enter' }, (r.locked ? '🔒 ' : '') + T('دخل')))));

@@ -148,6 +148,34 @@
       <ul id="helperList" class="hands"></ul>
     </div>
 
+    <div class="panel" id="classPanel">
+      <h2>القسم ديالي</h2>
+      <h3 class="sub">الدخول: مجانا ولا بالخلاص</h3>
+      <form id="feeForm" class="row">
+        <label class="check"><input type="radio" name="feeKind" value="free" checked> <span>مجانا</span></label>
+        <label class="check"><input type="radio" name="feeKind" value="paid"> <span>بالخلاص</span></label>
+        <label for="feeAmount">الثمن ($)</label>
+        <input id="feeAmount" type="number" min="1" max="2000" step="0.5" inputmode="decimal" dir="ltr" value="5">
+        <select id="feeDays" aria-label="المدة"><option value="30">ل 30 يوم</option><option value="1">لنهار واحد</option></select>
+        <button class="btn primary" type="submit">حفظ</button>
+      </form>
+      <p id="feeNote" class="muted"></p>
+      <label class="check"><input id="closedChk" type="checkbox"> <span>غير التلاميذ اللي فاللائحة ديالي هما اللي يدخلو</span></label>
+      <label class="check"><input id="remindChk" type="checkbox" checked> <span>صيفط للتلاميذ تذكير بالإيميل: نهار قبل اللايف المبرمج، وساعة قبل</span></label>
+      <h3 class="sub" id="studentsTitle">التلاميذ</h3>
+      <p class="muted">كل واحد دخل للقاعة بالحساب ديالو كيتزاد هنا بوحدو. التلاميذ ما كيتطلبش منهم الكود مرة أخرى.</p>
+      <form id="studentForm" class="row">
+        <label for="studentEmail">زيد تلميذ بالإيميل ديال الحساب ديالو</label>
+        <input id="studentEmail" type="email" maxlength="120" dir="ltr" required>
+        <button class="btn" type="submit">زيد</button>
+      </form>
+      <p id="studentNote" class="muted"></p>
+      <ul id="studentList" class="hands"></ul>
+      <h3 class="sub">ورقة الحضور</h3>
+      <p id="attNote" class="muted">من بعد كل لايف، كتلقى هنا شكون حضر وشحال بقى.</p>
+      <ul id="attList" class="hands"></ul>
+    </div>
+
     <div class="panel" id="capPanel">
       <h2>الترجمة الفورية</h2>
       <p class="muted">الهضرة ديالك كتكتب وكتترجم للعربية والفرنسية والإنجليزية. كل متابع كيختار اللغة ديالو: يقراها تحت الفيديو، ولا يسمعها بالصوت.</p>

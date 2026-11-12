@@ -526,8 +526,8 @@
 
     // ---- the studio is organised in sections, with a menu on the side: home, live, calendar, …
     const TABS = [['home', 'home', 'الرئيسية'], ['live', 'video', 'اللايف'], ['agenda', 'calendar', 'الأجندة'], ['rec', 'record', 'التسجيلات'], ['cap', 'globe', 'الترجمة'],
-      ['helpers', 'users', 'المساعدين'], ['gate', 'door', 'قاعة الانتظار'], ['settings', 'gear', 'الإعدادات']];
-    const TAB_OF = { homeDash: 'home', roomBar: 'home', invitePanel: 'agenda', recPanel: 'rec', capPanel: 'cap', helperPanel: 'helpers', gatePanel: 'gate' };
+      ['class', 'users', 'القسم'], ['helpers', 'users', 'المساعدين'], ['gate', 'door', 'قاعة الانتظار'], ['settings', 'gear', 'الإعدادات']];
+    const TAB_OF = { homeDash: 'home', roomBar: 'home', invitePanel: 'agenda', recPanel: 'rec', capPanel: 'cap', classPanel: 'class', helperPanel: 'helpers', gatePanel: 'gate' };
     const stageBox = document.querySelector('#app > .stage');
     for (const node of stageBox.children) node.dataset.tab = TAB_OF[node.id] || (node.classList.contains('settings') ? 'settings' : 'live');
     if (new URLSearchParams(location.search).get('all')) document.body.classList.add('all-tabs');      // every section at once (for checks)
@@ -632,6 +632,53 @@
         if (d.list.length > sessions.length) { picked = d.list.find((x) => !sessions.some((y) => y.id === x.id)).id; if (schedDlg.open) schedDlg.close(); status(T('تزاد اللايف للأجندة.')); }
         sessions = d.list; showInvite();
       });
+
+    // ---- the class: free or paid entry, the students, reminders, attendance sheets
+    let payReady = false;
+    const dayTime = (ms) => new Date(ms).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' });
+    function showClass(c) {
+      if (typeof c.payReady === 'boolean') payReady = c.payReady;
+      const f = $('#feeForm').elements;
+      if (!$('#feeForm').contains(document.activeElement)) {
+        f.feeKind.value = c.fee ? 'paid' : 'free';
+        if (c.fee) { $('#feeAmount').value = c.fee.amount; $('#feeDays').value = String(c.fee.days); }
+      }
+      $('#feeNote').textContent = c.err === 'nopay' || !payReady ? T('باش تدير الدرس بالخلاص، خاص الإدارة تركب PayPal أولا.')
+        : c.fee ? T(c.fee.days === 1 ? 'الدخول دابا ب {amount} دولار لنهار واحد. الفلوس كتوصل لحساب PayPal ديال الموقع.' : 'الدخول دابا ب {amount} دولار ل 30 يوم. الفلوس كتوصل لحساب PayPal ديال الموقع.', { amount: c.fee.amount }) : T('الدخول دابا مجانا.');
+      $('#closedChk').checked = c.closed; $('#remindChk').checked = c.remind;
+      $('#studentsTitle').textContent = T('التلاميذ ({n})', { n: c.students.length });
+      $('#studentList').replaceChildren(...c.students.map((m) => el('li', {},
+        el('span', {}, m.name + ' ', el('span', { class: 'muted', dir: 'ltr' }, m.email), m.paid ? el('span', { class: 'badge on' }, T('خالص حتى ل {day}', { day: new Date(m.paid).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : LANG) })) : null),
+        el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'student', id: m.id, on: false }) }, T('حيد')))));
+      $('#studentNote').textContent = c.err === 'unknown' ? T('ما لقيناش حساب مفعل بهاد الإيميل. خاص هاد الشخص يسجل فالموقع أولا.') : '';
+      if (!c.err) $('#studentEmail').value = '';
+    }
+    $('#feeForm').onsubmit = (e) => {
+      e.preventDefault();
+      const paid = e.target.elements.feeKind.value === 'paid';
+      link.send({ t: 'fee', amount: paid ? Number($('#feeAmount').value) : 0, days: Number($('#feeDays').value) });
+      document.activeElement.blur();
+    };
+    $('#closedChk').onchange = () => link.send({ t: 'closed', on: $('#closedChk').checked });
+    $('#remindChk').onchange = () => link.send({ t: 'remind', on: $('#remindChk').checked });
+    $('#studentForm').onsubmit = (e) => { e.preventDefault(); link.send({ t: 'student', email: $('#studentEmail').value.trim(), on: true }); };
+    link.on('class', showClass);
+    const mins = (secs) => Math.max(1, Math.round(secs / 60));
+    function csvOf(a) {                               // opens in Excel: semicolons, and a mark that says the text is UTF-8
+      const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+      return '\ufeff' + [[T('الاسم'), T('الإيميل'), T('دخل مع'), T('الدقايق')].map(q).join(';'),
+        ...a.rows.map((r) => [r.name, r.email, new Date(r.first).toLocaleTimeString(LANG === 'ar' ? 'ar-MA' : LANG, { hour: '2-digit', minute: '2-digit' }), mins(r.secs)].map(q).join(';'))].join('\r\n');
+    }
+    function showAtt(list) {
+      $('#attNote').hidden = list.length > 0;
+      $('#attList').replaceChildren(...list.map((a) => el('li', {},
+        el('span', {}, el('strong', {}, a.title || mine.title), ' ', el('span', { class: 'muted' }, dayTime(a.at)), ' · ', T('{n} حاضر', { n: a.rows.length })),
+        el('button', { class: 'btn', type: 'button', onclick: () => {
+          const link2 = el('a', { href: URL.createObjectURL(new Blob([csvOf(a)], { type: 'text/csv;charset=utf-8' })), download: `presence-${new Date(a.at).toISOString().slice(0, 10)}.csv` });
+          document.body.append(link2); link2.click(); link2.remove();
+        } }, T('حمل اللائحة')))));
+    }
+    link.on('att', (d) => showAtt(d.list));
 
     // ---- assistants: members who help the host run the room
     function showHelpers(list, err) {
@@ -791,6 +838,8 @@
     link.on('init', (d) => {
       if (!d.mod) return logout();            // token expired
       $('#viewers').textContent = d.viewers;
+      if (d.cls) showClass(d.cls);
+      if (d.att) showAtt(d.att);
       $('#titleInput').value = d.title || '';
       $('#pinInput').value = d.pinned || '';
       $('#slowSel').value = String(d.slow);

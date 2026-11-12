@@ -214,7 +214,7 @@ function createLink({ name = '', token = '', room = '' } = {}) {
       if (d.t === 'batch') d.ev.forEach(emit);
       else {
         if (d.t === 'init') { link.ready = true; link.door = ''; }
-        if (['wait', 'signin', 'code', 'refused'].includes(d.t)) link.door = d.t;       // at the door, not in the room yet
+        if (['wait', 'signin', 'code', 'refused', 'pay', 'closed'].includes(d.t)) link.door = d.t;       // at the door, not in the room yet
         if (d.t === 'full') delay = 30000;          // the room is full: try again later, not at once
         emit(d);
       }

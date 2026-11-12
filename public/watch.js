@@ -401,6 +401,24 @@
   const capDelay = () => (onStage ? 0 : hls && hls.latency > 0 ? Math.min(30, hls.latency) * 1000 : 7000);
   link.on('cap', (d) => { if (capLang) setTimeout(() => showCap(d), capDelay()); });
 
+  // ---- a paid class: pay with PayPal, come back, come in
+  const payBtn = $('#payBtn');
+  const priceLine = (fee) => T(fee.days === 1 ? 'هاد الدرس بالخلاص: {amount} دولار لنهار واحد.' : 'هاد الدرس بالخلاص: {amount} دولار ل 30 يوم.', { amount: fee.amount });
+  payBtn.onclick = async () => {
+    payBtn.disabled = true;
+    const r = await fetch('/api/pay/entry?room=' + encodeURIComponent(cfg.room), { method: 'POST', headers: { Authorization: 'Bearer ' + account.token } }).catch(() => null);
+    const out = r ? await r.json().catch(() => ({})) : {};
+    if (r && r.ok && out.url) { location.href = out.url; return; }
+    payBtn.disabled = false;
+    $('#offlineText').textContent = T('PayPal ما جاوبش. عاود جرب من بعد شوية.');
+  };
+  {
+    const paid = new URLSearchParams(location.search).get('paid');
+    if (paid) {
+      history.replaceState(null, '', location.pathname);
+      setTimeout(() => { if (paid !== '1') $('#offlineText').textContent = T(paid === 'cancel' ? 'تلغى الخلاص. ما تخلص والو.' : paid === 'wait' ? 'الخلاص مازال كيتراجع عند PayPal. عاود حل الصفحة من بعد شوية.' : 'الخلاص ما دازش. ما تخلص والو. عاود جرب ولا تواصل مع الإدارة.'); }, 1200);
+    }
+  }
   // ---- waiting room: the person gives a name, the host lets them in (or not)
   const knockBtn = $('#knockBtn');
   const pass = () => fetch(`/api/pass?room=${encodeURIComponent(cfg.room)}&uid=${link.uid}&code=${link.code}`, { headers: account.token ? { Authorization: 'Bearer ' + account.token } : {} }).catch(() => {});
@@ -436,9 +454,19 @@
       if (!dlg.open) { dlg.showModal(); $('#codeInput').blur(); }      // the dialog focuses its first field by itself: undone on phones
       focusSoon($('#codeInput'));
     })
-    .on('signin', () => {                     // the site is for signed-in people: show the way in
+    .on('pay', (d) => {                       // a paid class: the price, and the way to pay it
+      doorShut = true; setLive(false); knockBtn.hidden = true; $('#signBtns').hidden = true;
+      $('#offlineText').textContent = priceLine(d.fee) + ' ' + T(d.ready ? 'خلص ب PayPal ولا بالكارط، ومن بعد كتدخل نيشان.' : 'الخلاص أونلاين ما خدامش دابا. تواصل مع الأستاذ.');
+      payBtn.hidden = !d.ready;
+    })
+    .on('closed', () => {                     // a class kept for its own students
+      doorShut = true; setLive(false); knockBtn.hidden = true; payBtn.hidden = true; $('#signBtns').hidden = true;
+      $('#offlineText').textContent = T('هاد القاعة خاصة بالتلاميذ ديال الأستاذ. طلب منو يزيدك للائحة بالإيميل ديال الحساب ديالك.');
+    })
+    .on('signin', (d) => {                    // the site (or this class) is for signed-in people: show the way in
       doorShut = true; setLive(false); knockBtn.hidden = true;
-      $('#offlineText').textContent = T('مرحبا بك. عندك حساب؟ دخل. ما عندكش؟ سجل بالإيميل ديالك وغادي يوصلك كود التفعيل.');
+      $('#offlineText').textContent = (d.fee ? priceLine(d.fee) + ' ' : '') + T(d.fee || d.closed ? 'دخل للحساب ديالك أولا، ولا سجل بالإيميل ديالك.' : 'مرحبا بك. عندك حساب؟ دخل. ما عندكش؟ سجل بالإيميل ديالك وغادي يوصلك كود التفعيل.');
+      if ((d.fee || d.closed) && cfg.access !== 'watch') { $('#signBtns').hidden = !!account.token; if (account.token) { account.clear(); location.reload(); } return; }
       if (account.token) { account.clear(); location.reload(); return; }
       $('#signBtns').hidden = false;
     })
@@ -447,7 +475,7 @@
   $('#signUp').onclick = () => openAccount('signup');
   link.on('init', async (d) => {
     doorShut = false; $('#signBtns').hidden = true;
-    knockBtn.hidden = true;
+    knockBtn.hidden = true; payBtn.hidden = true;
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
     if ($('#codeDlg').open) $('#codeDlg').close();
     showNext(d.next);

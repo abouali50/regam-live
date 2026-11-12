@@ -144,7 +144,7 @@
     $('#payState').className = p.ready && !p.sandbox ? 'ok-text' : 'err';
     const when = (ms) => new Date(ms).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' });
     $('#payLog').replaceChildren(...(p.log.length ? p.log.map((l) => el('li', {}, el('span', { class: 'admin-main-cell' }, el('strong', {}, l.name), el('span', { class: 'muted', dir: 'ltr' }, l.login),
-      el('span', {}, T('{amount} دولار، {n} شهر', { amount: l.amount, n: l.months })), el('span', { class: 'muted' }, when(l.at)))))
+      el('span', {}, l.kind === 'entry' ? T('{amount} دولار، دخول ل «{room}» ({teacher})', { amount: l.amount, room: l.room, teacher: l.teacher }) : T('{amount} دولار، {n} شهر', { amount: l.amount, n: l.months })), el('span', { class: 'muted' }, when(l.at)))))
       : [el('li', { class: 'muted' }, T('مازال ما كاين حتى خلاص.'))]));
     const f = $('#payKeys').elements;
     if ($('#payKeys').contains(document.activeElement)) return;

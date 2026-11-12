@@ -87,7 +87,7 @@ async function until(fn, ms = 15000, step = 250) {
       return res.end('{}');
     }
     const ok = req.headers.authorization === AUTH && req.url.startsWith('/v3/paths/list');
-    const names = ok ? await sfu.evaluate(() => Object.keys(window.paths).filter((k) => k.startsWith('studio_')).map((k) => 'air_' + k.slice(7))) : [];
+    const names = ok ? [...await sfu.evaluate(() => Object.keys(window.paths).filter((k) => k.startsWith('studio_')).map((k) => 'air_' + k.slice(7))), ...forcedAir] : [];
     res.writeHead(ok ? 200 : 404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ itemCount: names.length, pageCount: 1, items: names.map((name) => ({ name, available: true })) }));
   }).listen(19997);
@@ -98,6 +98,7 @@ async function until(fn, ms = 15000, step = 250) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ translatedText: `[${q.target}] ${q.q}` }));
   }).listen(15000);
+  const forcedAir = new Set();                               // rooms shown as on air without a real stream
   const pp = { orders: {}, n: 0, badAuth: 0 };               // stands in for PayPal
   const ppSrv = http.createServer(async (req, res) => {
     let body = ''; for await (const c of req) body += c;
@@ -148,7 +149,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -971,7 +972,7 @@ async function until(fn, ms = 15000, step = 250) {
       await sp.goto(BASE + '/studio');
       await sp.fill('#pw', 'studio-pass-1'); await sp.click('#loginForm button[type=submit]'); await sp.waitForSelector('#app:not([hidden])');
       check('the studio opens on a home section, with a menu to the others', (await until(() => sp.locator('#homeDash').isVisible())) !== null && await sp.locator('#goBtn').isHidden() && await sp.locator('#invitePanel').isHidden()
-        && (await sp.locator('#sideNav button').count()) === 8 && (await sp.textContent('#sideNav button.on')).includes('Accueil'));
+        && (await sp.locator('#sideNav button').count()) === 9 && (await sp.textContent('#sideNav button.on')).includes('Accueil'));
       await sp.click('#tileLive');
       const liveTab = await sp.locator('#goBtn').isVisible() && await sp.locator('#homeDash').isHidden() && (await until(() => sp.evaluate(() => document.querySelector('#preview').videoWidth > 0), 8000)) !== null;
       await sp.click('#sideNav button[data-tab=agenda]');
@@ -1031,6 +1032,128 @@ async function until(fn, ms = 15000, step = 250) {
       const yo2 = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).users.find((u) => u.login === 'youssef');
       check('renewing from the teachers page goes through PayPal and adds the month', thanked && Math.abs((yo2.paidUntil - yo.paidUntil) / 86400e3 - 30) < 0.01 && tp.url().endsWith('/teach'), await tp.textContent('#paidMsg'));
       await tp.context().close();
+    }
+    {
+      // ---- a class: free or paid entry, students, reminders, attendance
+      const WS = require('ws');
+      const tk = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
+      const H = { Authorization: 'Bearer ' + tk, 'Content-Type': 'application/json' }, J = { 'Content-Type': 'application/json' };
+      await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: H, body: JSON.stringify({ mail: { host: 'smtp.test.local', port: 465, user: 'live@test.local', from: 'live@test.local', pass: 'secret-pass' }, access: 'join' }) });
+      const outbox = () => fs.readFileSync(path.join(OUT, 'outbox.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+      const account = async (name, email) => {
+        await fetch(BASE + '/api/member/signup', { method: 'POST', headers: J, body: JSON.stringify({ name, email, password: 'motdepasse1', lang: 'fr' }) });
+        const code = (outbox().filter((m) => m.to === email).pop().text.match(/\b(\d{6})\b/) || [])[1];
+        return (await (await fetch(BASE + '/api/member/verify', { method: 'POST', headers: J, body: JSON.stringify({ email, code }) })).json()).token;
+      };
+      const lina = await account('Lina Class', 'lina.class@example.com'), omar = await account('Omar Class', 'omar.class@example.com');
+      const slug = (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.title === 'Maths Bac').slug;
+      const teacher = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"login":"youssef","password":"youssef-pass-1"}' })).json()).token;
+      // a socket that says hello and keeps what it is told
+      const sock = (uid, extra = {}) => new Promise((res) => {
+        const w = new WS('ws://127.0.0.1:13000/ws'), got = [];
+        const flat = (d) => (d.t === 'batch' ? d.ev : [d]);
+        w.on('message', (m) => { for (const d of flat(JSON.parse(m))) got.push(d); });
+        w.on('open', () => { w.send(JSON.stringify({ t: 'hello', uid, room: slug, ...extra })); });
+        const api = { got, w, first: () => until(() => got[0], 5000), last: (t) => [...got].reverse().find((d) => d.t === t), say: (o) => w.send(JSON.stringify(o)), close: () => w.close() };
+        setTimeout(() => res(api), 50);
+      });
+      const host = await sock('hostclasssock01', { token: teacher });
+      const init = await host.first();
+      const s1 = await sock('linaclasssock001', { mt: lina });
+      const freeIn = await s1.first();
+      const enrolled = await until(() => { const c = host.last('class'); return c && c.students.some((x) => x.email === 'lina.class@example.com') ? c : null; }, 5000);
+      check('a class starts free; whoever comes in with an account joins its list of students', init.t === 'init' && init.cls.fee === null && init.cls.students.length === 0 && init.cls.payReady === true && freeIn.t === 'init' && enrolled !== null, JSON.stringify(init.cls));
+      s1.close();
+      host.say({ t: 'fee', amount: 5, days: 30 });
+      const priced = await until(() => { const c = host.last('class'); return c && c.fee && c.fee.amount === 5 ? c : null; }, 5000);
+      const anon = await sock('anonclasssock01'), anonSaid = await anon.first();
+      const s2 = await sock('linaclasssock001', { mt: lina }), mustPay = await s2.first();
+      const noPass = await fetch(BASE + `/api/pass?room=${slug}&uid=linaclasssock001`, { headers: { Authorization: 'Bearer ' + lina } });
+      check('the teacher makes the class paid: people without an account are sent to sign in, students are shown the price', priced !== null && anonSaid.t === 'signin' && anonSaid.fee.amount === 5 && mustPay.t === 'pay' && mustPay.fee.days === 30 && mustPay.ready === true
+        && noPass.status === 403 && (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === slug).fee.amount === 5, `${anonSaid.t} ${mustPay.t} ${noPass.status}`);
+      anon.close(); s2.close();
+      const noAuth = await fetch(BASE + '/api/pay/entry?room=' + slug, { method: 'POST' });
+      const begun = await (await fetch(BASE + '/api/pay/entry?room=' + slug, { method: 'POST', headers: { Authorization: 'Bearer ' + lina } })).json();
+      const oid = new URL(begun.url).searchParams.get('token'), ord = pp.orders[oid];
+      const unpaid = await fetch(BASE + '/pay/return?token=' + oid, { redirect: 'manual' });
+      ord.approved = true;
+      const back = await fetch(BASE + '/pay/return?token=' + oid, { redirect: 'manual' });
+      const s3 = await sock('linaclasssock001', { mt: lina }), paidIn = await s3.first();
+      const okPass = await fetch(BASE + `/api/pass?room=${slug}&uid=linaclasssock001`, { headers: { Authorization: 'Bearer ' + lina } });
+      const log = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).pay.log[0];
+      const paidRow = host.last('class').students.find((x) => x.email === 'lina.class@example.com');
+      check('a student pays the entry with PayPal and comes in; the payment is listed with the room and its teacher', noAuth.status === 401 && ord.unit.amount.value === '5.00' && unpaid.headers.get('location') === `/r/${slug}?paid=0`
+        && back.headers.get('location') === `/r/${slug}?paid=1` && paidIn.t === 'init' && okPass.status === 200 && log.kind === 'entry' && log.room === 'Maths Bac' && log.teacher === 'Youssef Alami' && log.amount === '5.00'
+        && paidRow.paid > Date.now() + 29 * 86400e3, `${paidIn.t} ${okPass.status} ${JSON.stringify(log)}`);
+      s3.close();
+      host.say({ t: 'fee', amount: 0 }); host.say({ t: 'closed', on: true });
+      await until(() => { const c = host.last('class'); return c && c.closed && !c.fee; }, 5000);
+      const o1 = await sock('omarclasssock001', { mt: omar }), shut = await o1.first(); o1.close();
+      host.say({ t: 'student', email: 'nobody@example.com' });
+      const unknown = await until(() => host.last('class').err === 'unknown', 5000);
+      host.say({ t: 'student', email: 'omar.class@example.com' });
+      await until(() => host.last('class').students.length === 2, 5000);
+      const o2 = await sock('omarclasssock001', { mt: omar }), listed = await o2.first(); o2.close();
+      host.say({ t: 'student', id: host.last('class').students.find((x) => x.email === 'omar.class@example.com').id, on: false });
+      await until(() => host.last('class').students.length === 1, 5000);
+      const o3 = await sock('omarclasssock001', { mt: omar }), out = await o3.first(); o3.close();
+      check('a class can be kept for the students on its list; the teacher adds and removes them by e-mail', shut.t === 'closed' && unknown === true && listed.t === 'init' && out.t === 'closed', `${shut.t} ${listed.t} ${out.t}`);
+      host.say({ t: 'closed', on: false }); host.say({ t: 'code', on: true });
+      await until(() => host.last('code') && host.last('code').code, 5000);
+      const l4 = await sock('linaclasssock001', { mt: lina }), noCodeAsked = await l4.first();
+      const o4 = await sock('omarclasssock001', { mt: omar }), codeAsked = await o4.first(); o4.close();
+      check('students of the class are not asked for the entry code; other people are', noCodeAsked.t === 'init' && codeAsked.t === 'code', `${noCodeAsked.t} ${codeAsked.t}`);
+      // a reminder one hour before a planned live, once, with a link to stop them
+      const before = outbox().length;
+      host.say({ t: 'session', at: Date.now() + 50 * 60e3, end: Date.now() + 110 * 60e3, title: 'Dérivées' });
+      const mailIn = await until(() => outbox().slice(before).find((m) => m.to === 'lina.class@example.com'), 8000);
+      await sleep(4500);
+      const sentAll = outbox().slice(before), leaveUrl = mailIn ? (mailIn.text.match(/http\S+\/api\/leave\S+/) || [])[0] : '';
+      const sCode = (host.last('sessions').list.find((x) => x.title === 'Dérivées') || {}).code;
+      check('students get a reminder by e-mail one hour before a planned live, once, with the link and the code', !!mailIn && sentAll.length === 1 && /Dans une heure/.test(mailIn.subject) && mailIn.text.includes(`${BASE}/r/${slug}?code=${sCode}`)
+        && mailIn.text.includes('Youssef Alami') && mailIn.text.includes('Dérivées') && !!leaveUrl, JSON.stringify(sentAll.map((m) => m.to)) + (mailIn ? mailIn.text : ''));
+      // attendance: the room goes on air with Lina inside, then off
+      forcedAir.add('air_' + slug);
+      await until(() => host.last('live') || null, 8000);
+      await sleep(7000);
+      forcedAir.delete('air_' + slug);
+      const sheet = await until(() => { const a = host.last('att'); return a && a.list.length ? a.list[0] : null; }, 20000);
+      check('after a live, the teacher has the attendance sheet: who was there and for how long', sheet !== null && sheet.rows.length === 1 && sheet.rows[0].name === 'Lina Class' && sheet.rows[0].email === 'lina.class@example.com' && sheet.rows[0].secs >= 4 && sheet.end > sheet.at, JSON.stringify(sheet));
+      l4.close();
+      const left = await fetch(leaveUrl), badLeave = await fetch(BASE + `/api/leave?room=${slug}&k=nope`);
+      check('the link at the foot of a reminder takes the student off the list', left.status === 200 && badLeave.status === 400 && (await until(() => host.last('class').students.length === 0, 5000)) !== null);
+      host.say({ t: 'code', on: false });
+      for (const x of host.last('sessions').list) host.say({ t: 'session', del: x.id });
+      host.close();
+      // the studio shows the class section
+      const tctx2 = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1280, height: 900 } });
+      const tp2 = await tctx2.newPage();
+      tp2.on('pageerror', (e) => errors.push('class studio: ' + e.message));
+      await tp2.addInitScript((t) => sessionStorage.setItem('regam.studio', t), teacher);
+      await tp2.goto(BASE + '/studio');
+      await tp2.waitForSelector('#app:not([hidden])');
+      await tp2.click('#sideNav button[data-tab="class"]');
+      await tp2.check('#feeForm input[value="paid"]'); await tp2.fill('#feeAmount', '7'); await tp2.selectOption('#feeDays', '1'); await tp2.click('#feeForm button[type=submit]');
+      const noted = await until(async () => (await tp2.textContent('#feeNote')).includes('7 $ pour une journée'), 6000);
+      await tp2.screenshot({ path: path.join(OUT, 'studio-class.png'), fullPage: true });
+      const dl = tp2.waitForEvent('download', { timeout: 6000 }).catch(() => null);
+      await tp2.click('#attList li button');
+      const file = await dl, csv = file ? fs.readFileSync(await file.path(), 'utf8') : '';
+      check('in the studio, the teacher sets the price and downloads the attendance list', noted !== null && (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === slug).fee.days === 1
+        && csv.includes('"Lina Class";"lina.class@example.com"') && /^\ufeff"Nom";"E-mail"/.test(csv), csv.slice(0, 200));
+      // a visitor sees the price at the door, and the way to pay once signed in
+      const vctx2 = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 700 } });
+      const vp2 = await vctx2.newPage();
+      vp2.on('pageerror', (e) => errors.push('class viewer: ' + e.message));
+      await vp2.addInitScript((t) => { localStorage.setItem('regam.member', t); localStorage.setItem('regam.memberName', 'Omar Class'); localStorage.setItem('regam.name', 'Omar Class'); }, omar);
+      await vp2.goto(BASE + '/r/' + slug);
+      const door = await until(async () => (await vp2.textContent('#offlineText')).includes('7 $') && await vp2.locator('#payBtn').isVisible(), 8000);
+      await vp2.screenshot({ path: path.join(OUT, 'viewer-pay.png') });
+      await vp2.click('#payBtn');
+      const through = await until(async () => vp2.url().endsWith('/r/' + slug) && (await vp2.textContent('#offlineText')).includes('pas encore commencé') && await vp2.locator('#payBtn').isHidden(), 12000);
+      check('a signed-in visitor sees the price, pays, and is let in', door !== null && through !== null, await vp2.textContent('#offlineText'));
+      await tp2.check('#feeForm input[value="free"]'); await tp2.click('#feeForm button[type=submit]');
+      await tctx2.close(); await vctx2.close();
     }
     {
       // ---- backups (last: putting one back restarts the server)

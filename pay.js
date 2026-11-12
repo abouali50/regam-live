@@ -4,7 +4,7 @@
 // The PayPal keys (Client ID and Secret of a "Live" app) are set in the administration page.
 'use strict';
 
-module.exports = function payments({ db, save, env, grant }) {
+module.exports = function payments({ db, save, env, grant, grantEntry }) {
   db.pay = db.pay || {};                          // { clientId, secret, sandbox, orders: { id: {...} }, log: [...] }
   db.pay.orders = db.pay.orders || {}; db.pay.log = db.pay.log || [];
   const api = () => (env.PAY_URL || (db.pay.sandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com')).replace(/\/$/, '');
@@ -56,19 +56,44 @@ module.exports = function payments({ db, save, env, grant }) {
     save();
     return { url: go.href };
   }
+  // A student pays the entry of a paid room: same road, another thing bought.
+  async function startEntry(member, room, fee, origin) {
+    if (!ready()) return { error: 'payment not set up' };
+    if (!origin) return { error: 'bad address' };
+    const amount = money(fee.amount);
+    const order = await call('/v2/checkout/orders', {
+      intent: 'CAPTURE',
+      purchase_units: [{ amount: { currency_code: 'USD', value: amount }, custom_id: `entry:${room.cfg.slug}:${member.id}`.slice(0, 120), description: `REGAM Live - ${room.cfg.title}`.slice(0, 120) }],
+      payment_source: { paypal: { experience_context: { return_url: origin + '/pay/return', cancel_url: `${origin}/r/${room.cfg.slug}?paid=cancel`, user_action: 'PAY_NOW', shipping_preference: 'NO_SHIPPING', brand_name: 'REGAM Live' } } },
+    });
+    const go = (order.links || []).find((l) => l.rel === 'payer-action') || (order.links || []).find((l) => l.rel === 'approve');
+    if (!order.id || !go || !/^https:\/\//.test(go.href) && !env.PAY_URL) return { error: 'paypal refused' };
+    db.pay.orders[order.id] = { kind: 'entry', mid: member.id, slug: room.cfg.slug, days: fee.days, amount, at: Date.now(), done: false };
+    save();
+    return { url: go.href };
+  }
   // The teacher is back from PayPal: collect the money, and only then extend the subscription. Once per payment.
   const busy = new Set();
   async function finish(orderId) {
     const o = db.pay.orders[orderId];
     if (!o) return { ok: false };
-    if (o.done) return { ok: true, uid: o.uid };
+    if (o.done) return { ok: true, uid: o.uid, slug: o.slug };
     if (busy.has(orderId)) return { ok: false };
     busy.add(orderId);
     try {
       const d = await call(`/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`);
       const cap = (((d.purchase_units || [])[0] || {}).payments || {}).captures || [];
       const got = cap.find((c) => c.status === 'COMPLETED' && c.amount && c.amount.currency_code === 'USD' && Number(c.amount.value) >= Number(o.amount));
-      if (d.status !== 'COMPLETED' || !got) return { ok: false, pending: cap.some((c) => c.status === 'PENDING') };
+      if (d.status !== 'COMPLETED' || !got) return { ok: false, slug: o.slug, pending: cap.some((c) => c.status === 'PENDING') };
+      if (o.kind === 'entry') {                    // a student's entry to a paid room
+        const who = grantEntry(o.mid, o.slug, o.days);
+        if (!who) return { ok: false, slug: o.slug };
+        o.done = true; o.captureId = got.id || '';
+        db.pay.log.push({ at: Date.now(), kind: 'entry', name: who.name, login: who.email, room: who.room, teacher: who.teacher, days: o.days, amount: o.amount, orderId, captureId: o.captureId });
+        db.pay.log = db.pay.log.slice(-300);
+        save();
+        return { ok: true, slug: o.slug };
+      }
       const user = db.users.find((u) => u.id === o.uid);
       if (!user) return { ok: false };
       o.done = true; o.captureId = got.id || '';
@@ -77,12 +102,12 @@ module.exports = function payments({ db, save, env, grant }) {
       db.pay.log = db.pay.log.slice(-300);
       save();
       return { ok: true, uid: user.id };
-    } catch (e) { console.error('payment capture failed', orderId, e.message); return { ok: false }; }
+    } catch (e) { console.error('payment capture failed', orderId, e.message); return { ok: false, slug: o.slug }; }
     finally { busy.delete(orderId); }
   }
 
   const adminView = () => ({ ready: ready(), clientId: db.pay.clientId || '', hasSecret: !!db.pay.secret, sandbox: !!db.pay.sandbox,
-    log: db.pay.log.slice(-50).reverse().map((l) => ({ at: l.at, name: l.name, login: l.login, months: l.months, amount: l.amount })) });
+    log: db.pay.log.slice(-50).reverse().map((l) => ({ at: l.at, kind: l.kind || 'plan', name: l.name, login: l.login, months: l.months, days: l.days, room: l.room, teacher: l.teacher, amount: l.amount })) });
   function adminSet(b) {
     if (!b || typeof b !== 'object') return;
     if (typeof b.clientId === 'string') db.pay.clientId = b.clientId.trim().slice(0, 200);
@@ -96,5 +121,5 @@ module.exports = function payments({ db, save, env, grant }) {
     if (!ready()) return 'payment not set up';
     try { token = ''; await bearer(); return ''; } catch (e) { return 'paypal refused the keys' + (e.status ? ` (${e.status})` : ''); }
   }
-  return { ready, start, finish, adminView, adminSet, adminTest, MONTHS };
+  return { ready, start, startEntry, finish, adminView, adminSet, adminTest, MONTHS };
 };

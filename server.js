@@ -173,7 +173,19 @@ const acct = require('./accounts')({ db, save, send, readJson, sign, verify, cle
 // the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
 const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || acct.access() === 'watch';
 // Entry code of a room (like a meeting passcode): the host sends it with the invitation.
-const codeOk = (room, code) => !room.cfg.code || safeEq(room.cfg.code, String(code || '').replace(/\D/g, ''));
+// Which codes open the room right now. Each planned live has its own code, good from half an hour
+// before its start until half an hour after its end, and during that time it is the only one that
+// works. Outside planned lives, the room's own code works; it is renewed after every live.
+const OPEN_EARLY = 30 * 60e3, OPEN_LATE = 30 * 60e3;
+function codeState(room, code) {
+  if (!room.cfg.code) return { ok: true };
+  const c = String(code || '').replace(/\D/g, ''), now = Date.now(), all = room.cfg.sessions || [];
+  const current = all.filter((s) => now >= s.at - OPEN_EARLY && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);
+  if (current.length ? current.some((s) => s.code && safeEq(s.code, c)) : safeEq(room.cfg.code, c)) return { ok: true };
+  const later = all.find((s) => s.code && now < s.at - OPEN_EARLY && safeEq(s.code, c));
+  return later ? { ok: false, early: later.at } : { ok: false };
+}
+const codeOk = (room, code) => codeState(room, code).ok;
 const codeTries = new Map();     // ip -> [timestamps of wrong codes]
 function codeAllowed(ip, wrong) {
   const now = Date.now(), list = (codeTries.get(ip) || []).filter((t) => t > now - 10 * 60e3);
@@ -183,11 +195,17 @@ function codeAllowed(ip, wrong) {
 }
 // The room's calendar: sessions planned by its host ({ id, at, end, title }, times in ms).
 // A session stays listed until its end (or three hours after its start when no end was given).
-function sessionsOf(room) {
+const newCode = (room) => {                 // six digits, different from the room's other codes
+  for (;;) { const c = String(crypto.randomInt(0, 1000000)).padStart(6, '0'); if (c !== room.cfg.code && !(room.cfg.sessions || []).some((x) => x.code === c)) return c; }
+};
+function plannedOf(room) {                  // with each session's own entry code: for the host only
   const c = room.cfg, now = Date.now();
   if (c.next && !c.sessions) { c.sessions = [{ id: 's' + c.next.at, at: c.next.at, end: 0, title: c.next.title || '' }]; delete c.next; }     // from the earlier single "next live"
-  return (c.sessions || []).filter((s) => (s.end || s.at + 3 * 3600e3) > now).sort((a, b) => a.at - b.at);
+  const list = (c.sessions || []).filter((s) => (s.end || s.at + 3 * 3600e3) > now).sort((a, b) => a.at - b.at);
+  for (const s of list) if (!s.code) s.code = newCode(room);
+  return list;
 }
+const sessionsOf = (room) => plannedOf(room).map((s) => ({ id: s.id, at: s.at, end: s.end, title: s.title }));     // what everybody may see
 const nextOf = (room) => sessionsOf(room)[0] || null;
 // One session as a calendar file, so people can add it to their own agenda.
 function icsOf(room, s, origin) {
@@ -575,13 +593,14 @@ const server = http.createServer(async (req, res) => {
       if (room.cfg.gate && !room.admitted.has(String(url.searchParams.get('uid') || ''))) return send(res, 403, { error: 'not admitted' });
       if (acct.access() === 'watch' && !acct.memberOf(bearer(req))) return send(res, 401, { error: 'sign in' });
       if (!codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
-      return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 12 * 3600e3)}; Path=/hls/; Max-Age=43200; HttpOnly; SameSite=Lax` });
+      return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 6 * 3600e3)}; Path=/hls/; Max-Age=21600; HttpOnly; SameSite=Lax` });
     }
     if (p === '/api/join' && req.method === 'POST') {            // "join with a code": which room does this entry code open?
       const code = String((await readJson(req)).code || '').replace(/\D/g, ''), ip = clientIp(req);
-      const room = code.length === 6 ? [...rooms.values()].find((r) => r.cfg.code && safeEq(r.cfg.code, code)) : null;
+      let room = null, early = 0;
+      if (code.length === 6) for (const r of rooms.values()) { if (!r.cfg.code) continue; const st = codeState(r, code); if (st.ok || st.early) { room = r; early = st.early || 0; break; } }
       if (!codeAllowed(ip, !room)) return send(res, 429, { error: 'too many requests' });
-      return room ? send(res, 200, { slug: room.cfg.slug }) : send(res, 404, { error: 'bad code' });
+      return room ? send(res, 200, { slug: room.cfg.slug, early }) : send(res, 404, { error: 'bad code' });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
     if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans });
@@ -733,9 +752,9 @@ wss.on('connection', (ws, req) => {
       if (!host && !member && acct.access() === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
       const helper = !!member && (room.cfg.helpers || []).includes(member.id);
       if (!host && !helper && room.cfg.code) {             // the room has an entry code
-        const wrong = !codeOk(room, d.code);
-        if (!codeAllowed(ws.ip, wrong && !!d.code)) return tx(ws, { t: 'code', wait: true });
-        if (wrong) return tx(ws, { t: 'code', bad: !!d.code });
+        const st = codeState(room, d.code);
+        if (!codeAllowed(ws.ip, !st.ok && !st.early && !!d.code)) return tx(ws, { t: 'code', wait: true });
+        if (!st.ok) return tx(ws, { t: 'code', bad: !!d.code && !st.early, early: st.early });
       }
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full
@@ -766,7 +785,7 @@ wss.on('connection', (ws, req) => {
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
-        code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? sessionsOf(room) : undefined,
+        code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? plannedOf(room) : undefined,
         rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
       });
     }
@@ -884,7 +903,7 @@ wss.on('connection', (ws, req) => {
         return toMods(room, { t: 'hands', list: handsList(room) });
       }
       case 'code':                         // entry code on (a new one is drawn) or off
-        cfg.code = d.on ? String(crypto.randomInt(0, 1000000)).padStart(6, '0') : '';
+        cfg.code = d.on ? newCode(room) : '';
         save();
         if (cfg.code) for (const c of [...room.clients]) if (!c.mod && !slotOf(room, c.uid)) c.close();     // viewers come back through the code; guests on stage stay
         return toMods(room, { t: 'code', code: cfg.code });
@@ -905,16 +924,16 @@ wss.on('connection', (ws, req) => {
         return;
       }
       case 'session': {                    // the room's calendar: plan a session, or remove one
-        const list = sessionsOf(room);
+        const list = plannedOf(room);
         if (d.del) cfg.sessions = list.filter((s) => s.id !== String(d.del));
         else {
           const at = Number(d.at), end = Number(d.end) || 0, now = Date.now();
           if (!(at > now - 3600e3 && at < now + 366 * 24 * 3600e3) || (end && (end <= at || end > at + 24 * 3600e3)) || list.length >= 40) return tx(ws, { t: 'sessions', list, err: 'bad' });
-          cfg.sessions = [...list, { id: 's' + crypto.randomBytes(5).toString('hex'), at, end, title: clean(d.title, 80) }];
+          cfg.sessions = [...list, { id: 's' + crypto.randomBytes(5).toString('hex'), at, end, title: clean(d.title, 80), code: newCode(room) }];
         }
         save();
         broadcast(room, { t: 'next', next: nextOf(room) });
-        return toMods(room, { t: 'sessions', list: sessionsOf(room) });
+        return toMods(room, { t: 'sessions', list: plannedOf(room) });
       }
       case 'helper': {                     // the host names an assistant (by the e-mail of their account) or removes one
         const list = (cfg.helpers = cfg.helpers || []);
@@ -1051,6 +1070,7 @@ async function pollLive() {
     broadcast(room, { t: 'live', on });
     if (!on) endStage(room, 'ended');
     if (!on && room.rec) setRecording(room, false);                                 // the next live starts without recording
+    if (!on && room.cfg.code) { room.cfg.code = newCode(room); save(); toMods(room, { t: 'code', code: room.cfg.code }); }   // the code of an unplanned live is good for that live only
   }
 }
 let polling = false;

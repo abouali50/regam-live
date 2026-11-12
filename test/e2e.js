@@ -442,7 +442,14 @@ async function until(fn, ms = 15000, step = 250) {
       await studio.fill('#nextTitle', 'MetaMask الدرس الثاني'); await studio.click('#nextSave');
       const invite = await until(async () => { const t = await studio.inputValue('#inviteText'); return t.includes('MetaMask') && t; }, 6000);
       const url = (String(invite).match(/https?:\/\/\S+/) || [''])[0];
-      check('the invitation text carries the date, the link and the code', !!invite && invite.includes(code.slice(0, 3) + ' ' + code.slice(3)) && url.endsWith('?code=' + code) && invite.split('\n').length >= 4, String(invite));
+      const sCode = (url.match(/code=(\d{6})$/) || [])[1] || '';
+      check('each planned live has its own code and its own link, different from the room\'s', !!invite && /^\d{6}$/.test(sCode) && sCode !== code && invite.includes(sCode.slice(0, 3) + ' ' + sCode.slice(3)) && !invite.includes(code.slice(0, 3) + ' ' + code.slice(3)) && invite.split('\n').length >= 4
+        && !JSON.stringify(await (await fetch(BASE + '/api/config')).json()).includes(sCode) && !JSON.stringify(await (await fetch(BASE + '/api/rooms')).json()).includes(sCode), String(invite));
+      const tooSoon = await open1('?code=' + sCode);
+      check('the code of a planned live does not open the room before its time, and says when it will', (await until(() => tooSoon.locator('#codeDlg[open]').isVisible(), 8000)) !== null
+        && (await until(async () => (await tooSoon.textContent('#codeErr')).length > 20, 6000)) !== null && await tooSoon.locator('#liveBadge.off').isVisible()
+        && (await tooSoon.evaluate(async (c) => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=' + c)).status, sCode)) === 403);
+      await tooSoon.context().close();
       const c2 = await open1('?code=' + code);
       check('the invitation link enters directly and shows the announced session', (await until(() => c2.locator('#liveBadge.on').isVisible(), 8000)) !== null && !/code=/.test(c2.url())
         && (await c2.evaluate(async () => (await fetch('/api/config?room=main')).json())).next.title === 'MetaMask الدرس الثاني' && (await c2.evaluate(() => document.querySelector('#nextLine').textContent)).includes('MetaMask'));
@@ -471,7 +478,15 @@ async function until(fn, ms = 15000, step = 250) {
       await ag.context().close();
       const badTime = await studio.evaluate(() => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'sessiontester0001', token: sessionStorage.getItem('regam.studio') })); w.send(JSON.stringify({ t: 'session', at: Date.now() - 5 * 24 * 3600e3 })); }; w.onmessage = (m) => { const d = JSON.parse(m.data); if (d.t === 'sessions') { res(d.err || 'accepted'); w.close(); } }; setTimeout(() => res('none'), 4000); }));
       check('a session in the past is refused', badTime === 'bad');
-      for (let i = 0; i < 2; i++) await studio.locator('#sessList li button.danger').first().click();
+      // a live planned for now: during its time, only its own code opens the room
+      const nowish = new Date(Date.now() + 10 * 60e3);
+      await studio.fill('#nextAt', `${nowish.getFullYear()}-${two(nowish.getMonth() + 1)}-${two(nowish.getDate())}T${two(nowish.getHours())}:${two(nowish.getMinutes())}`); await studio.fill('#nextEnd', '');
+      await studio.fill('#nextTitle', 'Maintenant'); await studio.click('#nextSave');
+      const nowCode = await until(async () => { const m = (await studio.inputValue('#inviteText')).match(/code=(\d{6})/); return (await studio.inputValue('#inviteText')).includes('Maintenant') && m && m[1]; }, 6000);
+      const withRoom = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${code}`), withOwn = await fetch(BASE + `/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=${nowCode}`);
+      const viaJoin = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: nowCode }) })).json();
+      check('during a planned live, its own code opens the room and the room\'s general code does not', !!nowCode && nowCode !== code && withRoom.status === 403 && withOwn.status === 200 && viaJoin.slug === 'main' && !viaJoin.early, `${withRoom.status} ${withOwn.status}`);
+      for (let i = 0; i < 3; i++) await studio.locator('#sessList li button.danger').first().click();
       await until(async () => (await studio.locator('#sessList li').count()) === 0, 6000);
       await studio.uncheck('#codeChk');
       const c3 = await open1();

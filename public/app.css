@@ -649,3 +649,8 @@ a, .room-url, .acc-link { color: var(--mauve-light); }
 .doc-page { font-weight: 700; color: #fff; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
 .doc-bar [hidden] { display: none; }
 #docSeek { width: 160px; accent-color: var(--gold); }
+
+/* the class section: price line */
+#feeForm { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+#feeForm > * { flex: 0 0 auto; width: auto; margin: 0; }
+#feeAmount { width: 110px; }

@@ -128,6 +128,44 @@ function openAccount(view = 'login') {
   } catch { /* fall through to the notice */ }
   if (!account.token) alert(T('هاد الرابط ما بقاش صالح. دخل بالإيميل وكلمة السر ديالك، ولا طلب كود جديد.'));
 })();
+// The help assistant: a bubble in the corner; the visitor asks, the site's AI answers in private.
+function mountAssistant() {
+  if (document.getElementById('aiBubble')) return;
+  const log = el('div', { class: 'ai-log', role: 'log', 'aria-live': 'polite' });
+  const input = el('input', { type: 'text', maxlength: 500, placeholder: T('كتب السؤال ديالك…'), 'aria-label': T('كتب السؤال ديالك…'), autocomplete: 'off' });
+  const sendBtn = el('button', { class: 'btn primary', type: 'submit' }, T('إرسال'));
+  const form = el('form', { class: 'ai-form' }, input, sendBtn);
+  const panel = el('div', { class: 'ai-panel', hidden: true, role: 'dialog', 'aria-label': T('المساعد الذكي') },
+    el('div', { class: 'ai-head' }, el('strong', {}, '🤖 ' + T('المساعد الذكي')), el('button', { class: 'ai-x', type: 'button', 'aria-label': T('إغلاق'), onclick: () => toggle(false) }, '✕')), log, form);
+  const bubble = el('button', { id: 'aiBubble', class: 'ai-bubble', type: 'button', 'aria-expanded': 'false', 'aria-label': T('المساعد الذكي'), title: T('المساعد الذكي') }, '🤖');
+  document.body.append(panel, bubble);
+  const history = [];
+  const say = (role, text) => { const b = el('p', { class: 'ai-msg ' + role, dir: 'auto' }, text); log.append(b); log.scrollTop = log.scrollHeight; return b; };
+  function toggle(on) {
+    panel.hidden = !on; bubble.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on && !log.children.length) say('assistant', T('مرحبا. أنا المساعد ديال الموقع. سولني على التسجيل، الدخول للقاعة، كود الدخول ولا مواعيد اللايفات.'));
+    if (on) focusSoon(input);
+  }
+  bubble.onclick = () => toggle(panel.hidden);
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (!q || sendBtn.disabled) return;
+    input.value = ''; say('user', q); history.push({ role: 'user', content: q });
+    sendBtn.disabled = true;
+    const wait = say('assistant wait', '…');
+    try {
+      const r = await fetch('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history.slice(-8) }) });
+      if (!r.ok) throw new Error(r.status);
+      const text = (await r.json()).text || '';
+      wait.textContent = text; wait.classList.remove('wait'); history.push({ role: 'assistant', content: text });
+    } catch (err) {
+      wait.textContent = T(String(err.message) === '429' ? 'سولتي بزاف فوقت قصير. تسنى شوية وعاود.' : 'المساعد ما متوفرش دابا. عاود من بعد شوية.'); wait.classList.add('err');
+      history.pop();
+    }
+    sendBtn.disabled = false; log.scrollTop = log.scrollHeight;
+  };
+}
 // The account corner of the page header: "sign in / sign up", or the person's name and "sign out".
 async function mountAccount(host, site) {
   if (account.token) {
@@ -234,8 +272,8 @@ function mountChat(root, link, { askName } = {}) {
   }
 
   function row(m) {
-    const r = el('div', { class: 'msg' + (m.mod ? ' host' : '') + (m.uid === link.uid ? ' mine' : ''), 'data-id': m.id, 'data-uid': m.uid },
-      el('span', { class: 'who' }, m.name), ' ', el('span', { class: 'txt' + (m.c ? ' c' + m.c : '') }, m.text));
+    const r = el('div', { class: 'msg' + (m.mod ? ' host' : '') + (m.ai ? ' ai' : '') + (m.uid === link.uid ? ' mine' : ''), 'data-id': m.id, 'data-uid': m.uid },
+      el('span', { class: 'who' }, m.ai ? '🤖 ' + T('المساعد الذكي') : m.name), ' ', el('span', { class: 'txt' + (m.c ? ' c' + m.c : '') }, m.text));
     if (mod && !m.mod) {
       r.append(el('span', { class: 'tools' },
         el('button', { type: 'button', title: T('حذف التعليق'), onclick: () => link.send({ t: 'del', id: m.id }) }, T('حذف')),

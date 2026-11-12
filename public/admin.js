@@ -52,6 +52,7 @@
         el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف الأستاذ "{name}"؟', { name: u.name }))) api('/user?id=' + u.id, { method: 'DELETE' }).then((r) => done(r, T('تحذف الأستاذ.'))); } }, T('حذف'))))));
 
     showSettings(data);
+    showAi(data.ai);
     showAccounts(data.accounts);
     $('#roomList').replaceChildren(...data.rooms.map((r) => el('li', {},
       el('span', { class: 'admin-main-cell' },
@@ -70,6 +71,30 @@
         } }, T('بدل الاسم')),
         el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف القاعة "{name}"؟ التسجيلات ديالها كيبقاو فالسيرفر.', { name: r.title }))) api('/room?slug=' + r.slug, { method: 'DELETE' }).then((res) => done(res, T('تحذفات القاعة.'))); } }, T('حذف'))))));
   }
+
+  // ---- the AI assistant: its key, what it knows, where it answers
+  function showAi(a) {
+    const f = $('#aiForm').elements;
+    $('#aiState').textContent = T(a.ready ? 'المساعد خدام.' : 'المساعد ما خدامش: دخل المفتاح أولا.');
+    $('#aiState').className = a.ready ? 'ok-text' : 'err';
+    if ($('#aiForm').contains(document.activeElement)) return;
+    f.model.replaceChildren(...a.models.map((m) => el('option', { value: m }, m)));
+    f.model.value = a.model; f.about.value = a.about; f.chat.checked = a.chat; f.help.checked = a.help;
+    f.key.placeholder = a.hasKey ? '••••••••' : 'sk-ant-…';
+  }
+  $('#aiForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target.elements;
+    api('/settings', { method: 'POST', body: JSON.stringify({ ai: { key: f.key.value.trim(), model: f.model.value, about: f.about.value, chat: f.chat.checked, help: f.help.checked } }) })
+      .then((r) => { f.key.value = ''; document.activeElement.blur(); return done(r, T('تحفظ. جرب المساعد دابا.')); });
+  };
+  $('#aiTest').onclick = async () => {
+    say(T('كنجربو المساعد…'));
+    const r = await api('/aitest', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    say(r.ok ? T('المساعد جاوب: كلشي خدام.') : T('المساعد ما جاوبش. تأكد من المفتاح ومن الرصيد فالحساب ديال Anthropic.') + (d.error ? ' — ' + d.error : ''));
+  };
+  addPasswordEyes($('#aiForm'));
 
   // ---- viewer accounts: who needs one, the mailbox that sends the codes, the people signed up
   const PRESET = { gmail: ['smtp.gmail.com', 465], hostinger: ['smtp.hostinger.com', 465] };

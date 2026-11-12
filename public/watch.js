@@ -39,6 +39,7 @@
 
   const link = createLink({ name: account.name || store.get('regam.name') || '', room: cfg.room });
   mountAccount(document.querySelector('.top .meta'), cfg);
+  if (cfg.assistant) mountAssistant();
   // the room's entry code: from the invitation link (?code=...), or typed once and remembered
   const codeKey = 'regam.code.' + cfg.room;
   link.code = (new URLSearchParams(location.search).get('code') || store.get(codeKey) || '').replace(/\D/g, '');
@@ -348,14 +349,15 @@
   let helping = false, hDoor = [], hHands = [], hGuests = [];
   function helperBar() {
     const bar = $('#helperBar');
-    bar.hidden = !helping;
-    if (!helping) return;
+    // shown only when there is something for the assistant to do
+    bar.hidden = !helping || hDoor.length + hHands.length + hGuests.length === 0;
+    if (bar.hidden) return;
     const group = (title, items) => (items.length ? el('span', { class: 'wait-group' }, el('strong', {}, title), ...items) : null);
     const act = (text, msg, cls = '') => el('button', { class: 'btn small ' + cls, type: 'button', onclick: () => link.send(msg) }, text);
-    bar.replaceChildren(el('span', { class: 'badge wait' }, T('مساعد')),
+    bar.replaceChildren(...[el('span', { class: 'badge wait' }, T('مساعد')),
       group(T('كيتسناو يدخلو'), hDoor.slice(0, 5).map((w) => el('span', { class: 'wait-one' }, el('span', {}, w.name), act(T('قبول'), { t: 'admit', uid: w.uid, ok: true }, 'primary'), act(T('رفض'), { t: 'admit', uid: w.uid, ok: false })))),
       group(T('بغاو يطلعو للمنصة'), hHands.slice(0, 5).map((h) => el('span', { class: 'wait-one' }, el('span', {}, h.name), act(T('قبول'), { t: 'stage', uid: h.uid }, 'primary')))),
-      group(T('على المنصة'), hGuests.map((g) => el('span', { class: 'wait-one' }, el('span', {}, g.name + (g.muted ? ' 🔇' : '')), act(T(g.muted ? 'حل ليه الميكرو' : 'سد ليه الميكرو'), { t: 'mute', uid: g.uid, on: !g.muted }), act(T('نزلو من المنصة'), { t: 'unstage', uid: g.uid }, 'danger')))));
+      group(T('على المنصة'), hGuests.map((g) => el('span', { class: 'wait-one' }, el('span', {}, g.name + (g.muted ? ' 🔇' : '')), act(T(g.muted ? 'حل ليه الميكرو' : 'سد ليه الميكرو'), { t: 'mute', uid: g.uid, on: !g.muted }), act(T('نزلو من المنصة'), { t: 'unstage', uid: g.uid }, 'danger'))))].filter(Boolean));
   }
   link.on('init', (d) => { helping = !!d.helper; hDoor = d.waiting || []; hHands = d.hands || []; hGuests = d.guests || []; helperBar(); })
     .on('waiting', (d) => { hDoor = d.list || []; helperBar(); })

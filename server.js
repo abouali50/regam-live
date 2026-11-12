@@ -170,6 +170,43 @@ function serveFile(res, file, cache = 'no-cache') {
 }
 const clean = (s, max) => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 const acct = require('./accounts')({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle: SITE_TITLE, env });
+const ai = require('./ai')({ db, save, clean, env });
+const SITE_TZ = env.SITE_TZ || 'Africa/Casablanca';
+const QUESTION = /[?؟]|^\s*(comment|pourquoi|quand|où|ou est|est-ce|c'est quoi|combien|how|why|what|when|where|who|can |is |does |كيف|كيفاش|شنو|شنا|علاش|واش|فين|فوقاش|شحال|متى|هل|ماذا|لماذا|أين|كم)|@ai\b|@assistant|المساعد/i;
+// What the help assistant may know about the site (nothing private: no codes, no e-mails).
+function siteFacts() {
+  const when = (ms) => new Date(ms).toLocaleString('fr-FR', { timeZone: SITE_TZ, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  const lines = [`Site name: ${SITE_TITLE}. Times below are in the ${SITE_TZ} time zone. Now: ${when(Date.now())}.`,
+    acct.access() === 'watch' ? 'An account is required to watch: "Créer un compte", then validate with the 6-digit code (or the link) received by e-mail, then sign in.'
+      : acct.access() === 'join' ? 'Watching is open to all; an account is required to comment or to come on stage.' : acct.mailReady() ? 'Accounts are optional.' : 'There are no viewer accounts on this site.',
+    'To enter a room: open the home page and click "Entrer dans la salle", or open the invitation link. If the room asks for an entry code, type the 6-digit code from the invitation (each planned live has its own code, valid from 30 minutes before its start).',
+    'To speak with the host on video: during a live, click "Demander à monter"; the host accepts; then choose camera or microphone only.',
+    'Under the video: reactions (emoji), "Traduction" to read or hear the host in Arabic, French or English, "Partager" for the link. Comments open with the "Commentaires" button.',
+    'Rooms:'];
+  for (const r of rooms.values()) {
+    const next = sessionsOf(r).slice(0, 3).map((s) => `${when(s.at)}${s.title ? ' (' + s.title + ')' : ''}`).join('; ');
+    lines.push(`- "${r.cfg.title}"${r.cfg.topic ? ' [' + r.cfg.topic + ']' : ''}, host ${ownerName(r)}: ${r.live ? 'LIVE NOW' : 'not live'}${r.cfg.code ? ', entry code required' : ''}${next ? '. Planned lives: ' + next : '. No live planned.'}`);
+  }
+  return lines.join('\n');
+}
+const helpHits = new Map();                  // ip -> [timestamps]
+// A viewer asked something in the comments: the assistant answers in the thread, at a calm pace.
+async function aiReply(room, ws, msg) {
+  const now = Date.now();
+  if (room.aiBusy || now - (room.aiAt || 0) < 6000 || now - (ws.aiAt || 0) < 20000) return;
+  room.aiBusy = true; room.aiAt = now; ws.aiAt = now;
+  try {
+    const text = await ai.answerComment({
+      site: SITE_TITLE, room: room.cfg.title, live: room.live, title: room.cfg.liveTitle || '',
+      spoken: (room.capLog || []).slice(-12), comments: room.history.slice(-12, -1).map((m) => `${m.name}: ${m.text}`), asker: msg.name, question: msg.text,
+    });
+    if (!text || !room.history.includes(msg)) return;             // nothing to say, or the question was deleted meanwhile
+    const reply = { id: ++room.seq, uid: 'assistant', name: 'Assistant IA', text: clean(`@${msg.name} ${text}`, 500), ts: Date.now(), ai: true };
+    room.history.push(reply);
+    if (room.history.length > HISTORY) room.history.shift();
+    broadcast(room, { t: 'msg', m: reply });
+  } catch { /* the assistant stays silent */ } finally { room.aiBusy = false; }
+}
 // the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
 const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || acct.access() === 'watch';
 // Entry code of a room (like a meeting passcode): the host sends it with the invitation.
@@ -450,7 +487,7 @@ async function handleAdmin(req, res, url, what) {
   if (!what && req.method === 'GET') {
     return send(res, 200, {
       users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
-      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(),
+      plans: db.plans, payInfo: db.payInfo, accounts: acct.adminView(), ai: ai.adminView(),
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
     });
   }
@@ -529,6 +566,8 @@ async function handleAdmin(req, res, url, what) {
   }
   if (what === 'settings' && req.method === 'POST') {       // payment instructions and the plans on offer
     const b = await readJson(req);
+    ai.adminSet(b.ai);                                         // the AI assistant: key, model, what it should know
+    if (b.ai) for (const r of rooms.values()) toMods(r, { t: 'aichat', ready: ai.inChat(), on: !r.cfg.aiOff });
     const bad = acct.adminSet(b);                              // who must have an account, and the mailbox that sends the codes
     if (bad) return send(res, 400, { error: bad });
     if (typeof b.payInfo === 'string') db.payInfo = b.payInfo.replace(/[\u0000-\u0008\u000b-\u001f]/g, '').slice(0, 1500);
@@ -544,6 +583,7 @@ async function handleAdmin(req, res, url, what) {
     save();
     return send(res, 200, { ok: true });
   }
+  if (what === 'aitest' && req.method === 'POST') { const bad = await ai.adminTest(); return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true }); }
   if (what === 'mailtest' && req.method === 'POST') {
     const bad = await acct.adminTest((await readJson(req)).to);
     return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true });
@@ -576,10 +616,24 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
         rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
-        access: acct.access(), accounts: acct.mailReady(),
+        access: acct.access(), accounts: acct.mailReady(), assistant: ai.inHelp(),
       });
     }
-    if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady(), build: BUILD });
+    if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady(), assistant: ai.inHelp(), build: BUILD });
+    if (p === '/api/assistant' && req.method === 'POST') {       // the private help bubble
+      if (!ai.inHelp()) return send(res, 404, { error: 'off' });
+      const ip = clientIp(req), now = Date.now(), hits = (helpHits.get(ip) || []).filter((t) => t > now - 10 * 60e3);
+      if (hits.length >= 20) return send(res, 429, { error: 'too many requests' });
+      hits.push(now); helpHits.set(ip, hits);
+      const b = await readJson(req);
+      const messages = (Array.isArray(b.messages) ? b.messages : []).slice(-8)
+        .map((m) => ({ role: m && m.role === 'assistant' ? 'assistant' : 'user', content: clean(m && m.content, 600) })).filter((m) => m.content);
+      for (let i = messages.length - 1; i > 0; i--) if (messages[i].role === messages[i - 1].role) { messages[i - 1].content += '\n' + messages[i].content; messages.splice(i, 1); }     // roles must alternate
+      while (messages.length && messages[0].role !== 'user') messages.shift();
+      if (!messages.length || messages[messages.length - 1].role !== 'user') return send(res, 400, { error: 'empty' });
+      try { return send(res, 200, { text: await ai.answerHelp({ site: SITE_TITLE, facts: siteFacts(), messages }) }); }
+      catch { return send(res, 502, { error: 'assistant unavailable' }); }
+    }
     if (p.startsWith('/api/member/')) return await acct.handle(req, res, p.slice(12));
     if (p === '/api/ics') {                       // a planned session, as a file for the person's own calendar
       const room = roomOf(url), s = room && sessionsOf(room).find((x) => x.id === url.searchParams.get('id'));
@@ -649,7 +703,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { user: me, rooms: [...rooms.values()].filter((r) => canHost(me, r)).map(publicRoom) });
     }
     if (p === '/api/recordings') return handleRecordings(req, res, url);
-    const a = p.match(/^\/api\/admin(?:\/(user|room|settings|mailtest|member))?$/);
+    const a = p.match(/^\/api\/admin(?:\/(user|room|settings|mailtest|member|aitest))?$/);
     if (a) return handleAdmin(req, res, url, a[1]);
     const m = p.match(/^\/api\/rtc\/(whip|whep)\/([a-z]+(?:[1-9]|1[0-2])?)$/);
     if (m) return handleRtc(req, res, url, m[1], m[2]);
@@ -791,6 +845,7 @@ wss.on('connection', (ws, req) => {
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
         code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? plannedOf(room) : undefined,
+        aiChat: ws.mod ? { ready: ai.inChat(), on: !room.cfg.aiOff } : undefined,
         rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
       });
     }
@@ -824,7 +879,9 @@ wss.on('connection', (ws, req) => {
         const msg = { id: ++room.seq, uid: ws.uid, name: ws.name, text, ts: now, mod: ws.mod || undefined, c: ws.color || undefined };
         room.history.push(msg);
         if (room.history.length > HISTORY) room.history.shift();
-        return broadcast(room, { t: 'msg', m: msg });
+        broadcast(room, { t: 'msg', m: msg });
+        if (!ws.mod && ai.inChat() && !cfg.aiOff && QUESTION.test(text)) aiReply(room, ws, msg);
+        return;
       }
 
       // ---- stage requests (viewer side)
@@ -924,6 +981,7 @@ wss.on('connection', (ws, req) => {
           const missing = ['ar', 'fr', 'en'].filter((l) => !words[l]);
           if (TRANSLATE_URL) await Promise.all(missing.map(async (l) => { try { const v = await translate(words[src], src, l); if (v) words[l] = v; } catch { /* that language is left out */ } }));
           broadcast(room, { t: 'cap', src, tx: words });
+          room.capLog = [...(room.capLog || []), words[src]].slice(-15);          // what the host said lately, for the assistant
           tx(ws, { t: 'capinfo', tx: words });
         });
         return;
@@ -951,6 +1009,9 @@ wss.on('connection', (ws, req) => {
         for (const c of room.clients) if (c.member === m.id) tx(c, { t: 'helper', on });      // their page takes the new role at once
         return toMods(room, { t: 'helpers', list: helpersOf(room) });
       }
+      case 'aichat':                       // the assistant answers in this room's comments, or stays out of them
+        cfg.aiOff = d.on === false; save();
+        return toMods(room, { t: 'aichat', ready: ai.inChat(), on: !cfg.aiOff });
       case 'rec':                          // record this live, or stop recording it
         if (d.on && !room.live) return tx(ws, { t: 'rec', on: false, err: 'offline' });
         setRecording(room, !!d.on).then((ok) => { if (!ok) tx(ws, { t: 'rec', on: !!room.rec, err: 'failed' }); });

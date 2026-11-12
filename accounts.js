@@ -4,7 +4,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 
-module.exports = function accounts({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle, env }) {
+module.exports = function accounts({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle, env, onRemove = () => {} }) {
   db.members = db.members || [];
   db.mail = db.mail || {};                       // { host, port, user, pass, from } - set in the administration page
   db.access = ['open', 'join', 'watch'].includes(db.access) ? db.access : 'open';
@@ -76,6 +76,14 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     }
     if (req.method !== 'POST') return send(res, 405, { error: 'method' });
     const b = await readJson(req), ip = clientIp(req), email = emailOf(b.email), lang = String(b.lang || 'ar');
+    if (what === 'delete') {                     // a person removes their own account, with their password
+      const m = memberOf((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
+      if (!m) return send(res, 401, { error: 'signed out' });
+      if (!allowed('login:' + ip, 12, 15 * 60e3)) return send(res, 429, { error: 'too many requests' });
+      if (!safeEq(hash(String(b.password || ''), m.salt), m.hash)) return send(res, 401, { error: 'bad login' });
+      db.members = db.members.filter((x) => x.id !== m.id); onRemove(m.id); save();
+      return send(res, 200, { ok: true });
+    }
     const hostName = String(req.headers['x-forwarded-host'] || req.headers.host || '');
     const origin = /^[a-z0-9.-]+(:\d+)?$/i.test(hostName) ? `${req.headers['x-forwarded-proto'] === 'http' || /^(localhost|127\.)/.test(hostName) ? 'http' : 'https'}://${hostName}` : '';
     if (!allowed('ip:' + ip, 40, 3600e3)) return send(res, 429, { error: 'too many requests' });
@@ -160,7 +168,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
       return '';
     } catch (e) { return 'mail failed: ' + String((e && e.message) || e).slice(0, 160); }
   }
-  function adminRemove(id) { const n = db.members.length; db.members = db.members.filter((m) => m.id !== id); save(); return db.members.length < n; }
+  function adminRemove(id) { const n = db.members.length; db.members = db.members.filter((m) => m.id !== id); if (db.members.length < n) onRemove(id); save(); return db.members.length < n; }
 
   const find = (email) => { const m = byEmail(emailOf(email)); return m && m.verified ? m : null; };
   const byId = (id) => db.members.find((m) => m.id === id) || null;

@@ -55,6 +55,7 @@
     showAi(data.ai);
     showBackup(data.backup);
     showPay(data.pay);
+    if (!$('#legalForm').contains(document.activeElement)) { $('#legalForm').elements.owner.value = data.legal.owner; $('#legalForm').elements.contact.value = data.legal.contact; }
     $('#statsBody').replaceChildren(...data.stats.map((r) => el('tr', {}, ...[r.title, r.teacher, r.students, r.lives, r.people, r.peak, r.minutes,
       r.last ? new Date(r.last).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : LANG, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'].map((v) => el('td', {}, String(v))))));
     showAccounts(data.accounts);
@@ -166,6 +167,11 @@
   };
   addPasswordEyes($('#payKeys'));
 
+  $('#legalForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target.elements;
+    api('/settings', { method: 'POST', body: JSON.stringify({ legal: { owner: f.owner.value, contact: f.contact.value } }) }).then((r) => { document.activeElement.blur(); return done(r, T('تحفظ.')); });
+  };
   // ---- backups
   function showBackup(b) {
     const when = (ms) => new Date(ms).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' });

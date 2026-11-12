@@ -681,3 +681,9 @@ div.poll-opt, .poll-opt:disabled { cursor: default; }
 .table-wrap { overflow-x: auto; }
 table.stats { width: 100%; border-collapse: collapse; color: #fff; }
 table.stats th, table.stats td { padding: 8px 10px; border-bottom: 1px solid #2c3672; text-align: start; white-space: nowrap; }
+
+/* legal pages */
+.legal article { display: grid; gap: 10px; line-height: 1.7; color: #fff; }
+.legal article[hidden] { display: none; }
+.legal h1 { font-size: 24px; margin-top: 8px; }
+.legal ul { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px; }

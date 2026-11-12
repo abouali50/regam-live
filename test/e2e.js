@@ -1254,6 +1254,29 @@ async function until(fn, ms = 15000, step = 250) {
       await fetch(BASE + `/api/recordings?room=${slug}&name=${recName}`, { method: 'PUT', headers: { ...TH, ...J }, body: JSON.stringify({ title: '' }) });
       check('a replay taken back is no longer shown', (await extras(lina)).replays.length === 0);
       host.close(); st.close(); await vctx3.close(); await tctx3.close();
+      // legal pages, and deleting one's own account
+      await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ legal: { owner: 'REGAM SARL', contact: 'contact@example.com' } }) });
+      const lctx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 900 } });
+      const lp = await lctx.newPage();
+      lp.on('pageerror', (e) => errors.push('legal: ' + e.message)); lp.on('dialog', (d) => d.accept());
+      await lp.addInitScript((t) => { if (!sessionStorage.getItem('once')) { sessionStorage.setItem('once', '1'); localStorage.setItem('regam.member', t); localStorage.setItem('regam.memberName', 'Omar Class'); } }, omar);
+      await lp.goto(BASE + '/legal');
+      const legalShown = await until(async () => (await lp.textContent('#legalWho')).includes('REGAM SARL') && await lp.locator('article[data-lang=fr]').isVisible() && await lp.locator('article[data-lang=ar]').isHidden() && await lp.locator('#delBox').isVisible(), 6000);
+      await lp.screenshot({ path: path.join(OUT, 'legal.png') });
+      const omarId = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).accounts.members.list.find((m) => m.email === 'omar.class@example.com').id;
+      const roomsText = () => JSON.stringify(JSON.parse(fs.readFileSync(path.join(OUT, 'data', 'db.json'), 'utf8')).rooms);
+      await sleep(600);
+      const wasThere = roomsText().includes(omarId);
+      await lp.fill('#delForm [name=password]', 'mauvais-mot-1'); await lp.click('#delForm button[type=submit]');
+      const refused = await until(async () => (await lp.textContent('#delMsg')).includes('incorrect'), 5000);
+      await lp.fill('#delForm [name=password]', 'motdepasse1'); await lp.click('#delForm button[type=submit]');
+      const gone = await until(async () => (await lp.textContent('#delMsg')).includes('supprimé'), 5000);
+      const adm = await (await fetch(BASE + '/api/admin', { headers: H })).json();
+      const relog = await fetch(BASE + '/api/member/login', { method: 'POST', headers: J, body: JSON.stringify({ email: 'omar.class@example.com', password: 'motdepasse1' }) });
+      check('the site has its terms and privacy page, in the reader\'s language, with who runs it', legalShown !== null && (await (await fetch(BASE + '/')).text()).includes('/legal'));
+      check('a person deletes their own account with their password; nothing of it stays in the classes', refused !== null && gone !== null && [401, 429].includes(relog.status) && !adm.accounts.members.list.some((m) => m.email === 'omar.class@example.com')
+        && wasThere && (await until(() => !roomsText().includes(omarId), 4000)) !== null, `wasThere ${wasThere} refused ${refused} gone ${gone} relog ${relog.status} msg ${await lp.textContent('#delMsg')}`);
+      await lctx.close();
     }
     {
       // ---- backups (last: putting one back restarts the server)

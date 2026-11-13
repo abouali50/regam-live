@@ -114,7 +114,9 @@
       f.pass.placeholder = a.mail.hasPass ? '••••••••' : '';
     }
     $('#memberCount').textContent = T('المسجلين: {n} (منهم {v} مفعلين)', { n: a.members.total, v: a.members.verified });
-    $('#members').replaceChildren(...a.members.list.map((m) => el('li', { class: m.verified ? '' : 'is-off' },
+    const find = $('#memberFind').value.trim().toLowerCase();
+    $('#memberFind').oninput = () => showAccounts(a);
+    $('#members').replaceChildren(...a.members.list.filter((m) => !find || m.name.toLowerCase().includes(find) || m.email.includes(find)).slice(0, 100).map((m) => el('li', { class: m.verified ? '' : 'is-off' },
       el('span', { class: 'admin-main-cell' }, el('strong', {}, m.name), el('span', { class: 'muted', dir: 'ltr' }, m.email), m.verified ? null : el('span', { class: 'badge off' }, T('ما مفعلش'))),
       el('span', { class: 'rec-actions' }, el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف الحساب ديال "{name}"؟', { name: m.name }))) api('/member?id=' + m.id, { method: 'DELETE' }).then((r) => done(r, T('تحذف الحساب.'))); } }, T('حذف'))))));
   }

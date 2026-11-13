@@ -64,7 +64,6 @@
   }
   showNext(cfg.next);
   const chat = mountChat($('#chat'), link, { askName });
-  mountWho(link);
 
   // -------------------------------------------------------------- player --
   function stopHls() {
@@ -176,15 +175,28 @@
     guestLine.hidden = on.length === 0;
     if (on.length) guestLine.textContent = T('{name} على المنصة مع {host}', { name: on.join(LANG === 'ar' ? '، ' : ', '), host: cfg.host });
   }
-  function setHand(on) {
-    handUp = on;
-    handBtn.textContent = T(on ? 'إلغاء الطلب' : 'طلب الطلوع');
-    handBtn.classList.toggle('active', on);
+  // Two ways to ask for the floor: the raised hand, and the point of order (one hand up, a finger raised),
+  // which the host hears before the others.
+  const pointBtn = $('#pointBtn');
+  let pointUp = false;
+  function setHand(on, point) {
+    handUp = on && !point; pointUp = on && !!point;
+    handBtn.textContent = T(handUp ? 'إلغاء الطلب' : 'طلب الطلوع');
+    handBtn.classList.toggle('active', handUp);
+    pointBtn.textContent = T(pointUp ? 'إلغاء نقطة النظام' : '☝️ نقطة نظام');
+    pointBtn.classList.toggle('active', pointUp);
   }
   handBtn.onclick = async () => {
     if (!link.name && !(await askName())) return;
     link.send({ t: 'hand', on: !handUp });
   };
+  pointBtn.onclick = async () => {
+    if (!link.name && !(await askName())) return;
+    link.send({ t: 'hand', on: !pointUp, point: true });
+  };
+  new MutationObserver(() => { pointBtn.hidden = handBtn.hidden; }).observe(handBtn, { attributes: true, attributeFilter: ['hidden'] });
+  pointBtn.hidden = handBtn.hidden;
+  mountPeople($('#peopleBtn'), link);
 
   // ----------------------------------------------------- reactions, share --
   mountReactions($('#reactions'), $('#hearts'), link, { canSend: true, totalEl: $('#likes') });
@@ -535,7 +547,7 @@
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guests', (d) => showGuests(d.guests))
-    .on('hand', (d) => { setHand(d.on); if (d.on) chat.say(T('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.'), 6000); })
+    .on('hand', (d) => { setHand(d.on, d.point); if (d.on) chat.say(T('وصل الطلب ديالك. تسنى صاحب اللايف يقبلو.'), 6000); })
     .on('invite', (d) => {
       setHand(false);
       inviteErr.hidden = true;

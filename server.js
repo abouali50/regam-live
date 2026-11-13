@@ -174,6 +174,7 @@ function serveFile(res, file, cache = 'no-cache') {
 const clean = (s, max) => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 // An account is gone: nothing about it stays in the rooms (class lists, assistants, payments of entry).
 function forgetMember(id) {
+  fs.unlink(avatarFile(id), () => {});
   for (const room of rooms.values()) {
     const c = room.cfg;
     for (const k of ['students', 'helpers', 'left']) if (c[k]) c[k] = c[k].filter((x) => x !== id);
@@ -510,6 +511,24 @@ function mayEnter(req, room) {
   if (cls.entry(room, who)) return false;
   return !room.cfg.code || cls.known(room, who);
 }
+// The photo of a profile: a small square JPEG, made in the browser from whatever picture the person chose.
+const avatarFile = (id) => path.join(DATA_DIR, `avatar_${id}`);
+const avatarOf = (m) => (m && m.av ? `${m.id}?v=${m.av}` : '');
+function handleAvatar(req, res) {
+  const m = acct.memberOf(bearer(req));
+  if (!m) return send(res, 401, { error: 'signed out' });
+  if (req.method === 'DELETE') { fs.unlink(avatarFile(m.id), () => {}); delete m.av; save(); return send(res, 200, { av: 0 }); }
+  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+  const tmp = avatarFile(m.id) + '.new';
+  receiveFile(req, res, tmp, 400 * 1024, () => {
+    const head = Buffer.alloc(3);
+    try { const fd = fs.openSync(tmp, 'r'); fs.readSync(fd, head, 0, 3, 0); fs.closeSync(fd); } catch { /* unreadable */ }
+    if (head[0] !== 0xff || head[1] !== 0xd8 || head[2] !== 0xff) { fs.unlink(tmp, () => {}); return send(res, 415, { error: 'bad type' }); }
+    fs.renameSync(tmp, avatarFile(m.id));
+    m.av = Date.now(); save();
+    send(res, 200, { av: m.av });
+  });
+}
 const FILE_OK = /\.(pdf|docx?|pptx?|xlsx?|txt|csv|png|jpe?g|zip|mp3)$/i, FILE_MAX = 30 * 1024 * 1024, FILES_PER_ROOM = 20;
 const classFile = (slug, id) => path.join(DATA_DIR, `file_${slug}_${id}`);
 const filesOf = (room) => (room.cfg.files || []).map((f) => ({ id: f.id, name: f.name, size: f.size }));
@@ -769,6 +788,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/sound') return handleSound(req, res, url);
     if (p === '/api/pics') return handlePics(req, res, url);
+    if (p === '/api/avatar') return handleAvatar(req, res);
+    if (p.startsWith('/media/avatar/')) {
+      const id = p.slice(14);
+      if (!/^[a-z0-9]{6,40}$/.test(id)) return send(res, 404, 'Not found');
+      return serveRanged(req, res, avatarFile(id), { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=31536000, immutable' });
+    }
     if (p === '/api/files') return handleFiles(req, res, url);
     if (p === '/api/extras') return handleExtras(req, res, url);
     if (p.startsWith('/media/replay/')) return serveReplay(req, res, url, p.slice(14));
@@ -948,7 +973,7 @@ function answerDoor(room, uid, ok) {           // uid '' = everybody at the door
     tx(ws, { t: ok ? 'admitted' : 'refused' });
   }
 }
-const handsList = (room) => [...room.hands].map(([uid, h]) => ({ uid, name: h.name })).slice(0, 50);
+const handsList = (room) => [...room.hands].map(([uid, h]) => ({ uid, name: h.name, av: h.av, point: h.point })).sort((x, y) => (y.point ? 1 : 0) - (x.point ? 1 : 0)).slice(0, 50);     // points of order first
 const guestsPublic = (room) => [...room.guests].map(([slot, g]) => ({ slot, uid: g.uid, name: g.name, ready: g.ready, muted: !!g.muted, cam: g.cam !== false }));
 const slotOf = (room, uid) => { for (const [slot, g] of room.guests) if (g.uid === uid) return slot; return 0; };
 
@@ -1028,6 +1053,7 @@ wss.on('connection', (ws, req) => {
       ws.member = member ? member.id : null;
       ws.name = ws.mod ? user.name : member ? member.name : clean(d.name, MAX_NAME);
       ws.color = colorOf(d.color);
+      ws.av = avatarOf(member);
       room.clients.add(ws);
       if (member && !host) cls.enroll(room, member);
       // somebody came in: the host and the assistants hear it (once per person, not at every reconnection)
@@ -1079,7 +1105,7 @@ wss.on('connection', (ws, req) => {
           if (wait > 0) return tx(ws, { t: 'err', code: 'slow', wait: Math.ceil(wait / 1000) });
         }
         room.lastMsgAt.set(ws.uid, now);
-        const msg = { id: ++room.seq, uid: ws.uid, name: ws.name, text, ts: now, mod: ws.mod || undefined, c: ws.color || undefined };
+        const msg = { id: ++room.seq, uid: ws.uid, name: ws.name, text, ts: now, mod: ws.mod || undefined, c: ws.color || undefined, av: ws.av || undefined };
         room.history.push(msg);
         if (room.history.length > HISTORY) room.history.shift();
         broadcast(room, { t: 'msg', m: msg });
@@ -1088,6 +1114,20 @@ wss.on('connection', (ws, req) => {
       }
 
       // ---- stage requests (viewer side)
+      case 'people': {                     // who is in the room, for the list of participants
+        if (Date.now() - (ws.lastWho || 0) < 1500) return;
+        ws.lastWho = Date.now();
+        const seen = new Map(); let nameless = 0;
+        for (const c of room.clients) {
+          if (seen.has(c.uid)) continue;
+          if (!c.name) { seen.set(c.uid, null); nameless++; continue; }
+          const slot = slotOf(room, c.uid), hand = room.hands.get(c.uid);
+          seen.set(c.uid, { name: c.name, av: c.av || undefined, role: c.mod ? 'host' : c.helper ? 'helper' : slot ? 'stage' : hand ? (hand.point ? 'point' : 'hand') : undefined });
+        }
+        const rank = { host: 0, helper: 1, stage: 2, point: 3, hand: 4 };
+        const list = [...seen.values()].filter(Boolean).sort((x, y) => (rank[x.role] ?? 9) - (rank[y.role] ?? 9) || x.name.localeCompare(y.name)).slice(0, 600);
+        return tx(ws, { t: 'people', list, nameless, total: seen.size });
+      }
       case 'ask': {                        // a question for the teacher: it goes to a list of its own, not into the comments
         const text = clean(d.text, 300);
         if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });
@@ -1112,8 +1152,8 @@ wss.on('connection', (ws, req) => {
         if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });
         if (!ws.name || cfg.banned[ws.uid] || slotOf(room, ws.uid)) return;
         if (d.on === false) room.hands.delete(ws.uid);
-        else if (room.hands.size < 200) room.hands.set(ws.uid, { name: ws.name, ts: Date.now() });
-        tx(ws, { t: 'hand', on: room.hands.has(ws.uid) });
+        else if (room.hands.size < 200) room.hands.set(ws.uid, { name: ws.name, ts: Date.now(), av: ws.av || undefined, point: d.point ? true : undefined });   // point: a point of order, heard before the others
+        tx(ws, { t: 'hand', on: room.hands.has(ws.uid), point: room.hands.has(ws.uid) && !!d.point });
         return toMods(room, { t: 'hands', list: handsList(room) });
       case 'onstage': {
         const g = room.guests.get(slotOf(room, ws.uid));
@@ -1124,14 +1164,6 @@ wss.on('connection', (ws, req) => {
         const g = room.guests.get(slotOf(room, ws.uid));
         if (g && (g.cam !== false) !== !!d.on) { g.cam = !!d.on; broadcast(room, { t: 'guests', guests: guestsPublic(room) }); }
         return;
-      }
-      case 'who': {                      // who is watching: the names people chose, and how many gave none
-        const now = Date.now();
-        if (now - (ws.lastWho || 0) < 1500) return;
-        ws.lastWho = now;
-        const names = new Map(); let anon = 0;
-        for (const c of room.clients) { if (c.name) names.set(c.uid, { name: c.name, host: c.mod || undefined }); else anon++; }
-        return tx(ws, { t: 'who', people: [...names.values()].slice(0, 300), more: Math.max(0, names.size - 300), anon });
       }
       case 'leave':
         if (slotOf(room, ws.uid)) endStage(room, 'left', slotOf(room, ws.uid));

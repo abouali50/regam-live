@@ -59,6 +59,93 @@ const ACCOUNT_ERR = {
   'bad login': 'الإيميل ولا كلمة السر غالطين.', 'too many requests': 'محاولات بزاف. تسنى شوية وعاود.',
   'mail failed': 'ما قدرناش نصيفطو الإيميل. تأكد من العنوان وعاود.', 'mail not set up': 'التسجيل مازال ما مفعلش فهاد الموقع.',
 };
+// A person's picture: their photo when they have one, else the first letter of their name on a colour of their own.
+function avatar(name, av, size = 32) {
+  const n = String(name || '?').trim(), hue = [...n].reduce((h, c) => (h * 31 + c.codePointAt(0)) % 360, 7);
+  const box = el('span', { class: 'avatar', style: `width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px;background:hsl(${hue} 55% 38%)`, 'aria-hidden': 'true', 'data-l': [...n][0] ? [...n][0].toUpperCase() : '?' });      // the letter is drawn by the style sheet, so it never mixes with the text around
+  if (av) box.append(el('img', { src: '/media/avatar/' + av, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }));
+  return box;
+}
+// The profile of the signed-in person: photo, name, e-mail, way out.
+async function openProfile() {
+  let dlg = document.getElementById('profileDlg');
+  if (dlg) dlg.remove();
+  const auth = { Authorization: 'Bearer ' + account.token };
+  const me = await fetch('/api/member/me', { headers: auth }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (!me) return;
+  const note = el('p', { class: 'muted', role: 'status' });
+  const pic = el('span', { class: 'profile-pic' });
+  const paint = () => pic.replaceChildren(avatar(me.name, me.av ? `${me.id}?v=${me.av}` : '', 112));
+  paint();
+  const file = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  file.onchange = async () => {
+    const f = file.files[0]; file.value = '';
+    if (!f) return;
+    note.textContent = T('كنرفعو الصورة…');
+    try {
+      // the picture is cut to a square and made small here, before it leaves the phone
+      const url = URL.createObjectURL(f), img = new Image();
+      img.src = url; await img.decode(); URL.revokeObjectURL(url);
+      const side = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas');
+      c.width = c.height = 320;
+      c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 320, 320);
+      const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85));
+      const r = await fetch('/api/avatar', { method: 'POST', headers: { ...auth, 'Content-Type': 'image/jpeg' }, body: blob });
+      if (!r.ok) throw new Error('refused');
+      me.av = (await r.json()).av; store.set('regam.memberAv', `${me.id}?v=${me.av}`);
+      paint(); note.textContent = T('تبدلات الصورة ديالك.'); changed = true;
+    } catch { note.textContent = T('ما قدرناش نخدمو بهاد الصورة. جرب صورة أخرى.'); }
+  };
+  let changed = false;
+  const name = el('input', { type: 'text', maxlength: 24, value: me.name, autocomplete: 'name' });
+  dlg = el('dialog', { id: 'profileDlg', class: 'dlg profile-dlg' },
+    el('h2', {}, T('البروفايل ديالي')),
+    el('div', { class: 'profile-top' }, pic, el('div', { class: 'profile-btns' },
+      el('button', { class: 'btn primary', type: 'button', onclick: () => file.click() }, T('بدل الصورة')),
+      el('button', { class: 'btn', type: 'button', onclick: async () => { await fetch('/api/avatar', { method: 'DELETE', headers: auth }); me.av = 0; store.set('regam.memberAv', ''); paint(); changed = true; note.textContent = T('تحيدات الصورة.'); } }, T('حيد الصورة')))),
+    file,
+    el('label', { class: 'acc-field' }, T('الاسم (كيبان للناس)'), name),
+    el('p', { class: 'muted', dir: 'ltr' }, me.email),
+    note,
+    el('div', { class: 'dlg-actions' },
+      el('button', { class: 'btn primary', type: 'button', onclick: async () => {
+        const n = name.value.trim();
+        if (n && n !== me.name) {
+          const r = await fetch('/api/member/rename', { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n }) });
+          if (!r.ok) { note.textContent = T('كتب اسم فيه جوج حروف ولا أكثر.'); return; }
+          account.set(account.token, n); changed = true;
+        }
+        dlg.close();
+      } }, T('حفظ')),
+      el('button', { class: 'btn', type: 'button', onclick: () => { account.clear(); location.reload(); } }, T('خروج')),
+      el('a', { class: 'btn danger', href: '/legal' }, T('حذف الحساب ديالي'))));
+  dlg.addEventListener('close', () => { if (changed) location.reload(); });      // the room is told the new name and photo on the way back in
+  document.body.append(dlg);
+  dlg.showModal();
+}
+// The people in the room, gathered behind one button: a list, one under the other, with their pictures.
+function mountPeople(btn, link) {
+  let dlg = null, timer = null;
+  const ROLE = { host: '🎙️ ' + T('الأستاذ'), helper: '🛡️ ' + T('مساعد'), stage: '🎥 ' + T('على المنصة'), point: '☝️ ' + T('نقطة نظام'), hand: '✋ ' + T('رافع يدو') };
+  const list = el('ul', { class: 'people-list who-list' }), title = el('h2', {}), more = el('p', { class: 'muted' });
+  link.on('people', (d) => {
+    title.textContent = T('الحاضرين ({n})', { n: d.total });
+    list.replaceChildren(...d.list.map((p) => el('li', {}, avatar(p.name, p.av, 36), el('span', { class: 'people-name', dir: 'auto' }, p.name), p.role ? el('span', { class: 'people-role' }, ROLE[p.role]) : null)));
+    more.hidden = !d.nameless;
+    more.textContent = T('و {n} آخرين بلا اسم', { n: d.nameless });
+  });
+  btn.onclick = () => {
+    if (!dlg) {
+      dlg = el('dialog', { class: 'dlg people-dlg who-dlg' }, title, list, more, el('div', { class: 'dlg-actions' }, el('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, T('سد'))));
+      dlg.addEventListener('close', () => clearInterval(timer));
+      dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // a click outside closes it
+      document.body.append(dlg);
+    }
+    link.send({ t: 'people' });
+    clearInterval(timer); timer = setInterval(() => link.send({ t: 'people' }), 5000);
+    dlg.showModal();
+  };
+}
 // Opens the sign-in / sign-up window. view: 'login' or 'signup'. The page reloads once signed in.
 function openAccount(view = 'login') {
   let dlg = document.getElementById('accountDlg');
@@ -188,7 +275,11 @@ async function mountAccount(host, site) {
   }
   if (!account.token && !(site && site.accounts)) return;
   const box = el('span', { class: 'acc-box' });
-  if (account.token) box.append(el('span', { class: 'acc-name' }, account.name), el('button', { class: 'btn small', type: 'button', onclick: () => { account.clear(); location.reload(); } }, T('خروج')));
+  if (account.token) {
+    const me = await fetch('/api/member/me', { headers: { Authorization: 'Bearer ' + account.token } }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    box.append(el('button', { class: 'acc-me', type: 'button', title: T('البروفايل ديالي'), 'aria-label': T('البروفايل ديالي'), onclick: openProfile }, avatar(account.name, me && me.av ? `${me.id}?v=${me.av}` : '', 30), el('span', { class: 'acc-name' }, account.name)),
+      el('button', { class: 'btn small', type: 'button', onclick: () => { account.clear(); location.reload(); } }, T('خروج')));
+  }
   else box.append(el('button', { class: 'btn small', type: 'button', onclick: () => openAccount('login') }, T('دخول')), el('button', { class: 'btn small primary', type: 'button', onclick: () => openAccount('signup') }, T('تسجيل')));
   host.append(box);
 }
@@ -287,7 +378,7 @@ function mountChat(root, link, { askName } = {}) {
 
   function row(m) {
     const r = el('div', { class: 'msg' + (m.mod ? ' host' : '') + (m.ai ? ' ai' : '') + (m.uid === link.uid ? ' mine' : ''), 'data-id': m.id, 'data-uid': m.uid },
-      el('span', { class: 'who' }, m.ai ? '🤖 ' + T('المساعد الذكي') : m.name), ' ', el('span', { class: 'txt' + (m.c ? ' c' + m.c : '') }, m.text));
+      m.ai ? null : avatar(m.name, m.av, 22), el('span', { class: 'who' }, m.ai ? '🤖 ' + T('المساعد الذكي') : m.name), ' ', el('span', { class: 'txt' + (m.c ? ' c' + m.c : '') }, m.text));
     if (mod && !m.mod) {
       r.append(el('span', { class: 'tools' },
         el('button', { type: 'button', title: T('حذف التعليق'), onclick: () => link.send({ t: 'del', id: m.id }) }, T('حذف')),
@@ -499,30 +590,3 @@ function addPasswordEyes(root = document) {
 }
 addPasswordEyes();
 
-// --------------------------------------------------------- who is watching --
-// The viewer counter is a button: it opens the list of names in the room.
-function mountWho(link) {
-  const counter = document.querySelector('.viewers');
-  if (!counter) return;
-  const btn = el('button', { type: 'button', class: 'viewers who-btn', title: T('شكون كيتفرج'), 'aria-label': T('شكون كيتفرج') });
-  btn.append(...counter.childNodes);
-  counter.replaceWith(btn);
-  const list = el('ul', { class: 'who-list' });
-  const extra = el('p', { class: 'muted' });
-  const dlg = el('dialog', { class: 'dlg who-dlg' }, el('h2', {}, T('شكون كيتفرج')), list, extra,
-    el('div', { class: 'dlg-actions' }, el('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, T('سد'))));
-  document.body.append(dlg);
-  let timer = null;
-  const ask = () => link.send({ t: 'who' });
-  btn.onclick = () => { ask(); if (!dlg.open) dlg.showModal(); clearInterval(timer); timer = setInterval(ask, 4000); };
-  dlg.addEventListener('close', () => clearInterval(timer));
-  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // a click outside closes it
-  link.on('who', (d) => {
-    list.replaceChildren(...d.people.sort((x, y) => (y.host ? 1 : 0) - (x.host ? 1 : 0) || x.name.localeCompare(y.name))
-      .map((p) => el('li', { class: p.host ? 'is-host' : '' }, el('span', {}, p.name), p.host ? el('span', { class: 'badge off' }, T('صاحب اللايف')) : null)));
-    const bits = [];
-    if (d.more) bits.push(T('و {n} آخرين', { n: d.more }));
-    if (d.anon) bits.push(T('{n} متابع بلا اسم', { n: d.anon }));
-    extra.textContent = bits.join(' · '); extra.hidden = bits.length === 0;
-  });
-}

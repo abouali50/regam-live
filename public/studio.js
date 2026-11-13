@@ -60,7 +60,6 @@
     const recUrl = (extra = '') => `/api/recordings?room=${mine.slug}${extra}`;
     const link = createLink({ token, room: mine.slug });
     mountChat($('#chat'), link);
-    mountWho(link);
     mountReactions($('#reactions'), $('#hearts'), link, { totalEl: $('#likes') });
 
     // --------------------------------------------------------- the mixer --
@@ -116,6 +115,22 @@
     let camTrack = null, screenTrack = null, micTrack = null, micOn = true;
     let audioCtx = null, mixOut = null, micGain = null;
     let pc = null, liveOn = false;             // main broadcast
+    // Every viewer receives the picture at the rate the studio sends it, so the rate follows the size of the
+    // audience: full quality for a small room, lighter as hundreds come in, to stay within what the server can send.
+    const rateFor = (n) => (n <= 100 ? 4_500_000 : n <= 200 ? 3_000_000 : n <= 350 ? 2_000_000 : 1_400_000);
+    let rateNow = 0;
+    function fitBitrate(n) {
+      const want = rateFor(Number(n) || 0);
+      if (!pc || !liveOn || want === rateNow) return;
+      const sender = pc.getSenders().find((x) => x.track && x.track.kind === 'video');
+      if (!sender) return;
+      try {
+        const p = sender.getParameters();
+        if (!p.encodings || !p.encodings.length) return;
+        p.encodings[0].maxBitrate = want;
+        sender.setParameters(p).then(() => { rateNow = want; }).catch(() => {});
+      } catch { /* the browser keeps its rate */ }
+    }
     let guests = [], maxGuests = 12;           // who the server says is on stage
     const onStage = new Map();                 // slot -> what we have set up for that guest
     const buses = {};                          // slot -> the sound mix sent to that guest
@@ -322,7 +337,7 @@
         };
         step = 'server';
         await within(rtcNegotiate(pc, 'whip', 'studio', token), 20000, 'server');
-        liveOn = true;
+        liveOn = true; rateNow = 4_500_000;
         try { tune(); } catch { /* a hint the browser does not know: the live goes on without it */ }
         $('#goBtn').textContent = T('وقف اللايف');
         lockLang(true); $('#roomSel').disabled = true;
@@ -662,6 +677,7 @@
     $('#closedChk').onchange = () => link.send({ t: 'closed', on: $('#closedChk').checked });
     $('#remindChk').onchange = () => link.send({ t: 'remind', on: $('#remindChk').checked });
     $('#studentForm').onsubmit = (e) => { e.preventDefault(); link.send({ t: 'student', email: $('#studentEmail').value.trim(), on: true }); };
+    mountPeople($('#peopleBtn'), link);
     link.on('class', showClass);
     const mins = (secs) => Math.max(1, Math.round(secs / 60));
     function csvOf(a) {                               // opens in Excel: semicolons, and a mark that says the text is UTF-8
@@ -887,7 +903,7 @@
     function showHands(list) {
       $('#noHands').hidden = list.length > 0;
       $('#hands').replaceChildren(...list.map((h) => el('li', {},
-        el('span', {}, h.name),
+        el('span', { class: 'hand-who' + (h.point ? ' is-point' : '') }, avatar(h.name, h.av, 30), h.name, h.point ? el('span', { class: 'badge on' }, '☝️ ' + T('نقطة نظام')) : el('span', { 'aria-hidden': 'true' }, ' ✋')),
         el('button', { class: 'btn primary', type: 'button', onclick: () => acceptHand(h) }, T('قبول')))));
       if (list.length > handList.length) chime();
       handList = list; paintBar();
@@ -918,7 +934,7 @@
     })
       .on('waiting', (d) => showWaiting(d.gate, d.list))
       .on('live', (d) => setBadge(d.on))
-      .on('viewers', (d) => { $('#viewers').textContent = d.n; })
+      .on('viewers', (d) => { $('#viewers').textContent = d.n; fitBitrate(d.n); })
       .on('hands', (d) => showHands(d.list))
       .on('guests', (d) => showGuests(d.guests))
       .on('err', (d) => {
@@ -986,7 +1002,7 @@
 
     addEventListener('pagehide', () => { if (liveOn) stopLive(); });
     addEventListener('beforeunload', (e) => { if (liveOn) e.preventDefault(); });
-    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board, stage: onStage, get bells() { return bells; }, mediaWired: () => !!(mediaBus && board.media && wired.has(board.media)) };   // for diagnostics
+    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board, stage: onStage, get bells() { return bells; }, get rate() { return rateNow; }, rateFor, mediaWired: () => !!(mediaBus && board.media && wired.has(board.media)) };   // for diagnostics
     camOn();
   }
 })();

@@ -273,7 +273,7 @@ async function until(fn, ms = 15000, step = 250) {
       && (await sfu.evaluate(() => ['guest1_main', 'guest2_main', 'backstage1_main', 'backstage2_main'].every((k) => !!window.paths[k]))) && (await studio.locator('#onStage li').count()) === 2);
     check('each guest gets a sound mix (host + the others) and the picture stays 1280x720', (await until(() => g2.evaluate(() => { const v = document.querySelector('#video'); return !!v.srcObject && v.srcObject.getAudioTracks().length === 1 && v.videoWidth > 0; }), 20000)) !== null && (await dim()) === '1280x720');
     await studio.click('.who-btn');
-    check('a click on the viewer count lists who is watching, the host first', (await until(async () => { const t = await studio.locator('.who-list li').allTextContents(); return t.length >= 3 && t[0].startsWith('Pro') && t.some((x) => x === 'كريم') && t.some((x) => x === 'سلمى'); }, 8000)) !== null, (await studio.locator('.who-list li').allTextContents()).join(' | '));
+    check('a click on the viewer count lists who is watching, the host first', (await until(async () => { const t = await studio.locator('.who-list li .people-name').allTextContents(); return t.length >= 3 && t[0].startsWith('Pro') && t.some((x) => x === 'كريم') && t.some((x) => x === 'سلمى'); }, 8000)) !== null, (await studio.locator('.who-list li').allTextContents()).join(' | '));
     await studio.click('.who-dlg .btn');
     // ---- with the whiteboard on, the guests are not squeezed beside it: they are on a second page
     {
@@ -386,7 +386,7 @@ async function until(fn, ms = 15000, step = 250) {
       await a.goto(BASE + '/r/main');
       check('a signed-in member enters, under the name of the account', (await until(() => a.locator('#liveBadge.on').isVisible())) !== null
         && (await until(() => a.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null
-        && (await studio.click('.who-btn'), (await until(async () => (await studio.locator('.who-list li').allTextContents()).includes('Samira'), 8000)) !== null));
+        && (await studio.click('.who-btn'), (await until(async () => (await studio.locator('.who-list li .people-name').allTextContents()).includes('Samira'), 8000)) !== null));
       await studio.click('.who-dlg .btn');
       await adminSet({ access: 'join' });
       await anon.reload();
@@ -1254,6 +1254,53 @@ async function until(fn, ms = 15000, step = 250) {
       await fetch(BASE + `/api/recordings?room=${slug}&name=${recName}`, { method: 'PUT', headers: { ...TH, ...J }, body: JSON.stringify({ title: '' }) });
       check('a replay taken back is no longer shown', (await extras(lina)).replays.length === 0);
       host.close(); st.close(); await vctx3.close(); await tctx3.close();
+      // profile photo and name, participants list, point of order
+      const AH = { Authorization: 'Bearer ' + lina };
+      const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(600, 1)]);
+      const notJpeg = await fetch(BASE + '/api/avatar', { method: 'POST', headers: { ...AH, 'Content-Type': 'image/jpeg' }, body: Buffer.from('GIF89a....') });
+      const noOne = await fetch(BASE + '/api/avatar', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: jpeg });
+      const upAv = await (await fetch(BASE + '/api/avatar', { method: 'POST', headers: { ...AH, 'Content-Type': 'image/jpeg' }, body: jpeg })).json();
+      const meNow = await (await fetch(BASE + '/api/member/me', { headers: AH })).json();
+      const pic = await fetch(BASE + `/media/avatar/${meNow.id}?v=${meNow.av}`);
+      const renamed = await fetch(BASE + '/api/member/rename', { method: 'POST', headers: { ...AH, ...J }, body: JSON.stringify({ name: 'Lina B.' }) });
+      const badName = await fetch(BASE + '/api/member/rename', { method: 'POST', headers: { ...AH, ...J }, body: JSON.stringify({ name: 'L' }) });
+      check('a member gives their profile a photo and changes their name', notJpeg.status === 415 && noOne.status === 401 && upAv.av > 0 && meNow.av === upAv.av && pic.status === 200 && pic.headers.get('content-type') === 'image/jpeg'
+        && (await pic.arrayBuffer()).byteLength === 604 && renamed.ok && badName.status === 400 && (await (await fetch(BASE + '/api/member/me', { headers: AH })).json()).name === 'Lina B.');
+      const host2 = await sockOf('hostpeoplesock1', { token: teacher }), lina2 = await sockOf('linapeoplesock1', { mt: lina }), guest2 = await sockOf('omarpeoplesock1', { mt: omar });
+      await until(() => host2.last('init') && lina2.last('init') && guest2.last('init'), 6000);
+      guest2.say({ t: 'hand', on: true }); lina2.say({ t: 'hand', on: true, point: true });
+      const hands = await until(() => { const h = host2.last('hands'); return h && h.list.length === 2 ? h.list : null; }, 5000);
+      lina2.say({ t: 'people' });
+      const ppl = await until(() => lina2.last('people'), 5000);
+      check('a point of order is raised apart from the hand, and is heard first', hands !== null && hands[0].name === 'Lina B.' && hands[0].point === true && !!hands[0].av && hands[1].name === 'Omar Class' && !hands[1].point
+        && lina2.last('hand').point === true && guest2.last('hand').point === false, JSON.stringify(hands));
+      check('anyone in the room can open the list of participants: the teacher first, pictures, who has a hand up', ppl.total === 3 && ppl.list.length === 3 && ppl.list[0].role === 'host' && ppl.list[0].name === 'Youssef Alami'
+        && ppl.list[1].role === 'point' && ppl.list[1].av.startsWith(meNow.id) && ppl.list[2].role === 'hand', JSON.stringify(ppl));
+      lina2.close(); guest2.close(); await sleep(300);
+      // the pages: profile window, participants button, point of order button, picture in the comments
+      const pctx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 900 } });
+      const pp2 = await pctx.newPage();
+      pp2.on('pageerror', (e) => errors.push('profile: ' + e.message));
+      await pp2.addInitScript((t) => { localStorage.setItem('regam.member', t); localStorage.setItem('regam.memberName', 'Lina B.'); localStorage.setItem('regam.name', 'Lina B.'); }, lina);
+      await pp2.goto(BASE + '/r/' + slug);
+      await pp2.waitForSelector('.acc-me .avatar');
+      await pp2.click('#peopleBtn');
+      const listOpen = await until(async () => (await pp2.locator('.people-list li').count()) >= 2 && (await pp2.textContent('.people-dlg h2')).includes('Participants'), 6000);
+      await pp2.screenshot({ path: path.join(OUT, 'viewer-people.png') });
+      await pp2.click('.people-dlg .dlg-actions button');
+      await pp2.click('.acc-me');
+      await pp2.waitForSelector('#profileDlg[open]');
+      const png = path.join(OUT, 'fx', 'photo.png');
+      await pp2.evaluate(() => { const c = document.createElement('canvas'); c.width = 400; c.height = 300; const g = c.getContext('2d'); g.fillStyle = '#c33'; g.fillRect(0, 0, 400, 300); window.__png = c.toDataURL('image/png'); });
+      fs.writeFileSync(png, Buffer.from((await pp2.evaluate(() => window.__png)).split(',')[1], 'base64'));
+      await pp2.setInputFiles('#profileDlg input[type=file]', png);
+      const photoSet = await until(async () => (await pp2.textContent('#profileDlg [role=status]')).includes('photo est changée'), 8000);
+      await pp2.screenshot({ path: path.join(OUT, 'viewer-profile.png') });
+      const stored = await fetch(BASE + `/media/avatar/${meNow.id}`), bytes = Buffer.from(await stored.arrayBuffer());
+      check('on the page, a member opens their profile and puts a photo: it is cut square and made small before it is sent', listOpen !== null && photoSet !== null && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes.length > 700 && bytes.length < 200000,
+        `list ${listOpen} photo ${photoSet} bytes ${bytes.length} note ${await pp2.textContent('#profileDlg [role=status]').catch(() => '?')}`);
+      host2.close(); await pctx.close();
+      check('the picture follows the size of the audience: full quality for a small room, lighter for hundreds', await studio.evaluate(() => { const r = window.__studio.rateFor; return r(40) === 4500000 && r(150) === 3000000 && r(300) === 2000000 && r(500) === 1400000; }));
       // legal pages, and deleting one's own account
       await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ legal: { owner: 'REGAM SARL', contact: 'contact@example.com' } }) });
       const lctx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 900 } });

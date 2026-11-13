@@ -72,10 +72,17 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
   async function handle(req, res, what) {
     if (what === 'me' && req.method === 'GET') {
       const m = memberOf((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
-      return m ? send(res, 200, { name: m.name, email: m.email }) : send(res, 401, { error: 'signed out' });
+      return m ? send(res, 200, { id: m.id, name: m.name, email: m.email, av: m.av || 0 }) : send(res, 401, { error: 'signed out' });
     }
     if (req.method !== 'POST') return send(res, 405, { error: 'method' });
     const b = await readJson(req), ip = clientIp(req), email = emailOf(b.email), lang = String(b.lang || 'ar');
+    if (what === 'rename') {                     // a person changes the name shown to others
+      const m = memberOf((req.headers.authorization || '').replace(/^Bearer\s+/i, '')), name = clean(b.name, 24);
+      if (!m) return send(res, 401, { error: 'signed out' });
+      if (name.length < 2) return send(res, 400, { error: 'bad name or email' });
+      m.name = name; save();
+      return send(res, 200, { ok: true, name });
+    }
     if (what === 'delete') {                     // a person removes their own account, with their password
       const m = memberOf((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
       if (!m) return send(res, 401, { error: 'signed out' });

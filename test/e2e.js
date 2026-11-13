@@ -680,7 +680,7 @@ async function until(fn, ms = 15000, step = 250) {
       await studio.click('#vbgList li >> nth=0 >> button');
       const off = await until(() => studio.evaluate(() => !window.__studio.vbg.on), 5000);
       await studio.click('#vbgClose');
-      check('the host puts a living picture or a video behind them on camera, and takes it away', rooms13 === 17 && (await studio.locator('#vbgBtn svg').count()) === 1 && roomPic.status === 200 && roomPic.headers.get('content-type') === 'image/webp' && going !== null && going.endsWith(',255') && fxOn === 'shimmer' && /Le fond est actif|الخلفية خدامة/.test(note) && videoOk && off !== null
+      check('the host puts a living picture or a video behind them on camera, and takes it away', rooms13 === 17 && (await studio.textContent('#vbgBtn')).trim() === 'الخلفية' && roomPic.status === 200 && roomPic.headers.get('content-type') === 'image/webp' && going !== null && going.endsWith(',255') && fxOn === 'shimmer' && /Le fond est actif|الخلفية خدامة/.test(note) && videoOk && off !== null
         && (await studio.getAttribute('#vbgBtn', 'aria-pressed')) === 'false', `${going} ${fxOn} ${videoOk} ${note}`);
     }
     check('the host hears a chime when people come into the room', (await studio.evaluate(() => window.__studio.bells)) >= 1 && await studio.isChecked('#joinSoundChk'), String(await studio.evaluate(() => window.__studio.bells)));

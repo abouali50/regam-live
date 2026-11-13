@@ -209,7 +209,6 @@
       const f = $('#vbgFile').files[0]; $('#vbgFile').value = '';
       if (f) setVbg({ kind: f.type.startsWith('video/') ? 'video' : 'image', src: URL.createObjectURL(f) });
     };
-    $('#vbgBtn').prepend(icon('picture'));
     paintVbg();
     function camOff() {
       vbg.stop();

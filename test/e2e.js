@@ -388,6 +388,22 @@ async function until(fn, ms = 15000, step = 250) {
         && (await until(() => a.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status === 200), 8000)) !== null
         && (await studio.click('.who-btn'), (await until(async () => (await studio.locator('.who-list li .people-name').allTextContents()).includes('Samira'), 8000)) !== null));
       await studio.click('.who-dlg .btn');
+      {   // an "open" planned live: watching needs no account while it runs, and only then
+        const hostSay = (msg) => studio.evaluate((m) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'freelivetester001', token: sessionStorage.getItem('regam.studio') })); w.send(JSON.stringify(m)); }; w.onmessage = (e) => { const d = JSON.parse(e.data); if (d.t === 'sessions') { res(d.list); w.close(); } }; setTimeout(() => res(null), 4000); }), msg);
+        const passOf = () => anon.evaluate(async () => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa')).status);
+        const at = Date.now() + 26 * 3600e3;
+        const planned = await hostSay({ t: 'session', at, end: at + 3600e3, title: 'Ouvert', free: true });
+        const one = (planned || []).find((x) => x.title === 'Ouvert');
+        const closedBefore = await passOf();
+        await hostSay({ t: 'session', open: one && one.id });
+        const openDuring = await passOf(), cfgDuring = (await (await fetch(BASE + '/api/config')).json()).access;
+        await anon.reload();
+        const sees = (await until(() => anon.locator('#liveBadge.on').isVisible(), 8000)) !== null;
+        await hostSay({ t: 'session', del: one && one.id });
+        const closedAfter = await passOf();
+        check('a planned live marked open lets people watch without an account once it runs, and the site closes again after it', !!one && one.free === true && closedBefore === 401 && openDuring === 200 && cfgDuring === 'join' && sees && closedAfter === 401, `${closedBefore} ${openDuring} ${cfgDuring} ${sees} ${closedAfter}`);
+        await anon.reload();
+      }
       await adminSet({ access: 'join' });
       await anon.reload();
       check('with "account needed to take part", watching is open but raising a hand asks to sign in', (await until(() => anon.locator('#liveBadge.on').isVisible())) !== null

@@ -641,6 +641,8 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  'لايف مفتوح: الفرجة بلا حساب': ['Live ouvert : regarder sans compte', 'Open live: watching needs no account'],
+  'مفتوح بلا حساب': ['Ouvert sans compte', 'Open, no account'],
   'ما قدرناش نحلو الميكرو. تأكد من الإذن فالمتصفح.': ["Impossible d'ouvrir le micro. Vérifiez l'autorisation dans le navigateur.", 'Could not open the microphone. Check the permission in your browser.'],
   'كنوجدو البث…': ['Préparation de la diffusion…', 'Preparing the broadcast…'],
   'كنتصلو…': ['Connexion…', 'Connecting…'],

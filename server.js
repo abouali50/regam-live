@@ -222,12 +222,15 @@ async function aiReply(room, ws, msg) {
   } catch { /* the assistant stays silent */ } finally { room.aiBusy = false; }
 }
 // the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
-const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || acct.access() === 'watch' || !!(room.cfg.fee && room.cfg.fee.amount > 0) || !!room.cfg.closed;
+const OPEN_EARLY = 30 * 60e3, OPEN_LATE = 30 * 60e3;
+// A planned live marked "open" lets people watch without an account while it lasts, on a site that otherwise asks for one.
+const runningOf = (room) => { const now = Date.now(); return (room.cfg.sessions || []).filter((s) => (s.opened || now >= s.at - OPEN_EARLY) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE); };
+const accessOf = (room) => (acct.access() === 'watch' && room && runningOf(room).some((s) => s.free) ? 'join' : acct.access());
+const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || accessOf(room) === 'watch' || !!(room.cfg.fee && room.cfg.fee.amount > 0) || !!room.cfg.closed;
 // Entry code of a room (like a meeting passcode): the host sends it with the invitation.
 // Which codes open the room right now. Each planned live has its own code, good from half an hour
 // before its start until half an hour after its end, and during that time it is the only one that
 // works. Outside planned lives, the room's own code works; it is renewed after every live.
-const OPEN_EARLY = 30 * 60e3, OPEN_LATE = 30 * 60e3;
 function codeState(room, code) {
   if (!room.cfg.code) return { ok: true };
   const c = String(code || '').replace(/\D/g, ''), now = Date.now(), all = room.cfg.sessions || [];
@@ -517,7 +520,7 @@ function serveRanged(req, res, file, head) {
 function mayEnter(req, room) {
   if (canHost(whoIs(bearer(req)), room)) return true;
   const who = acct.memberOf(bearer(req));
-  if (acct.access() === 'watch' && !who) return false;
+  if (accessOf(room) === 'watch' && !who) return false;
   if (cls.entry(room, who)) return false;
   return !room.cfg.code || cls.known(room, who);
 }
@@ -797,7 +800,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
         rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room), bgs: bgOn(room).map(bgUrl), bgAll: BG.map((n) => ({ name: n, url: bgUrl(n), on: bgOn(room).includes(n) })),
-        access: acct.access(), accounts: acct.mailReady(), assistant: ai.inHelp(),
+        access: accessOf(room), accounts: acct.mailReady(), assistant: ai.inHelp(),
       });
     }
     if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady(), assistant: ai.inHelp(), build: BUILD, legal: { owner: (db.legal || {}).owner || '', contact: (db.legal || {}).contact || '' } });
@@ -847,7 +850,7 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       if (room.cfg.gate && !room.admitted.has(String(url.searchParams.get('uid') || ''))) return send(res, 403, { error: 'not admitted' });
       const who = acct.memberOf(bearer(req));
-      if (acct.access() === 'watch' && !who) return send(res, 401, { error: 'sign in' });
+      if (accessOf(room) === 'watch' && !who) return send(res, 401, { error: 'sign in' });
       if (cls.entry(room, who)) return send(res, 403, { error: 'not a student' });           // a paid or closed class
       if (!cls.known(room, who) && !codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
       return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 6 * 3600e3)}; Path=/hls/; Max-Age=21600; HttpOnly; SameSite=Lax` });
@@ -1061,7 +1064,7 @@ wss.on('connection', (ws, req) => {
       const user = whoIs(d.token);
       const host = canHost(user, room);
       const member = host ? null : acct.memberOf(d.mt);
-      if (!host && !member && acct.access() === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
+      if (!host && !member && accessOf(room) === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
       const helper = !!member && (room.cfg.helpers || []).includes(member.id);
       if (!host && !helper) {                              // a paid class, or one kept for its students
         const why = cls.entry(room, member);
@@ -1118,7 +1121,7 @@ wss.on('connection', (ws, req) => {
         cls: ws.mod ? { ...cls.view(room), payReady: pay.ready() } : undefined, att: ws.mod ? cls.sheets(room) : undefined,
         uplink: ws.mod ? db.uplink || 400 : undefined,
         questions: ws.mod || ws.helper ? room.questions : undefined, poll: room.poll ? pollFor(room, ws) : undefined,
-        rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: acct.access(), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
+        rec: ws.mod ? !!room.rec : undefined, needPass: passNeeded(room), access: accessOf(room), gate: !!room.cfg.gate, waiting: ws.mod || ws.helper ? waitingList(room) : undefined,
       });
     }
     if (ws.waitRoom) {                      // at the door: the only thing to say is one's name
@@ -1291,7 +1294,7 @@ wss.on('connection', (ws, req) => {
         else {
           const at = Number(d.at), end = Number(d.end) || 0, now = Date.now();
           if (!(at > now - 3600e3 && at < now + 366 * 24 * 3600e3) || (end && (end <= at || end > at + 24 * 3600e3)) || list.length >= 40) return tx(ws, { t: 'sessions', list, err: 'bad' });
-          cfg.sessions = [...list, { id: 's' + crypto.randomBytes(5).toString('hex'), at, end, title: clean(d.title, 80), code: newCode(room) }];
+          cfg.sessions = [...list, { id: 's' + crypto.randomBytes(5).toString('hex'), at, end, title: clean(d.title, 80), code: newCode(room), free: d.free ? true : undefined }];
         }
         save();
         broadcast(room, { t: 'next', next: nextOf(room) });

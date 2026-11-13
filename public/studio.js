@@ -648,7 +648,7 @@
         x ? T('الوقت: {when}', { when: whenOf(x) }) : '',
         T('الرابط: {url}', { url: viewerUrl + (code ? '?code=' + code : '') }),
         code ? T('كود الدخول: {code}', { code: code.slice(0, 3) + ' ' + code.slice(3) }) : '',
-        cfg.access === 'watch' ? T('خاصك تسجل بالإيميل ديالك فالموقع قبل ما تدخل.') : '',
+        cfg.access === 'watch' && !(x && x.free) ? T('خاصك تسجل بالإيميل ديالك فالموقع قبل ما تدخل.') : '',
         x ? T('زيدو للأجندة ديالك: {url}', { url: `${location.origin}/api/ics?room=${encodeURIComponent(mine.slug)}&id=${x.id}` }) : '',
       ].filter(Boolean).join('\n');
     }
@@ -678,7 +678,8 @@
           el('span', { class: 'sess-main' },
             el('strong', {}, x.title || mine.title),
             el('span', { class: 'sess-hours', dir: 'ltr' }, timeOf(x.at) + (x.end ? ' – ' + timeOf(x.end) : '')), x.end ? el('span', { class: 'muted' }, lasts(x)) : null,
-            roomCode ? el('span', { class: 'sess-code', dir: 'ltr' }, '🔑 ' + x.code.slice(0, 3) + ' ' + x.code.slice(3)) : null),
+            roomCode ? el('span', { class: 'sess-code', dir: 'ltr' }, '🔑 ' + x.code.slice(0, 3) + ' ' + x.code.slice(3)) : null,
+            x.free ? el('span', { class: 'sess-free' }, T('مفتوح بلا حساب')) : null),
           el('span', { class: 'sess-acts' },
             el('button', { class: 'btn primary sess-go', type: 'button', onclick: () => startPlanned(x) }, T('ابدا اللايف')),
             el('button', { class: 'btn', type: 'button', onclick: (e) => { picked = x.id; showInvite(); copyText(inviteFor(x), e.currentTarget); } }, T('نسخ الدعوة')),
@@ -694,7 +695,7 @@
     $('#schedOpen').onclick = () => {
       const n = new Date(Date.now() + 3600e3);
       $('#nextDate').value = `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`; const t0 = new Date(); $('#nextDate').min = `${t0.getFullYear()}-${pad(t0.getMonth() + 1)}-${pad(t0.getDate())}`;
-      $('#nextTime').value = `${pad(n.getHours())}:00`; $('#nextDur').value = '60'; $('#nextTitle').value = '';
+      $('#nextTime').value = `${pad(n.getHours())}:00`; $('#nextDur').value = '60'; $('#nextTitle').value = ''; $('#nextFree').checked = false;
       $('#schedErr').hidden = true;
       schedDlg.showModal();
     };
@@ -703,7 +704,7 @@
       e.preventDefault();
       const at = new Date($('#nextDate').value + 'T' + $('#nextTime').value).getTime();
       if (!(at > Date.now() - 3600e3)) { $('#schedErr').hidden = false; $('#schedErr').textContent = T('الوقت ما مقبولش. اختار وقت جاي.'); return; }
-      link.send({ t: 'session', at, end: at + Number($('#nextDur').value) * 60000, title: $('#nextTitle').value });
+      link.send({ t: 'session', at, end: at + Number($('#nextDur').value) * 60000, title: $('#nextTitle').value, free: $('#nextFree').checked });
     };
     $('#inviteCopy').onclick = (e) => copyText(inviteFor(null), e.currentTarget);
     link.on('code', (d) => { roomCode = d.code || ''; showInvite(); })

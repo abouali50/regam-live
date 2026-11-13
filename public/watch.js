@@ -42,6 +42,7 @@
   if (cfg.assistant) mountAssistant();
   // the room's entry code: from the invitation link (?code=...), or typed once and remembered
   const codeKey = 'regam.code.' + cfg.room;
+  let typedCode = !!new URLSearchParams(location.search).get('code');       // was the code being sent just given (typed, or in the invitation link)?
   link.code = (new URLSearchParams(location.search).get('code') || store.get(codeKey) || '').replace(/\D/g, '');
   if (new URLSearchParams(location.search).get('code')) { store.set(codeKey, link.code); history.replaceState(null, '', location.pathname); }
   // the session the host announced
@@ -500,13 +501,17 @@
       doorShut = true; setLive(false); knockBtn.hidden = true;
       $('#offlineText').textContent = T('هاد القاعة كيدخلو ليها بكود الدخول.');
       const dlg = $('#codeDlg'), err = $('#codeErr');
-      err.hidden = !d.bad && !d.wait && !d.early;
+      // a code this browser had kept from an earlier visit, refused: forgotten quietly, and the person is simply asked
+      const stale = d.bad && !typedCode;
+      if (d.bad) { link.code = ''; store.set(codeKey, ''); }
+      typedCode = false;
+      err.hidden = stale || (!d.bad && !d.wait && !d.early);
       err.textContent = d.early ? T('هاد الكود ديال لايف مبرمج ل {when}. غادي يخدم نص ساعة قبل البداية.', { when: new Date(d.early).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) })
         : T(d.wait ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط ولا سالا الوقت ديالو. شوف الدعوة وعاود.');
       $('#codeForm').onsubmit = (e) => {
         e.preventDefault();
         link.code = $('#codeInput').value.replace(/\D/g, '');
-        store.set(codeKey, link.code);
+        store.set(codeKey, link.code); typedCode = true;
         dlg.close(); link.hello();
       };
       $('#codeInput').value = '';

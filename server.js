@@ -232,17 +232,22 @@ function codeState(room, code) {
   if (!room.cfg.code) return { ok: true };
   const c = String(code || '').replace(/\D/g, ''), now = Date.now(), all = room.cfg.sessions || [];
   const current = all.filter((s) => now >= s.at - OPEN_EARLY && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);
-  if (current.length ? current.some((s) => s.code && safeEq(s.code, c)) : safeEq(room.cfg.code, c)) return { ok: true };
+  // the room's own code always opens it; the code of a planned live opens it around that live
+  if (safeEq(room.cfg.code, c) || current.some((s) => s.code && safeEq(s.code, c))) return { ok: true };
   const later = all.find((s) => s.code && now < s.at - OPEN_EARLY && safeEq(s.code, c));
   return later ? { ok: false, early: later.at } : { ok: false };
 }
 const codeOk = (room, code) => codeState(room, code).ok;
-const codeTries = new Map();     // ip -> [timestamps of wrong codes]
+// Guessing codes is slowed down: twelve different wrong codes from one address in ten minutes, then a pause.
+// The same wrong code sent again (an old one a browser kept, a reconnection) counts once.
+const codeTries = new Map();     // ip -> Map(wrong code -> when)
 function codeAllowed(ip, wrong) {
-  const now = Date.now(), list = (codeTries.get(ip) || []).filter((t) => t > now - 10 * 60e3);
-  if (wrong) list.push(now);
-  codeTries.set(ip, list);
-  return list.length <= 12;
+  const now = Date.now(), seen = codeTries.get(ip) || new Map();
+  for (const [code, at] of seen) if (at < now - 10 * 60e3) seen.delete(code);
+  if (wrong && !seen.has(wrong)) seen.set(wrong, now);
+  if (seen.size) codeTries.set(ip, seen); else codeTries.delete(ip);
+  if (codeTries.size > 50000) codeTries.clear();
+  return seen.size <= 12;
 }
 // The room's calendar: sessions planned by its host ({ id, at, end, title }, times in ms).
 // A session stays listed until its end (or three hours after its start when no end was given).
@@ -1066,7 +1071,7 @@ wss.on('connection', (ws, req) => {
       }
       if (!host && !helper && room.cfg.code && !cls.known(room, member)) {             // the room has an entry code (students of the class are not asked again)
         const st = codeState(room, d.code);
-        if (!codeAllowed(ws.ip, !st.ok && !st.early && !!d.code)) return tx(ws, { t: 'code', wait: true });
+        if (!codeAllowed(ws.ip, !st.ok && !st.early && d.code ? String(d.code).replace(/\D/g, '').slice(0, 12) : '')) return tx(ws, { t: 'code', wait: true });
         if (!st.ok) return tx(ws, { t: 'code', bad: !!d.code && !st.early, early: st.early });
       }
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {

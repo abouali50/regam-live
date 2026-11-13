@@ -174,7 +174,8 @@
   // ---- camera backgrounds offered to every teacher
   const tokenNow = () => sessionStorage.getItem('regam.studio') || '';
   function showVbg(list) {
-    $('#vbgAdminList').replaceChildren(...list.map((v) => el('li', {}, el('span', { class: 'admin-main-cell' }, el('strong', {}, (v.kind === 'video' ? '▶ ' : '🖼️ ') + v.name)),
+    $('#vbgAdminList').replaceChildren(...list.map((v) => el('li', {}, v.kind === 'video' ? el('video', { class: 'vbg-thumb', src: v.url, muted: '', preload: 'metadata' }) : el('img', { class: 'vbg-thumb', src: v.url, alt: '', loading: 'lazy' }),
+      el('span', { class: 'admin-main-cell' }, el('strong', {}, (v.kind === 'video' ? '▶ ' : '') + v.name)),
       el('button', { class: 'btn danger', type: 'button', onclick: async () => { const r = await fetch('/api/vbg?id=' + v.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tokenNow() } }); if (r.ok) showVbg((await r.json()).list); } }, T('حذف')))));
   }
   fetch('/api/vbg').then((r) => r.json()).then((d) => showVbg(d.list || [])).catch(() => {});

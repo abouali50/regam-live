@@ -169,7 +169,12 @@
       catch (e) { console.error('virtual background', e); vbgPick = {}; paintVbg(); status(T('ما قدرناش نخدمو الخلفية فهاد المتصفح. الكاميرا خدامة بلا خلفية.')); return camTrack; }
     }
     const still = (name, label) => ({ kind: 'image', src: name === 'reef' ? '/sea.webp' : `/bg/${name}.webp`, label });
+    const room = (name, label) => ({ kind: 'image', src: `/bg/room/${name}.webp`, label });
     const VBG = [{ label: 'بلا خلفية' }, { kind: 'blur', label: 'ضبابية' },
+      // rooms and views to sit in front of
+      room('library', 'مكتبة من خشب الجوز'), room('ivory', 'صالون عاجي'), room('lounge', 'صالون أزرق ليلي'), room('riad', 'رياض مغربي'), room('atrium', 'بهو عصري بالنباتات'), room('penthouse', 'صالون قدام البحر'),
+      room('villa', 'فيلا متوسطية مع الغروب'), room('olives', 'حديقة الزيتون'), room('seasky', 'سما زرقا وبحر هادي'), room('lake', 'بحيرة الجبل'), room('valley', 'واد خضر'), room('meadow', 'مرج فالفجر'), room('forest', 'غابة الأرز'),
+      room('waterfall', 'شلال فالغابة'), room('lagoon', 'بحيرة فيروزية بالنخل'), room('dawnbeach', 'فجر على الشاطئ'), room('oceandunes', 'كثبان على المحيط'),
       { ...still('sunset', 'غروب الشمس'), fx: 'shimmer', live: true }, { ...still('aurora', 'الشفق القطبي'), fx: 'twinkle', live: true }, { ...still('nebula', 'النجوم'), fx: 'twinkle', live: true },
       { ...still('bokeh', 'أضواء ذهبية'), fx: 'drift', live: true }, { ...still('mist', 'الجبال'), fx: 'fog', live: true }, { ...still('reef', 'البحر'), fx: 'bubbles', live: true },
       { ...still('medina', 'المدينة'), fx: 'twinkle', live: true }, { ...still('dunes', 'الكثبان'), fx: 'twinkle', live: true },
@@ -204,6 +209,7 @@
       const f = $('#vbgFile').files[0]; $('#vbgFile').value = '';
       if (f) setVbg({ kind: f.type.startsWith('video/') ? 'video' : 'image', src: URL.createObjectURL(f) });
     };
+    $('#vbgBtn').prepend(icon('picture'));
     paintVbg();
     function camOff() {
       vbg.stop();

@@ -664,7 +664,8 @@ async function until(fn, ms = 15000, step = 250) {
       // ---- a virtual background behind the camera: a picture that lives, a video, then nothing
       const sample = () => studio.evaluate(() => { const v = window.__studio.vbg; if (!v.on || v.frames < 8) return null; const d = v.canvas.getContext('2d').getImageData(40, 40, 1, 1).data; return [d[0], d[1], d[2], d[3]].join(','); });
       await studio.click('#vbgBtn');
-      await studio.click('#vbgList li >> nth=2 >> button');
+      const rooms13 = await studio.locator('#vbgList li[style*="/bg/room/"]').count(), roomPic = await fetch(BASE + '/bg/room/library.webp');
+      await studio.click('#vbgList li[style*="sunset"] >> nth=0 >> button');
       const going = await until(sample, 25000);
       const note = await studio.textContent('#vbgNote'), fxOn = await studio.evaluate(() => window.__studio.vbg.fx);
       await studio.screenshot({ path: path.join(OUT, 'studio-vbg.png') });
@@ -679,7 +680,7 @@ async function until(fn, ms = 15000, step = 250) {
       await studio.click('#vbgList li >> nth=0 >> button');
       const off = await until(() => studio.evaluate(() => !window.__studio.vbg.on), 5000);
       await studio.click('#vbgClose');
-      check('the host puts a living picture or a video behind them on camera, and takes it away', going !== null && going.endsWith(',255') && fxOn === 'shimmer' && /Le fond est actif|الخلفية خدامة/.test(note) && videoOk && off !== null
+      check('the host puts a living picture or a video behind them on camera, and takes it away', rooms13 === 17 && (await studio.locator('#vbgBtn svg').count()) === 1 && roomPic.status === 200 && roomPic.headers.get('content-type') === 'image/webp' && going !== null && going.endsWith(',255') && fxOn === 'shimmer' && /Le fond est actif|الخلفية خدامة/.test(note) && videoOk && off !== null
         && (await studio.getAttribute('#vbgBtn', 'aria-pressed')) === 'false', `${going} ${fxOn} ${videoOk} ${note}`);
     }
     check('the host hears a chime when people come into the room', (await studio.evaluate(() => window.__studio.bells)) >= 1 && await studio.isChecked('#joinSoundChk'), String(await studio.evaluate(() => window.__studio.bells)));

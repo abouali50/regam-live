@@ -14,6 +14,7 @@ function el(tag, props = {}, ...kids) {
 }
 // Line icons, drawn in the theme's gold (the same family everywhere, instead of emoji).
 const ICONS = {
+  picture: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 9.5a1.5 1.5 0 1 0 .01 0',
   home: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10', video: 'M3 7h12v10H3zM15 10l6-3v10l-6-3', calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
   record: 'M4 12a8 8 0 1 0 16 0a8 8 0 1 0-16 0M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0', globe: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M3 12h18M12 3c3.5 3 3.5 15 0 18M12 3c-3.5 3-3.5 15 0 18',
   users: 'M9 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7zM2 20c0-4 3-6 7-6s7 2 7 6M16.5 11a3 3 0 1 0 0-6M18 14c2.5.6 4 2.6 4 6', door: 'M6 21V3h10v18M4 21h16M13 12h.01',

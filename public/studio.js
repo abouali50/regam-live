@@ -117,11 +117,13 @@
     let pc = null, liveOn = false;             // main broadcast
     // Every viewer receives the picture at the rate the studio sends it, so the rate follows the size of the
     // audience: full quality for a small room, lighter as hundreds come in, to stay within what the server can send.
-    const rateFor = (n) => (n <= 100 ? 4_500_000 : n <= 200 ? 3_000_000 : n <= 350 ? 2_000_000 : 1_400_000);
+    // The server's sending speed (measured, set in the administration) is shared between the viewers, keeping a fifth in reserve.
+    let uplink = 400;                          // Mbit/s
+    const rateFor = (n, up = uplink) => Math.round(Math.max(700_000, Math.min(4_500_000, (up * 1e6 * 0.8) / Math.max(1, n) - 100_000)));
     let rateNow = 0;
     function fitBitrate(n) {
       const want = rateFor(Number(n) || 0);
-      if (!pc || !liveOn || want === rateNow) return;
+      if (!pc || !liveOn || Math.abs(want - rateNow) < 150_000) return;       // small moves in the audience change nothing
       const sender = pc.getSenders().find((x) => x.track && x.track.kind === 'video');
       if (!sender) return;
       try {
@@ -917,6 +919,7 @@
     link.on('init', (d) => {
       if (!d.mod) return logout();            // token expired
       $('#viewers').textContent = d.viewers;
+      if (d.uplink) uplink = d.uplink;
       if (d.cls) showClass(d.cls);
       showQuestions(d.questions || []);
       showPoll(d.poll || { off: true });

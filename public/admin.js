@@ -55,6 +55,8 @@
     showAi(data.ai);
     showBackup(data.backup);
     showPay(data.pay);
+    if (!$('#uplinkForm').contains(document.activeElement)) $('#uplinkForm').elements.uplink.value = data.uplink;
+    $('#uplinkNote').textContent = T('بهاد السرعة: حتى ل {a} متابع بجودة عالية، {b} بجودة متوسطة، و {c} كحد أقصى بجودة خفيفة.', { a: Math.floor((data.uplink * 0.8) / 3.1), b: Math.floor((data.uplink * 0.8) / 1.6), c: Math.floor((data.uplink * 0.8) / 0.8) });
     if (!$('#legalForm').contains(document.activeElement)) { $('#legalForm').elements.owner.value = data.legal.owner; $('#legalForm').elements.contact.value = data.legal.contact; }
     $('#statsBody').replaceChildren(...data.stats.map((r) => el('tr', {}, ...[r.title, r.teacher, r.students, r.lives, r.people, r.peak, r.minutes,
       r.last ? new Date(r.last).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : LANG, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'].map((v) => el('td', {}, String(v))))));
@@ -169,6 +171,10 @@
   };
   addPasswordEyes($('#payKeys'));
 
+  $('#uplinkForm').onsubmit = (e) => {
+    e.preventDefault();
+    api('/settings', { method: 'POST', body: JSON.stringify({ uplink: Number(e.target.elements.uplink.value) }) }).then((r) => { document.activeElement.blur(); return done(r, T('تحفظ.')); });
+  };
   $('#legalForm').onsubmit = (e) => {
     e.preventDefault();
     const f = e.target.elements;

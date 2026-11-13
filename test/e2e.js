@@ -1300,7 +1300,9 @@ async function until(fn, ms = 15000, step = 250) {
       check('on the page, a member opens their profile and puts a photo: it is cut square and made small before it is sent', listOpen !== null && photoSet !== null && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes.length > 700 && bytes.length < 200000,
         `list ${listOpen} photo ${photoSet} bytes ${bytes.length} note ${await pp2.textContent('#profileDlg [role=status]').catch(() => '?')}`);
       host2.close(); await pctx.close();
-      check('the picture follows the size of the audience: full quality for a small room, lighter for hundreds', await studio.evaluate(() => { const r = window.__studio.rateFor; return r(40) === 4500000 && r(150) === 3000000 && r(300) === 2000000 && r(500) === 1400000; }));
+      await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ uplink: 445 }) });
+      check('the picture is fitted to what the server can send and to the size of the audience', (await (await fetch(BASE + '/api/admin', { headers: H })).json()).uplink === 445
+        && await studio.evaluate(() => { const r = window.__studio.rateFor; return r(40, 445) === 4500000 && r(100, 445) === 3460000 && r(300, 445) === 1086667 && r(1000, 445) === 700000 && r(300, 445) * 300 < 445e6 * 0.8; }));
       // legal pages, and deleting one's own account
       await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ legal: { owner: 'REGAM SARL', contact: 'contact@example.com' } }) });
       const lctx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 900 } });

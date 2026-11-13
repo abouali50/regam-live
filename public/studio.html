@@ -120,6 +120,7 @@
       <button id="goBtn" class="btn primary big" type="button">ابدأ اللايف</button>
       <button id="recBtn" class="btn" type="button" aria-pressed="false" disabled>⏺ سجل اللايف</button>
       <button id="camBtn" class="btn" type="button" aria-pressed="true">الكاميرا</button>
+      <button id="vbgBtn" class="btn" type="button" aria-pressed="false">🖼️ الخلفية</button>
       <button id="screenBtn" class="btn" type="button" aria-pressed="false">شارك الشاشة</button>
       <button id="boardBtn" class="btn" type="button" aria-pressed="false">السبورة</button>
       <span id="pageBar" class="page-bar" hidden role="group" aria-label="الصفحة اللي كتبان"><button id="pageBoard" class="btn" type="button" aria-pressed="true">◀ السبورة</button><button id="pagePeople" class="btn" type="button" aria-pressed="false">الضيوف ▶</button></span>
@@ -307,9 +308,18 @@
   </form>
 </dialog>
 
+<dialog id="vbgDlg" class="dlg vbg-dlg">
+  <h2>الخلفية مورايا</h2>
+  <p class="muted">اختار صورة ولا فيديو يبانو موراك فالكاميرا. اللي فيهم ▶ كيتحركو. ضو مزيان وحيط ساده كيعطيو نتيجة حسن.</p>
+  <ul id="vbgList" class="pic-list vbg-list"></ul>
+  <div class="row"><label for="vbgFile">ولا صورة ولا فيديو ديالك</label><input id="vbgFile" type="file" accept="image/*,video/*"></div>
+  <p id="vbgNote" class="muted" role="status"></p>
+  <div class="dlg-actions"><button class="btn" type="button" id="vbgClose">سد</button></div>
+</dialog>
 <script src="/i18n.js"></script>
 <script src="/common.js"></script>
 <script src="/board.js"></script>
+<script src="/vbg.js"></script>
 <script src="/mixer.js"></script>
 <script src="/studio.js"></script>
 </body>

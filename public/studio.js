@@ -153,11 +153,60 @@
         if (!s) s = await navigator.mediaDevices.getUserMedia({ video });
         camTrack = s.getVideoTracks()[0];
         camTrack.onended = camOff;
-        setInput('cam', camTrack);
+        setInput('cam', await camFeed());
         press($('#camBtn'), true);
       } catch (e) { press($('#camBtn'), false); status(T('ما قدرناش نحلو الكاميرا. تأكد من الإذن فالمتصفح.') + why(e, 'cam')); }
     }
+    // ---- a virtual background behind the person on camera (a picture, or their own room blurred)
+    const vbg = createVirtualBg();
+    let vbgPick = {};                           // {} none, or { kind, src, fx }
+    try { vbgPick = JSON.parse(localStorage.getItem('regam.vbg2') || '{}') || {}; } catch {}
+    const vbgOn = () => !!vbgPick.kind;
+    // what the mixer is given as "the camera": the camera itself, or the camera with its background replaced
+    async function camFeed() {
+      if (!vbgOn()) return camTrack;
+      try { await vbg.choose(vbgPick); return await vbg.start(camTrack); }
+      catch (e) { console.error('virtual background', e); vbgPick = {}; paintVbg(); status(T('ما قدرناش نخدمو الخلفية فهاد المتصفح. الكاميرا خدامة بلا خلفية.')); return camTrack; }
+    }
+    const still = (name, label) => ({ kind: 'image', src: name === 'reef' ? '/sea.webp' : `/bg/${name}.webp`, label });
+    const VBG = [{ label: 'بلا خلفية' }, { kind: 'blur', label: 'ضبابية' },
+      { ...still('sunset', 'غروب الشمس'), fx: 'shimmer', live: true }, { ...still('aurora', 'الشفق القطبي'), fx: 'twinkle', live: true }, { ...still('nebula', 'النجوم'), fx: 'twinkle', live: true },
+      { ...still('bokeh', 'أضواء ذهبية'), fx: 'drift', live: true }, { ...still('mist', 'الجبال'), fx: 'fog', live: true }, { ...still('reef', 'البحر'), fx: 'bubbles', live: true },
+      { ...still('medina', 'المدينة'), fx: 'twinkle', live: true }, { ...still('dunes', 'الكثبان'), fx: 'twinkle', live: true },
+      still('sunset', 'غروب الشمس'), still('medina', 'المدينة'), still('zellige', 'الزليج'), still('dunes', 'الكثبان'), still('mist', 'الجبال'), still('aurora', 'الشفق القطبي'), still('nebula', 'النجوم'), still('bokeh', 'أضواء ذهبية'), still('reef', 'البحر')];
+    let vbgSite = [];                           // backgrounds the administrator added for everybody
+    fetch('/api/vbg').then((r) => r.json()).then((d) => { vbgSite = d.list || []; paintVbg(); }).catch(() => {});
+    const same = (a, b) => (a.kind || '') === (b.kind || '') && (a.src || '') === (b.src || '') && (a.fx || '') === (b.fx || '');
+    function paintVbg() {
+      press($('#vbgBtn'), vbgOn());
+      const tile = (o) => {
+        const li = el('li', { class: same(o, vbgPick) ? 'on' : '' }, el('button', { type: 'button', class: 'vbg-pick', onclick: () => setVbg(o) }, (o.live || o.kind === 'video' ? '▶ ' : '') + (o.name || T(o.label))));
+        if (o.kind === 'image') li.style.backgroundImage = `url("${o.src}")`; else li.classList.add(o.kind === 'blur' ? 'is-blur' : o.kind === 'video' ? 'is-video' : 'is-none');
+        return li;
+      };
+      $('#vbgList').replaceChildren(...VBG.map(tile), ...vbgSite.map((v) => tile({ kind: v.kind, src: v.url, name: v.name })));
+    }
+    async function setVbg(o) {
+      vbgPick = o.kind ? { kind: o.kind, src: o.src, fx: o.fx } : {};
+      try { if (String(o.src || '').startsWith('blob:')) localStorage.removeItem('regam.vbg2'); else localStorage.setItem('regam.vbg2', JSON.stringify(vbgPick)); } catch {}
+      paintVbg();
+      $('#vbgNote').textContent = vbgOn() ? T('كنوجدو الخلفية…') : '';
+      if (camTrack) {
+        const feed = await camFeed();
+        if (!vbgOn()) vbg.stop();
+        setInput('cam', feed);
+      }
+      $('#vbgNote').textContent = !vbgOn() ? '' : T(camTrack ? 'الخلفية خدامة. المتابعين كيشوفوها دابا.' : 'الخلفية مختارة. غادي تبان ملي تشعل الكاميرا.');
+    }
+    $('#vbgBtn').onclick = () => { paintVbg(); $('#vbgDlg').showModal(); };
+    $('#vbgClose').onclick = () => $('#vbgDlg').close();
+    $('#vbgFile').onchange = () => {
+      const f = $('#vbgFile').files[0]; $('#vbgFile').value = '';
+      if (f) setVbg({ kind: f.type.startsWith('video/') ? 'video' : 'image', src: URL.createObjectURL(f) });
+    };
+    paintVbg();
     function camOff() {
+      vbg.stop();
       if (camTrack) { camTrack.onended = null; camTrack.stop(); camTrack = null; }
       setInput('cam', null);
       press($('#camBtn'), false);
@@ -1017,7 +1066,7 @@
 
     addEventListener('pagehide', () => { if (liveOn) stopLive(); });
     addEventListener('beforeunload', (e) => { if (liveOn) e.preventDefault(); });
-    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board, stage: onStage, get bells() { return bells; }, get rate() { return rateNow; }, rateFor, mediaWired: () => !!(mediaBus && board.media && wired.has(board.media)) };   // for diagnostics
+    window.__studio = { get live() { return liveOn; }, get pc() { return pc; }, mixed, board, stage: onStage, get bells() { return bells; }, vbg, setVbg, get rate() { return rateNow; }, rateFor, mediaWired: () => !!(mediaBus && board.media && wired.has(board.media)) };   // for diagnostics
     camOn();
   }
 })();

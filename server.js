@@ -142,6 +142,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
+  '.wasm': 'application/wasm', '.tflite': 'application/octet-stream', '.binarypb': 'application/octet-stream', '.data': 'application/octet-stream',
 };
 function send(res, code, body, headers = {}) {
   const buf = Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
@@ -533,6 +534,32 @@ function handleAvatar(req, res) {
     send(res, 200, { av: m.av });
   });
 }
+// Virtual backgrounds the administrator adds for every teacher: pictures and short videos.
+const VBG_TYPES = { 'image/jpeg': 'image', 'image/png': 'image', 'image/webp': 'image', 'video/mp4': 'video', 'video/webm': 'video' };
+const vbgFile = (id) => path.join(DATA_DIR, `vbg_${id}`);
+const vbgList = () => (db.vbgs || []).map((v) => ({ id: v.id, name: v.name, kind: v.kind, url: `/media/vbg/${v.id}` }));
+function handleVbg(req, res, url) {
+  if (req.method === 'GET') return send(res, 200, { list: vbgList() });
+  const me = whoIs(bearer(req));
+  if (!me || me.role !== 'admin') return send(res, me ? 403 : 401, { error: 'administrator only' });
+  db.vbgs = db.vbgs || [];
+  if (req.method === 'DELETE') {
+    const id = String(url.searchParams.get('id') || '');
+    if (!db.vbgs.some((v) => v.id === id)) return send(res, 404, { error: 'no such file' });
+    db.vbgs = db.vbgs.filter((v) => v.id !== id); save();
+    fs.unlink(vbgFile(id), () => {});
+    return send(res, 200, { list: vbgList() });
+  }
+  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+  const type = String(req.headers['content-type'] || '').split(';')[0], kind = VBG_TYPES[type];
+  if (!kind) return send(res, 415, { error: 'bad type' });
+  if (db.vbgs.length >= 40) return send(res, 409, { error: 'too many files' });
+  const id = crypto.randomBytes(6).toString('hex');
+  receiveFile(req, res, vbgFile(id), kind === 'video' ? 80 * 1024 * 1024 : 12 * 1024 * 1024, () => {
+    db.vbgs.push({ id, kind, type, name: clean(path.basename(String(url.searchParams.get('name') || '')).replace(/\.[a-z0-9]+$/i, ''), 40) || (kind === 'video' ? 'Video' : 'Image') }); save();
+    send(res, 200, { list: vbgList() });
+  });
+}
 const FILE_OK = /\.(pdf|docx?|pptx?|xlsx?|txt|csv|png|jpe?g|zip|mp3)$/i, FILE_MAX = 30 * 1024 * 1024, FILES_PER_ROOM = 20;
 const classFile = (slug, id) => path.join(DATA_DIR, `file_${slug}_${id}`);
 const filesOf = (room) => (room.cfg.files || []).map((f) => ({ id: f.id, name: f.name, size: f.size }));
@@ -798,6 +825,11 @@ const server = http.createServer(async (req, res) => {
       const id = p.slice(14);
       if (!/^[a-z0-9]{6,40}$/.test(id)) return send(res, 404, 'Not found');
       return serveRanged(req, res, avatarFile(id), { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=31536000, immutable' });
+    }
+    if (p === '/api/vbg') return handleVbg(req, res, url);
+    if (p.startsWith('/media/vbg/')) {
+      const v = (db.vbgs || []).find((x) => x.id === p.slice(11));
+      return v ? serveRanged(req, res, vbgFile(v.id), { 'Content-Type': v.type, 'Cache-Control': 'public, max-age=86400' }) : send(res, 404, 'Not found');
     }
     if (p === '/api/files') return handleFiles(req, res, url);
     if (p === '/api/extras') return handleExtras(req, res, url);

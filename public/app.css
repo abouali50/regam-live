@@ -719,3 +719,13 @@ table.stats th, table.stats td { padding: 8px 10px; border-bottom: 1px solid #2c
 .bg-list label { position: absolute; inset: auto 0 0 0; display: flex; align-items: center; gap: 6px; padding: 5px 8px; background: linear-gradient(0deg, rgba(0,0,0,.8), rgba(0,0,0,0)); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
 #sea.dry { visibility: hidden; }
 .bg-list li { width: 168px; }
+
+/* virtual background picker */
+.vbg-dlg { width: min(96vw, 640px); }
+.vbg-list li { width: 132px; aspect-ratio: 16 / 9; cursor: pointer; }
+.vbg-list li.on { outline: 3px solid var(--gold); }
+.vbg-list li.is-none { background: #1b1f33; }
+.vbg-list li.is-blur { background: linear-gradient(135deg, #6a6f8f, #2b2f4a); filter: none; }
+.vbg-list .vbg-pick { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; background: linear-gradient(0deg, rgba(0,0,0,.75), rgba(0,0,0,0) 60%); color: #fff; font: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: flex-end; justify-content: center; padding: 6px; border: 0; cursor: pointer; }
+.vbg-list li.is-video { background: linear-gradient(135deg, #3b2a6b, #0e1338); }
+.vbg-list { max-height: 52vh; overflow-y: auto; }

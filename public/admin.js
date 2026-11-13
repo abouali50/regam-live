@@ -171,6 +171,24 @@
   };
   addPasswordEyes($('#payKeys'));
 
+  // ---- camera backgrounds offered to every teacher
+  const tokenNow = () => sessionStorage.getItem('regam.studio') || '';
+  function showVbg(list) {
+    $('#vbgAdminList').replaceChildren(...list.map((v) => el('li', {}, el('span', { class: 'admin-main-cell' }, el('strong', {}, (v.kind === 'video' ? '▶ ' : '🖼️ ') + v.name)),
+      el('button', { class: 'btn danger', type: 'button', onclick: async () => { const r = await fetch('/api/vbg?id=' + v.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tokenNow() } }); if (r.ok) showVbg((await r.json()).list); } }, T('حذف')))));
+  }
+  fetch('/api/vbg').then((r) => r.json()).then((d) => showVbg(d.list || [])).catch(() => {});
+  $('#vbgUp').onchange = async () => {
+    let bad = 0, last = null;
+    for (const f of [...$('#vbgUp').files]) {
+      $('#vbgUpNote').textContent = T('كنصيفطو الملف…');
+      const r = await fetch('/api/vbg?name=' + encodeURIComponent(f.name), { method: 'POST', headers: { Authorization: 'Bearer ' + tokenNow(), 'Content-Type': f.type }, body: f }).catch(() => null);
+      if (r && r.ok) last = (await r.json()).list; else bad++;
+    }
+    $('#vbgUp').value = '';
+    if (last) showVbg(last);
+    $('#vbgUpNote').textContent = T(bad ? 'شي ملفات ما تسجلوش: النوع ولا الحجم ما مقبولش.' : 'تزادو. الأساتذة كيلقاوهم فزر «الخلفية».');
+  };
   $('#uplinkForm').onsubmit = (e) => {
     e.preventDefault();
     api('/settings', { method: 'POST', body: JSON.stringify({ uplink: Number(e.target.elements.uplink.value) }) }).then((r) => { document.activeElement.blur(); return done(r, T('تحفظ.')); });

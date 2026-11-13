@@ -660,6 +660,28 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.screenshot({ path: path.join(OUT, 'studio-board.png') });
     await studio.click('#boardUndo');
     check('undo removes the last item', (await studio.evaluate(() => window.__studio.board.count)) === 2);
+    {
+      // ---- a virtual background behind the camera: a picture that lives, a video, then nothing
+      const sample = () => studio.evaluate(() => { const v = window.__studio.vbg; if (!v.on || v.frames < 8) return null; const d = v.canvas.getContext('2d').getImageData(40, 40, 1, 1).data; return [d[0], d[1], d[2], d[3]].join(','); });
+      await studio.click('#vbgBtn');
+      await studio.click('#vbgList li >> nth=2 >> button');
+      const going = await until(sample, 25000);
+      const note = await studio.textContent('#vbgNote'), fxOn = await studio.evaluate(() => window.__studio.vbg.fx);
+      await studio.screenshot({ path: path.join(OUT, 'studio-vbg.png') });
+      const clipFile = path.join(OUT, 'fx', 'back.webm');
+      fs.mkdirSync(path.join(OUT, 'fx'), { recursive: true });
+      require('child_process').spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=size=320x180:rate=25:duration=3', '-c:v', 'libvpx', clipFile]);
+      let videoOk = true;
+      if (fs.existsSync(clipFile)) {
+        await studio.setInputFiles('#vbgFile', clipFile);
+        videoOk = (await until(() => studio.evaluate(() => window.__studio.vbg.mode === 'video' && window.__studio.vbg.on), 10000)) !== null && (await until(sample, 10000)) !== null;
+      }
+      await studio.click('#vbgList li >> nth=0 >> button');
+      const off = await until(() => studio.evaluate(() => !window.__studio.vbg.on), 5000);
+      await studio.click('#vbgClose');
+      check('the host puts a living picture or a video behind them on camera, and takes it away', going !== null && going.endsWith(',255') && fxOn === 'shimmer' && /Le fond est actif|الخلفية خدامة/.test(note) && videoOk && off !== null
+        && (await studio.getAttribute('#vbgBtn', 'aria-pressed')) === 'false', `${going} ${fxOn} ${videoOk} ${note}`);
+    }
     check('the host hears a chime when people come into the room', (await studio.evaluate(() => window.__studio.bells)) >= 1 && await studio.isChecked('#joinSoundChk'), String(await studio.evaluate(() => window.__studio.bells)));
     {
       // ---- a document on the whiteboard: PDF, Word, video; drawings stay with their page
@@ -1303,6 +1325,15 @@ async function until(fn, ms = 15000, step = 250) {
       await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ uplink: 445 }) });
       check('the picture is fitted to what the server can send and to the size of the audience', (await (await fetch(BASE + '/api/admin', { headers: H })).json()).uplink === 445
         && await studio.evaluate(() => { const r = window.__studio.rateFor; return r(40, 445) === 4500000 && r(100, 445) === 3460000 && r(300, 445) === 1086667 && r(1000, 445) === 700000 && r(300, 445) * 300 < 445e6 * 0.8; }));
+      // camera backgrounds the administrator adds for every teacher
+      const vNo = await fetch(BASE + '/api/vbg?name=x.png', { method: 'POST', headers: { ...TH, 'Content-Type': 'image/png' }, body: Buffer.from('x') });
+      const vBad = await fetch(BASE + '/api/vbg?name=x.gif', { method: 'POST', headers: { ...H, 'Content-Type': 'image/gif' }, body: Buffer.from('x') });
+      const vUp = await (await fetch(BASE + '/api/vbg?name=' + encodeURIComponent('plage dorée.webp'), { method: 'POST', headers: { ...H, 'Content-Type': 'image/webp' }, body: fs.readFileSync(path.join(__dirname, '..', 'public', 'bg', 'dunes.webp')) })).json();
+      const vGet = await fetch(BASE + vUp.list[0].url);
+      const vPublic = await (await fetch(BASE + '/api/vbg')).json();
+      const vDel = await (await fetch(BASE + '/api/vbg?id=' + vUp.list[0].id, { method: 'DELETE', headers: H })).json();
+      check('the administrator adds camera backgrounds for every teacher', vNo.status === 403 && vBad.status === 415 && vUp.list.length === 1 && vUp.list[0].name === 'plage dorée' && vUp.list[0].kind === 'image'
+        && vGet.status === 200 && vGet.headers.get('content-type') === 'image/webp' && vPublic.list.length === 1 && vDel.list.length === 0, JSON.stringify(vUp));
       // the site's 4K backgrounds: all shown by default, the teacher keeps the ones wanted
       const cfg0 = await (await fetch(BASE + '/api/config?room=' + slug)).json();
       const one = await fetch(BASE + cfg0.bgs[1]), oneBytes = Buffer.from(await one.arrayBuffer());

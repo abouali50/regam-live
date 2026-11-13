@@ -231,10 +231,10 @@ const OPEN_EARLY = 30 * 60e3, OPEN_LATE = 30 * 60e3;
 function codeState(room, code) {
   if (!room.cfg.code) return { ok: true };
   const c = String(code || '').replace(/\D/g, ''), now = Date.now(), all = room.cfg.sessions || [];
-  const current = all.filter((s) => now >= s.at - OPEN_EARLY && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);
+  const current = all.filter((s) => (s.opened || now >= s.at - OPEN_EARLY) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);      // opened: its host started it ahead of time
   // the room's own code always opens it; the code of a planned live opens it around that live
   if (safeEq(room.cfg.code, c) || current.some((s) => s.code && safeEq(s.code, c))) return { ok: true };
-  const later = all.find((s) => s.code && now < s.at - OPEN_EARLY && safeEq(s.code, c));
+  const later = all.find((s) => s.code && !s.opened && now < s.at - OPEN_EARLY && safeEq(s.code, c));
   return later ? { ok: false, early: later.at } : { ok: false };
 }
 const codeOk = (room, code) => codeState(room, code).ok;
@@ -1287,6 +1287,7 @@ wss.on('connection', (ws, req) => {
       case 'session': {                    // the room's calendar: plan a session, or remove one
         const list = plannedOf(room);
         if (d.del) cfg.sessions = list.filter((s) => s.id !== String(d.del));
+        else if (d.open) { const s = list.find((x) => x.id === String(d.open)); if (s) s.opened = Date.now(); }     // started by its host, at any time: its code and link work from now
         else {
           const at = Number(d.at), end = Number(d.end) || 0, now = Date.now();
           if (!(at > now - 3600e3 && at < now + 366 * 24 * 3600e3) || (end && (end <= at || end > at + 24 * 3600e3)) || list.length >= 40) return tx(ws, { t: 'sessions', list, err: 'bad' });

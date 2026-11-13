@@ -442,6 +442,8 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .sess-hours { font-variant-numeric: tabular-nums; font-weight: 600; }
 .sess-code { margin: 0; }
 .sess-acts { display: grid; gap: 6px; }
+.sess-card { cursor: pointer; }
+.sess-card:hover { filter: brightness(1.12); }
 @media (max-width: 640px) { .sess-card { grid-template-columns: 56px 1fr; } .sess-acts { grid-column: 1 / -1; grid-auto-flow: column; } }
 .sched-form { display: grid; gap: 12px; min-width: min(380px, 82vw); }
 .sched-form label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }

@@ -79,7 +79,7 @@
       mixed = new MediaStreamTrackGenerator({ kind: 'video' });
       worker.postMessage({ type: 'init', writable: mixed.writable, brand: cfg.title }, [mixed.writable]);
       setInput = (name, track) => {
-        if (!track) return worker.postMessage({ type: 'remove', name });
+        if (!track || track.readyState === 'ended') return worker.postMessage({ type: 'remove', name });     // a source closed before it was handed over
         const proc = new MediaStreamTrackProcessor({ track, maxBufferSize: 2 });
         worker.postMessage({ type: 'input', name, readable: proc.readable }, [proc.readable]);
       };
@@ -626,7 +626,8 @@
         const d = new Date(x.at);
         return el('li', {}, el('span', { class: 'sess-day' }, el('span', {}, d.toLocaleDateString(loc(), { weekday: 'short' })), el('b', {}, String(d.getDate())), el('span', {}, d.toLocaleDateString(loc(), { month: 'short' }))),
           el('span', { class: 'sess-main' }, el('strong', {}, x.title || mine.title), el('span', { class: 'sess-hours', dir: 'ltr' }, timeOf(x.at) + (x.end ? ' – ' + timeOf(x.end) : ''))),
-          el('button', { class: 'btn', type: 'button', onclick: (e) => copyText(inviteFor(x), e.currentTarget) }, T('نسخ الدعوة')));
+          el('span', { class: 'sess-acts' }, el('button', { class: 'btn primary sess-go', type: 'button', onclick: () => startPlanned(x) }, T('ابدا اللايف')),
+            el('button', { class: 'btn', type: 'button', onclick: (e) => copyText(inviteFor(x), e.currentTarget) }, T('نسخ الدعوة'))));
       }));
       $('#dashCode').hidden = !roomCode;
       $('#dashCode').textContent = roomCode ? T('كود لايف بلا موعد: {code}', { code: roomCode.slice(0, 3) + ' ' + roomCode.slice(3) }) : '';
@@ -657,6 +658,13 @@
       catch { btn.textContent = T('ما تنسخاتش'); }
       setTimeout(() => { btn.textContent = was; }, 2000);
     }
+    // a planned live is started from its card, at any time (like a planned meeting): its code and link open from that moment
+    function startPlanned(x) {
+      picked = x.id;
+      link.send({ t: 'session', open: x.id });
+      showTab('live');
+      if (!liveOn && !$('#goBtn').disabled) goLive();
+    }
     function showInvite() {
       $('#codeChk').checked = !!roomCode;
       $('#codeShow').hidden = !roomCode; $('#codeHelp').hidden = !roomCode;
@@ -665,14 +673,15 @@
       // one card per planned live, soonest first: the day as a calendar leaf, then the hours, the topic, the code
       $('#sessList').replaceChildren(...sessions.map((x) => {
         const d = new Date(x.at);
-        return el('li', { class: 'sess-card' },
+        return el('li', { class: 'sess-card', title: T('ابدا اللايف'), onclick: (e) => { if (!e.target.closest('button')) startPlanned(x); } },
           el('span', { class: 'sess-day' }, el('span', {}, d.toLocaleDateString(loc(), { weekday: 'short' })), el('b', {}, String(d.getDate())), el('span', {}, d.toLocaleDateString(loc(), { month: 'short' }))),
           el('span', { class: 'sess-main' },
             el('strong', {}, x.title || mine.title),
             el('span', { class: 'sess-hours', dir: 'ltr' }, timeOf(x.at) + (x.end ? ' – ' + timeOf(x.end) : '')), x.end ? el('span', { class: 'muted' }, lasts(x)) : null,
             roomCode ? el('span', { class: 'sess-code', dir: 'ltr' }, '🔑 ' + x.code.slice(0, 3) + ' ' + x.code.slice(3)) : null),
           el('span', { class: 'sess-acts' },
-            el('button', { class: 'btn primary', type: 'button', onclick: (e) => { picked = x.id; showInvite(); copyText(inviteFor(x), e.currentTarget); } }, T('نسخ الدعوة')),
+            el('button', { class: 'btn primary sess-go', type: 'button', onclick: () => startPlanned(x) }, T('ابدا اللايف')),
+            el('button', { class: 'btn', type: 'button', onclick: (e) => { picked = x.id; showInvite(); copyText(inviteFor(x), e.currentTarget); } }, T('نسخ الدعوة')),
             el('button', { class: 'btn danger', type: 'button', onclick: () => { if (confirm(T('تحذف هاد اللايف من الأجندة؟'))) link.send({ t: 'session', del: x.id }); } }, T('حذف'))));
       }));
       const s = sessions.find((x) => x.id === picked) || sessions[0] || null;

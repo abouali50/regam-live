@@ -571,6 +571,14 @@ async function until(fn, ms = 15000, step = 250) {
       for (let i = 0; i < 20; i++) stale.push(await knock('111111'));
       const afterStale = await knock(nowCode);
       check('an old code a browser kept sending does not lock the person out: the right code still opens', stale.every((x) => x === 'code-bad') && !afterStale.startsWith('code') && afterStale !== 'none', `${stale.join()} ${afterStale}`);
+      // a live planned for tomorrow: its code waits, until its host starts it from its card
+      await plan(new Date(Date.now() + 26 * 3600e3), 30, 'Demain');
+      const tomCode = await until(async () => { const t = await studio.inputValue('#inviteText'), m = t.match(/code=(\d{6})/); return t.includes('Demain') && m && m[1]; }, 6000);
+      const before = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: tomCode }) })).json();
+      await studio.locator('#sessList .sess-card', { hasText: 'Demain' }).locator('.sess-go').click();
+      const opened = await until(async () => { const j = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: tomCode }) })).json(); return j.slug === 'main' && !j.early; }, 6000);
+      check('a planned live can be started from its card at any time: its code opens from then, and the studio goes to the live', before.early > 0 && !!opened && (await until(() => studio.locator('#goBtn').isVisible(), 4000)) !== null, `${tomCode} ${JSON.stringify(before)}`);
+      await studio.locator('#sessList .sess-card', { hasText: 'Demain' }).locator('.btn.danger').click().catch(() => {});
       check('during a planned live, its own code opens the room, and so does the room\'s general code', !!nowCode && nowCode !== code && withRoom.status === 200 && withOwn.status === 200 && viaJoin.slug === 'main' && !viaJoin.early, `srv=${srvCodes} roomCode=${code} ${withRoom.status} ${withOwn.status} body=${await withOwn.text()} now=${new Date().toISOString()} cfg=${JSON.stringify((await (await fetch(BASE + '/api/config')).json()).sessions)} code=${nowCode} cards=${await studio.locator('#sessList li').count()} dlg=${await studio.locator('#schedDlg').isVisible()} err=${await studio.textContent('#schedErr')} invite=${(await studio.inputValue('#inviteText')).slice(0, 80)}`);
       for (let i = 0; i < 3; i++) await studio.locator('#sessList li button.danger').first().click();
       await until(async () => (await studio.locator('#sessList li').count()) === 0, 6000);

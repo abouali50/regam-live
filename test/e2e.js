@@ -1303,6 +1303,20 @@ async function until(fn, ms = 15000, step = 250) {
       await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ uplink: 445 }) });
       check('the picture is fitted to what the server can send and to the size of the audience', (await (await fetch(BASE + '/api/admin', { headers: H })).json()).uplink === 445
         && await studio.evaluate(() => { const r = window.__studio.rateFor; return r(40, 445) === 4500000 && r(100, 445) === 3460000 && r(300, 445) === 1086667 && r(1000, 445) === 700000 && r(300, 445) * 300 < 445e6 * 0.8; }));
+      // the site's 4K backgrounds: all shown by default, the teacher keeps the ones wanted
+      const cfg0 = await (await fetch(BASE + '/api/config?room=' + slug)).json();
+      const one = await fetch(BASE + cfg0.bgs[1]), oneBytes = Buffer.from(await one.arrayBuffer());
+      const host3 = await sockOf('hostbgsocket0001', { token: teacher });
+      await until(() => host3.last('init'), 5000);
+      host3.say({ t: 'bgs', list: ['medina', 'zellige', 'nope'] });
+      const kept = await until(() => host3.last('bgs'), 5000);
+      const cfg1 = await (await fetch(BASE + '/api/config?room=' + slug)).json();
+      host3.say({ t: 'bgs', list: [] }); await until(() => host3.last('bgs').list.length === 0, 5000);
+      const cfg2 = await (await fetch(BASE + '/api/config?room=' + slug)).json();
+      host3.close();
+      check('the site comes with 4K backgrounds for the waiting screen; the teacher keeps the ones wanted', cfg0.bgs.length === 9 && cfg0.bgs[0] === '/sea.webp' && one.status === 200 && one.headers.get('content-type') === 'image/webp'
+        && oneBytes.length > 50000 && oneBytes.readUIntLE(24, 3) + 1 === 3840 && oneBytes.readUIntLE(27, 3) + 1 === 2160 && kept.list.join() === 'medina,zellige' && cfg1.bgs.join() === '/bg/medina.webp,/bg/zellige.webp' && cfg1.bgAll.filter((b) => b.on).length === 2
+        && cfg2.bgs.length === 0, JSON.stringify(cfg1.bgs));
       // legal pages, and deleting one's own account
       await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ legal: { owner: 'REGAM SARL', contact: 'contact@example.com' } }) });
       const lctx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 900 } });

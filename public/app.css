@@ -712,3 +712,10 @@ table.stats th, table.stats td { padding: 8px 10px; border-bottom: 1px solid #2c
 .member-box input { margin: 8px 0; width: 100%; }
 
 .avatar::before { content: attr(data-l); }
+
+/* the site's backgrounds, ticked in the studio */
+.bg-list li { position: relative; aspect-ratio: 16 / 9; background-size: cover; background-position: center; }
+.bg-list li.off { filter: grayscale(.8) brightness(.55); }
+.bg-list label { position: absolute; inset: auto 0 0 0; display: flex; align-items: center; gap: 6px; padding: 5px 8px; background: linear-gradient(0deg, rgba(0,0,0,.8), rgba(0,0,0,0)); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+#sea.dry { visibility: hidden; }
+.bg-list li { width: 168px; }

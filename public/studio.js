@@ -849,7 +849,19 @@
       if (url) $('#soundTry').src = url; else $('#soundTry').removeAttribute('src');
     }
     const roomQ = 'room=' + encodeURIComponent(window.REGAM_ROOM || '');
-    fetch('/api/config?' + roomQ).then((r) => r.json()).then((c) => { showSound(c.sound); showPics(c.pics || []); }).catch(() => {});
+    fetch('/api/config?' + roomQ).then((r) => r.json()).then((c) => { showSound(c.sound); showPics(c.pics || []); showBgs(c.bgAll || []); }).catch(() => {});
+    // ---- the site's own backgrounds: tick the ones this room shows
+    const BG_NAME = { reef: 'البحر', aurora: 'الشفق القطبي', sunset: 'غروب الشمس', dunes: 'الكثبان', medina: 'المدينة', mist: 'الجبال', nebula: 'النجوم', zellige: 'الزليج', bokeh: 'أضواء ذهبية' };
+    function showBgs(all) {
+      $('#bgList').replaceChildren(...all.map((b) => {
+        const box = el('input', { type: 'checkbox', 'aria-label': T(BG_NAME[b.name] || b.name) });
+        box.checked = b.on;
+        box.onchange = () => { b.on = box.checked; link.send({ t: 'bgs', list: all.filter((x) => x.on).map((x) => x.name) }); li.classList.toggle('off', !b.on); };
+        const li = el('li', { class: b.on ? '' : 'off' }, el('label', {}, box, el('span', {}, T(BG_NAME[b.name] || b.name))));
+        li.style.backgroundImage = `url("${b.url}")`;
+        return li;
+      }));
+    }
     $('#soundDefault').onclick = async () => {
       const r = await fetch('/api/sound?default=1&' + roomQ, { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(() => null);
       if (r && r.ok) { showSound((await r.json()).sound); $('#soundNote').textContent = T('رجعات التلاوة.'); }

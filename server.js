@@ -328,6 +328,10 @@ const soundUrl = (room) => soundList(room)[0] || '';
 const PIC_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const PIC_MAX = 8 * 1024 * 1024, PICS_PER_ROOM = 12;
 const picFile = (slug, id) => path.join(DATA_DIR, `pic_${slug}_${id}`);
+// The backgrounds that come with the site (drawn at 3840 x 2160); each room shows those it keeps ticked, then its own pictures.
+const BG = ['reef', 'aurora', 'sunset', 'dunes', 'medina', 'mist', 'nebula', 'zellige', 'bokeh'];
+const bgUrl = (name) => (name === 'reef' ? '/sea.webp' : `/bg/${name}.webp`);
+const bgOn = (room) => (Array.isArray(room.cfg.bgs) ? room.cfg.bgs.filter((n) => BG.includes(n)) : BG);
 const picUrls = (room) => (room.cfg.pics || []).map((p) => ({ id: p.id, url: `/media/pic/${room.cfg.slug}/${p.id}` }));
 function handlePics(req, res, url) {
   const room = roomOf(url);
@@ -760,7 +764,7 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
-        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room),
+        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room), bgs: bgOn(room).map(bgUrl), bgAll: BG.map((n) => ({ name: n, url: bgUrl(n), on: bgOn(room).includes(n) })),
         access: acct.access(), accounts: acct.mailReady(), assistant: ai.inHelp(),
       });
     }
@@ -1283,6 +1287,11 @@ wss.on('connection', (ws, req) => {
         save();
         return toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
       }
+      case 'bgs':                          // which of the site's backgrounds this room shows while it is not live
+        if (!ws.mod) return;
+        cfg.bgs = (Array.isArray(d.list) ? d.list : []).filter((n) => BG.includes(n));
+        save();
+        return tx(ws, { t: 'bgs', list: cfg.bgs });
       case 'answered':                     // a question was answered (or set aside): off the list
         room.questions = d.all ? [] : room.questions.filter((q) => q.id !== d.id);
         return toMods(room, { t: 'questions', list: room.questions });

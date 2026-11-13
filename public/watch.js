@@ -142,13 +142,17 @@
   }
 
   const sea = createSea($('#sea'));             // light, fish and bubbles over the picture shown while nothing is live
-  // The pictures behind: the room's own, one after the other, or the reef that comes with the site.
-  const pics = (cfg.pics || []).length ? cfg.pics.map((p) => p.url) : ['/sea.webp'];
+  // The pictures behind, one after the other: the room's own first, then the site's backgrounds it keeps; with none, the reef.
+  const chosen = [...(cfg.pics || []).map((p) => p.url), ...(cfg.bgs || [])];
+  const pics = chosen.length ? chosen : ['/sea.webp'];
   const layers = [...document.querySelectorAll('#offline .reef')];
   let picAt = 0, picTimer = null;
   const showPic = (i) => {
     const top = layers[i % 2], img = new Image();
-    img.onload = () => { top.style.backgroundImage = `url("${pics[i % pics.length]}")`; top.classList.add('on'); layers[(i + 1) % 2].classList.remove('on'); };
+    img.onload = () => {
+      top.style.backgroundImage = `url("${pics[i % pics.length]}")`; top.classList.add('on'); layers[(i + 1) % 2].classList.remove('on');
+      $('#sea').classList.toggle('dry', pics[i % pics.length] !== '/sea.webp');      // fish and bubbles belong to the reef only
+    };
     img.src = pics[i % pics.length];
   };
   function slides(on) {

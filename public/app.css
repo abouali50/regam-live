@@ -780,3 +780,20 @@ a, .room-url, .acc-link, .next-ics { text-shadow: 0 1px 1px rgba(20,40,110,.55);
 .btn.primary, .room-enter, .tile, .tile.tile-live, .chip[aria-selected="true"] { color: #000; }
 .tile .ico, .tile-live .ico { stroke: #000; }
 @media (max-width: 900px) { .side-link { border-top-color: #fff6cf; } }
+
+/* ---- 14 Nov (2): a calmer blue, black writing carved into the gold, the three tiles in very light violet ---- */
+body { background: linear-gradient(180deg, rgba(24,34,78,.50) 0%, rgba(30,42,92,.38) 45%, rgba(18,28,70,.58) 100%), url("/bg/room/seasky.webp") center / cover no-repeat fixed; background-color: #3c5488; }
+.top { background: linear-gradient(180deg, rgba(48,60,122,.92) 0%, rgba(36,46,100,.92) 100%); }
+.panel, .dash-head, .room-card, .agenda-list li, .chat { background: linear-gradient(160deg, rgba(58,70,132,.90) 0%, rgba(46,56,112,.90) 55%, rgba(38,48,100,.92) 100%); border-color: #8f9bd0; box-shadow: 0 10px 26px rgba(10,18,50,.4), inset 0 1px 0 rgba(255,255,255,.18); }
+.sess-card { background: linear-gradient(160deg, rgba(70,82,146,.94), rgba(54,64,124,.94)); border-color: #9aa5d8; }
+dialog.dlg, .onstage, .cap-menu, .react-row.react-box, .ai-panel { background: #343f7c; }
+#dashAgenda { background: linear-gradient(180deg, #6c88d6, #4a66b8); border-color: #a9b8e8; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -3px 0 rgba(20,40,110,.4), 0 3px 0 #2f478f, 0 8px 14px rgba(10,18,50,.35); }
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="datetime-local"], input[type="date"], input[type="time"], select, textarea { background: rgba(20,28,74,.7); border-color: #8f9bd0; }
+/* black on gold: deep, and cut into the surface (a light edge below, a dark one above) */
+.side button, .side-link, .roombar .btn, .btn.primary, .room-enter, .badge.off, .badge.on, #dashState, .chip[aria-selected="true"], .setup-note, .wait-bar { color: #000; font-weight: 800; text-shadow: 0 1px 0 rgba(255,255,255,.85), 0 -1px 0 rgba(110,70,0,.45); }
+.side .ico { stroke: #000; stroke-width: 2.3; filter: drop-shadow(0 1px 0 rgba(255,255,255,.8)); }
+/* the three tiles of the home section: very light violet */
+.tile, .tile.tile-live { background: linear-gradient(180deg, #faf5ff 0%, #eadcff 45%, #d3bbf7 100%); border-color: #ffffff; color: #000; font-weight: 800; text-shadow: 0 1px 0 rgba(255,255,255,.9), 0 -1px 0 rgba(90,50,150,.3);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.9), inset 0 -4px 0 rgba(120,80,180,.35), 0 5px 0 #8f72c4, 0 10px 18px rgba(10,18,50,.35); }
+.tile .ico, .tile-live .ico { stroke: #000; stroke-width: 2.3; filter: drop-shadow(0 1px 0 rgba(255,255,255,.85)); }
+.tile:active { box-shadow: inset 0 3px 6px rgba(90,50,150,.5); }

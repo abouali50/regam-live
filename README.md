@@ -51,6 +51,25 @@ sudo bash install.sh live.example.com admin@example.com
 
 L’installateur prépare Docker Compose, MediaMTX et le proxy. Les ports à ouvrir sur le VPS sont `80/tcp`, `443/tcp`, `8189/udp` et `8189/tcp`. Après installation, utilise le domaine en HTTPS et vérifie le direct depuis un deuxième appareil. Pour une audience importante, la diffusion HLS peut passer par un CDN configuré avec `HLS_PUBLIC_URL`.
 
+## Sécurité
+
+Les protections du site sont regroupées dans `security.js` et vérifiées par des tests d’attaque.
+
+| Protection | Où |
+| --- | --- |
+| En-têtes de sécurité (HSTS, CSP, anti-cadre, `nosniff`) sur chaque réponse | `security.js` |
+| Journal des événements suspects, visible dans Administration > Sécurité | `data/security.log` |
+| Limites par adresse réseau et par compte (mots de passe, codes, requêtes) | `security.js`, `accounts.js`, `server.js` |
+| Mots de passe hachés (scrypt, un sel par compte), sessions signées | `server.js`, `accounts.js` |
+| Changer un mot de passe ferme les sessions ouvertes avec l’ancien | `server.js`, `accounts.js` |
+| Réglages vérifiés au démarrage (`SECRET`, `ADMIN_PASSWORD`, `MTX_PASS`, `PUBLIC_ORIGIN`) | `security.js` |
+
+Réglages utiles dans `.env` : `PUBLIC_ORIGIN` (adresse du site écrite dans les e-mails), `CSP=report` (la politique de contenu signale sans bloquer) ou `CSP=off` en cas de page bloquée, `API_PER_MIN` (plafond de requêtes par adresse).
+
+```bash
+npm run test:security
+```
+
 ## Lancer les tests
 
 ```bash

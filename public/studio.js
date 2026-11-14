@@ -1077,7 +1077,12 @@
               await fetch(recUrl(`&name=${encodeURIComponent(f.name)}`), { method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) });
               loadRecs();
             } }, T(f.title ? 'حيدو من عند التلاميذ' : 'نشرو للتلاميذ')),
-            el('a', { class: 'btn primary', href: recUrl(`&name=${encodeURIComponent(f.name)}&token=${encodeURIComponent(token)}`), download: '' }, T('تحميل')),
+            el('button', { class: 'btn primary', type: 'button', onclick: async () => {      // the link is asked for at the click: it is good for this file only, for five minutes
+              const r = await fetch(recUrl(`&name=${encodeURIComponent(f.name)}&link=1`), { headers: { Authorization: 'Bearer ' + token } });
+              if (!r.ok) return loadRecs();
+              const a = el('a', { href: (await r.json()).url, download: '' });
+              document.body.append(a); a.click(); a.remove();
+            } }, T('تحميل')),
             el('button', { class: 'btn', type: 'button', onclick: async () => {
               if (!confirm(T('تحذف هاد التسجيل نهائيا؟'))) return;
               await fetch(recUrl(`&name=${encodeURIComponent(f.name)}`), { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });

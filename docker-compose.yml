@@ -4,6 +4,9 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    # the app needs no special right on the server: none is given, and it cannot gain any
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
     environment:
       MTX_RTC: http://mediamtx:8889
       MTX_HLS: http://mediamtx:8888

@@ -103,6 +103,11 @@ HLS_PUBLIC_URL=
 EOF
   umask 022
 fi
+# The address of the site, written in the e-mails it sends (never taken from what a visitor's browser says).
+grep -q '^PUBLIC_ORIGIN=' .env || printf '# Address of the site, used in the links of the e-mails it sends.\nPUBLIC_ORIGIN=https://%s\n' "$DOMAIN" >> .env
+# Settings, accounts and backups are readable by their owner only.
+chmod 600 .env
+chmod 700 data
 getv() { grep -E "^$1=" .env | head -n1 | cut -d= -f2-; }
 MTX_USER="$(getv MTX_USER)"; MTX_PASS="$(getv MTX_PASS)"; APP_PORT="$(getv APP_PORT)"
 

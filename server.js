@@ -617,7 +617,7 @@ function serveClassFile(req, res, url, rest) {
 }
 
 // ---------------------------------------------------------- administration --
-const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: r.clients.size, liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, fee: cls.feeOf(r) || undefined, closed: !!r.cfg.closed || undefined, next: nextOf(r), sessions: sessionsOf(r).slice(0, 10) });
+const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: peopleIn(r), liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, fee: cls.feeOf(r) || undefined, closed: !!r.cfg.closed || undefined, next: nextOf(r), sessions: sessionsOf(r).slice(0, 10) });
 function slugFor(title) {
   let base = String(title).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
   if (!SLUG.test(base)) base = 'room';
@@ -1011,6 +1011,8 @@ function tellPoll(room) {                        // at most once a second, howev
 const askedAt = new Map();                       // person -> when they last put a question
 const helpersOf = (room) => (room.cfg.helpers || []).map((id) => acct.byId(id)).filter(Boolean).map((m) => ({ id: m.id, name: m.name, email: m.email }));
 const toUid = (room, uid, obj) => { for (const ws of room.byUid.get(uid) || []) tx(ws, obj); };
+// How many people are in the room: one person with the page open twice (two tabs, phone and computer) counts once, like in the list of participants.
+const peopleIn = (room) => { const ids = new Set(); for (const ws of room.clients) ids.add(ws.uid); return ids.size; };
 const viewersOf = (room) => { let n = 0; for (const ws of room.clients) if (!ws.mod) n++; return n; };
 // People at the door of a room with a waiting room (one line per person, whatever their number of tabs).
 function waitingList(room) {
@@ -1121,7 +1123,7 @@ wss.on('connection', (ws, req) => {
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {
-        t: 'init', now: Date.now(), live: room.live, likes: room.likes, reacts: room.totals, viewers: room.clients.size,
+        t: 'init', now: Date.now(), live: room.live, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, words: ws.mod ? room.cfg.words || [] : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
@@ -1421,7 +1423,7 @@ setInterval(() => {
 }, 700);
 setInterval(() => {
   for (const room of rooms.values()) {
-    const n = room.clients.size;
+    const n = peopleIn(room);
     if (n !== room.lastViewers) { room.lastViewers = n; broadcast(room, { t: 'viewers', n }); }
   }
 }, 3000);

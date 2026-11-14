@@ -173,7 +173,7 @@ async function until(fn, ms = 15000, step = 250) {
     const errors = [];
     viewer.on('pageerror', (e) => errors.push('viewer: ' + e.message));
     await viewer.goto(BASE + '/');
-    check('viewer sees "offline" before the live starts', await viewer.locator('#offline').isVisible() && await viewer.locator('#handBtn').isHidden());
+    check('viewer sees "offline" before the live starts', (await until(() => viewer.locator('#offline').isVisible(), 6000)) !== null && await viewer.locator('#handBtn').isHidden());
 
     // ---- studio ------------------------------------------------------------
     const sctx = await browser.newContext({ locale: 'ar-MA', viewport: { width: 1380, height: 900 }, permissions: ['camera', 'microphone'] });

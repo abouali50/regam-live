@@ -58,6 +58,22 @@
     if (!$('#uplinkForm').contains(document.activeElement)) $('#uplinkForm').elements.uplink.value = data.uplink;
     $('#uplinkNote').textContent = T('بهاد السرعة: حتى ل {a} متابع بجودة عالية، {b} بجودة متوسطة، و {c} كحد أقصى بجودة خفيفة.', { a: Math.floor((data.uplink * 0.8) / 3.1), b: Math.floor((data.uplink * 0.8) / 1.6), c: Math.floor((data.uplink * 0.8) / 0.8) });
     if (!$('#legalForm').contains(document.activeElement)) { $('#legalForm').elements.owner.value = data.legal.owner; $('#legalForm').elements.contact.value = data.legal.contact; }
+    // the journal of suspicious events, and the settings of the server that should be fixed
+    const SEC = {
+      'login.fail': 'دخول غالط للاستوديو', 'login.blocked': 'عنوان تبلوكا (الاستوديو)', 'login.admin': 'دخول المدير', 'login.teacher': 'دخول أستاذ',
+      'member.fail': 'دخول غالط لحساب', 'member.blocked': 'عنوان تبلوكا (الحسابات)', 'member.code.fail': 'كود غالط', 'member.reset': 'تبدلات كلمة السر',
+      'member.deleted': 'تحذف حساب', 'code.blocked': 'بزاف ديال كودات الدخول الغالطة', 'rate.blocked': 'بزاف ديال الطلبات', 'ws.flood.blocked': 'بزاف ديال الرسائل',
+      'admin.denied': 'دخول للإدارة مرفوض',
+    };
+    const sec = data.security || { list: [], warnings: [] };
+    $('#secWarn').hidden = !sec.warnings.length;
+    $('#secWarn').replaceChildren(...sec.warnings.map((w) => el('li', { dir: 'ltr' }, w)));
+    $('#secNone').hidden = sec.list.length > 0;
+    $('#secBody').replaceChildren(...sec.list.slice(0, 80).map((e) => el('tr', {},
+      el('td', { dir: 'ltr' }, new Date(e.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })),
+      el('td', {}, T(SEC[e.kind] || (e.kind.startsWith('admin.') ? 'تغيير فالإدارة' : e.kind))),
+      el('td', { dir: 'ltr' }, e.ip || ''),
+      el('td', { dir: 'ltr' }, Object.entries(e).filter(([k, v]) => !['at', 'kind', 'ip'].includes(k) && v !== '').map(([, v]) => v).concat(e.kind.startsWith('admin.') && !SEC[e.kind] ? [e.kind.slice(6)] : []).join(' · ')))));
     $('#statsBody').replaceChildren(...data.stats.map((r) => el('tr', {}, ...[r.title, r.teacher, r.students, r.lives, r.people, r.peak, r.minutes,
       r.last ? new Date(r.last).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : LANG, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'].map((v) => el('td', {}, String(v))))));
     showAccounts(data.accounts);

@@ -17,7 +17,7 @@ module.exports = function backup({ db, dataDir, dbFile, freeze, mail, mailReady,
   function snapshot() {
     try {
       const f = path.join(DIR, `db-${today()}.json`);
-      fs.writeFileSync(f + '.tmp', JSON.stringify(db)); fs.renameSync(f + '.tmp', f);
+      fs.writeFileSync(f + '.tmp', JSON.stringify(db), { mode: 0o600 }); fs.renameSync(f + '.tmp', f);
       for (const old of files().slice(0, -KEEP)) fs.unlinkSync(path.join(DIR, old));
     } catch (e) { console.error('backup failed', e.message); }
   }
@@ -78,8 +78,8 @@ module.exports = function backup({ db, dataDir, dbFile, freeze, mail, mailReady,
     if (next.ai && !next.ai.key && db.ai && db.ai.key) next.ai.key = db.ai.key;
     if (next.pay && !next.pay.secret && db.pay && db.pay.secret && next.pay.clientId === db.pay.clientId) next.pay.secret = db.pay.secret;
     freeze();                                             // nothing from the running site is written over it
-    fs.writeFileSync(path.join(DIR, `before-restore-${Date.now()}.json`), JSON.stringify(db));
-    fs.writeFileSync(dbFile + '.tmp', JSON.stringify(next)); fs.renameSync(dbFile + '.tmp', dbFile);
+    fs.writeFileSync(path.join(DIR, `before-restore-${Date.now()}.json`), JSON.stringify(db), { mode: 0o600 });
+    fs.writeFileSync(dbFile + '.tmp', JSON.stringify(next), { mode: 0o600 }); fs.renameSync(dbFile + '.tmp', dbFile);
     setTimeout(() => process.exit(0), 500);
     return '';
   }

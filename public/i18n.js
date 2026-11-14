@@ -774,6 +774,28 @@ const DICT = {
   'تحذف العرض.': ['Offre supprimée.', 'Plan deleted.'],
   'تزاد العرض.': ['Offre ajoutée.', 'Plan added.'],
   'تحفظات طريقة الخلاص.': ['Instructions de paiement enregistrées.', 'Payment instructions saved.'],
+  // ---- administration: security
+  'الأمان': ['Sécurité', 'Security'],
+  'آخر الأحداث: محاولات دخول غالطة، عناوين تبلوكات، وتغييرات الإدارة.': ['Derniers événements : connexions refusées, adresses bloquées et changements faits dans l’administration.', 'Latest events: refused sign-ins, blocked addresses and changes made in the administration.'],
+  'ما كاين حتى حدث.': ['Aucun événement.', 'No event.'],
+  'الوقت': ['Heure', 'Time'],
+  'الحدث': ['Événement', 'Event'],
+  'عنوان الشبكة': ['Adresse réseau', 'Network address'],
+  'التفاصيل': ['Détail', 'Detail'],
+  'دخول غالط للاستوديو': ['Connexion au studio refusée', 'Studio sign-in refused'],
+  'عنوان تبلوكا (الاستوديو)': ['Adresse bloquée (studio)', 'Address blocked (studio)'],
+  'دخول المدير': ['Connexion de l’administrateur', 'Administrator signed in'],
+  'دخول أستاذ': ['Connexion d’un enseignant', 'Teacher signed in'],
+  'دخول غالط لحساب': ['Connexion à un compte refusée', 'Account sign-in refused'],
+  'عنوان تبلوكا (الحسابات)': ['Adresse bloquée (comptes)', 'Address blocked (accounts)'],
+  'كود غالط': ['Code erroné', 'Wrong code'],
+  'تبدلات كلمة السر': ['Mot de passe changé', 'Password changed'],
+  'تحذف حساب': ['Compte supprimé', 'Account deleted'],
+  'بزاف ديال كودات الدخول الغالطة': ['Trop de codes d’entrée erronés', 'Too many wrong entry codes'],
+  'بزاف ديال الطلبات': ['Trop de requêtes', 'Too many requests'],
+  'بزاف ديال الرسائل': ['Trop de messages', 'Too many messages'],
+  'دخول للإدارة مرفوض': ['Accès à l’administration refusé', 'Administration access refused'],
+  'تغيير فالإدارة': ['Changement dans l’administration', 'Change in the administration'],
 };
 
 const store18 = {

@@ -27,6 +27,10 @@ async function until(fn, ms = 15000, step = 250) {
     '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream',
     '--disable-features=WebRtcHideLocalIpsWithMdns', '--autoplay-policy=no-user-gesture-required',
   ] });
+  // every page opened during the run is watched: a script or an address refused by the content policy is a failure
+  const cspBreaks = [];
+  const watchCsp = (ctx) => ctx.on('console', (m) => { if (/Content Security Policy/i.test(m.text())) cspBreaks.push(m.text().slice(0, 200)); });
+  { const make = browser.newContext.bind(browser); browser.newContext = async (...a2) => { const c = await make(...a2); watchCsp(c); return c; }; }
 
   // ---- stand-in relay (browser page) -------------------------------------
   const sfu = await (await browser.newContext()).newPage();
@@ -458,6 +462,12 @@ async function until(fn, ms = 15000, step = 250) {
       const signedIn = (await until(() => anon.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null;
       const oldPw = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'samira@example.com', password: 'motdepasse1' }) });
       check('a forgotten password is replaced with a code sent by e-mail', signedIn && oldPw.status === 401);
+      // the device that was signed in with the old password is signed out by the change; it signs in again with the new one
+      const stale = await a.evaluate(() => fetch('/api/member/me', { headers: { Authorization: 'Bearer ' + localStorage.getItem('regam.member') } }).then((r) => r.status));
+      const fresh = await (await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'samira@example.com', password: 'nouveaupass2' }) })).json();
+      await a.evaluate(([t, n]) => { localStorage.setItem('regam.member', t); localStorage.setItem('regam.memberName', n); }, [fresh.token, fresh.name]);
+      await a.reload();
+      check('changing the password ends the sessions opened with the old one', stale === 401 && !!fresh.token);
       // administration
       const adminData = await (await fetch(BASE + '/api/admin', { headers: { Authorization: 'Bearer ' + tok } })).json();
       const noMailLock = await (await fetch(BASE + '/api/member/me')).status;
@@ -986,9 +996,13 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- recordings ----------------------------------------------------------------------
     check('recordings are private', (await fetch(BASE + '/api/recordings')).status === 401 && (await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4')).status === 401);
     const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
-    check('recordings cannot reach other files', (await fetch(BASE + '/api/recordings?name=..%2F..%2Fserver.js&token=' + tok)).status === 400 && (await fetch(BASE + '/api/recordings?name=notes.txt&token=' + tok)).status === 400);
-    const dl = await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4&token=' + tok);
-    check('a recording downloads in full', dl.status === 200 && (await dl.arrayBuffer()).byteLength === 2_500_000);
+    const TH = { Authorization: 'Bearer ' + tok };
+    check('recordings cannot reach other files', (await fetch(BASE + '/api/recordings?name=..%2F..%2Fserver.js', { headers: TH })).status === 400 && (await fetch(BASE + '/api/recordings?name=notes.txt', { headers: TH })).status === 400);
+    check('the session is no longer accepted in the address of a download', (await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4&token=' + tok)).status === 401);
+    const dlLink = (await (await fetch(BASE + '/api/recordings?name=2026-11-10_20-30-00-000000.mp4&link=1', { headers: TH })).json()).url;
+    const dl = await fetch(BASE + dlLink);
+    check('a recording downloads in full, with a link made for that file', dl.status === 200 && (await dl.arrayBuffer()).byteLength === 2_500_000);
+    check('the link of one recording does not open another file', (await fetch(BASE + dlLink.replace('20-30-00', '20-30-01'))).status === 401);
     await studio.reload(); await studio.waitForSelector('#recs li .rec-actions', { timeout: 20000 });
     check('studio lists the recording with date and size', /10\/11\/2026 · 20:30 · (2|3) MB/.test(await studio.textContent('#recs li')), await studio.textContent('#recs li'));
     await studio.click('#recs li .rec-actions button >> nth=-1');
@@ -1514,6 +1528,7 @@ async function until(fn, ms = 15000, step = 250) {
       check('when the room goes live, the browsers that asked are told, with a signed request', seen.pushes.some((x) => x.url === '/push/one') && jwtOk, JSON.stringify(seen.pushes).slice(0, 300));
     }
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
+    check('no page broke the content security policy', cspBreaks.length === 0, [...new Set(cspBreaks)].slice(0, 6).join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);
   } finally {
     ff.kill('SIGKILL'); app.kill(); await browser.close(); rtc.close(); api.close(); hlsSrv.close(); lt.close(); aiSrv.close(); ppSrv.close();

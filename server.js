@@ -51,7 +51,7 @@ function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     if (frozen) return;
-    fs.writeFile(DB_FILE + '.tmp', JSON.stringify(db), (err) => { if (!err && !frozen) fs.rename(DB_FILE + '.tmp', DB_FILE, () => {}); });
+    fs.writeFile(DB_FILE + '.tmp', JSON.stringify(db), { mode: 0o600 }, (err) => { if (!err && !frozen) fs.rename(DB_FILE + '.tmp', DB_FILE, () => {}); });
   }, 200);
 }
 if (!db.rooms.length) {
@@ -61,6 +61,12 @@ if (!db.rooms.length) {
   db.rooms.push({ slug: 'main', title: SITE_TITLE, topic: '', ownerId: 'admin', slow: old.slow ?? 3, pinned: old.pinned || '', liveTitle: old.title || '', banned: old.banned || {} });
   save();
 }
+
+// Protections shared by every request: headers, the journal of suspicious events, limits per address.
+const sec = require('./security')({ env, dataDir: DATA_DIR, hlsPublicUrl: HLS_PUBLIC_URL,
+  onBurst: (kind, n) => alertAdmin('sec_' + kind, 'activité suspecte / suspicious activity', `${n} événements « ${kind} » en moins de 15 minutes. Détail : Administration > Sécurité.\n\n${n} "${kind}" events in less than 15 minutes. Details: Administration > Security.`) });
+const ENV_WARNINGS = sec.checkEnv();
+const escHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // One live per room. `cfg` is the saved part, the rest is the running state.
 const rooms = new Map();
@@ -98,6 +104,7 @@ function verify(token, kind) {
 }
 // approved by the administrator, and (when the account has an end date) still paid for
 const isActive = (u) => !!u.active && (!u.paidUntil || u.paidUntil > Date.now());
+const USER_TTL = 12 * 3600e3;               // how long a studio session lasts
 const hashPass = (password, salt) => crypto.scryptSync(String(password), salt, 32).toString('hex');
 // Who holds this token: the administrator, an active teacher, or nobody.
 function whoIs(token) {
@@ -105,6 +112,7 @@ function whoIs(token) {
   if (!id) return null;
   if (id === 'admin') return { id: 'admin', role: 'admin', name: HOST_NAME };
   const u = db.users.find((x) => x.id === id && isActive(x));
+  if (u && u.since && Number(String(token).split('.')[2]) - USER_TTL < u.since) return null;     // signed in before the password was changed
   return u ? { id: u.id, role: 'teacher', name: u.name } : null;
 }
 const canHost = (user, room) => !!user && !!room && (user.role === 'admin' || room.cfg.ownerId === user.id);
@@ -182,7 +190,7 @@ function forgetMember(id) {
     if (c.paid) delete c.paid[id];
   }
 }
-const acct = require('./accounts')({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle: SITE_TITLE, env, onRemove: forgetMember });
+const acct = require('./accounts')({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle: SITE_TITLE, env, onRemove: forgetMember, sec, siteOrigin: (req) => siteOrigin(req), hostOrigin: (req) => originOf(req) });
 const ai = require('./ai')({ db, save, clean, env });
 const bak = require('./backup')({ db, dataDir: DATA_DIR, dbFile: DB_FILE, freeze: () => { frozen = true; clearTimeout(saveTimer); }, mail: acct.mail, mailReady: acct.mailReady, siteTitle: SITE_TITLE });
 const SITE_TZ = env.SITE_TZ || 'Africa/Casablanca';
@@ -461,10 +469,12 @@ function proxyHls(req, res, sub) {
 const REC_NAME = /^[0-9][0-9_.-]*\.mp4$/;
 function handleRecordings(req, res, url) {
   const room = roomOf(url);
-  // a download is a plain link, so the token may also come in the address
-  if (!canHost(whoIs(bearer(req) || url.searchParams.get('token')), room)) return send(res, 401, { error: 'unauthorized' });
-  const dir = path.join(REC_ROOT, `air_${room.cfg.slug}`);
+  if (!room) return send(res, 404, { error: 'no such room' });
   const name = url.searchParams.get('name');
+  // a download is a plain link: it carries a key good for that file only, for five minutes (never the session itself)
+  const linked = req.method === 'GET' && !!name && verify(String(url.searchParams.get('k') || ''), 'rec') === `${room.cfg.slug}:${name}`.replace(/\./g, '~');
+  if (!linked && !canHost(whoIs(bearer(req)), room)) return send(res, 401, { error: 'unauthorized' });
+  const dir = path.join(REC_ROOT, `air_${room.cfg.slug}`);
   if (!name) {
     if (req.method !== 'GET') return send(res, 405, { error: 'method' });
     return fs.readdir(dir, (err, files) => {
@@ -492,6 +502,10 @@ function handleRecordings(req, res, url) {
     });
   }
   if (req.method !== 'GET') return send(res, 405, { error: 'method' });
+  if (url.searchParams.get('link')) {            // the studio asks for the download link of this file
+    if (!fs.existsSync(file)) return send(res, 404, { error: 'not found' });
+    return send(res, 200, { url: `/api/recordings?room=${room.cfg.slug}&name=${encodeURIComponent(name)}&k=${encodeURIComponent(sign('rec', `${room.cfg.slug}:${name}`.replace(/\./g, '~'), 5 * 60e3))}` });
+  }
   fs.stat(file, (err, st) => {
     if (err) return send(res, 404, { error: 'not found' });
     res.writeHead(200, { 'Content-Type': 'video/mp4', 'Content-Length': st.size, 'Content-Disposition': `attachment; filename="${room.cfg.slug}_${name}"` });
@@ -655,17 +669,22 @@ const pay = require('./pay')({ db, save, env, grant: (u, months) => { addMonths(
     cls.paidFor(room, m, days);
     return { name: m.name, email: m.email, room: room.cfg.title, teacher: ownerName(room) };
   } });
+const PUBLIC_ORIGIN = /^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(env.PUBLIC_ORIGIN || '') ? env.PUBLIC_ORIGIN : '';
+// The address written in e-mails and calendar files: the one set at installation, else the one the
+// administrator uses, else the one of this request. Never a header that a visitor can choose.
+const siteOrigin = (req) => PUBLIC_ORIGIN || db.origin || originOf(req);
 const originOf = (req) => { const h = String(req.headers.host || ''); return /^[a-z0-9.-]+(:\d+)?$/i.test(h) ? `${/^(localhost|127\.)/.test(h) ? 'http' : 'https'}://${h}` : ''; };
 
 async function handleAdmin(req, res, url, what) {
   const me = whoIs(bearer(req));
-  if (!me || me.role !== 'admin') return send(res, me ? 403 : 401, { error: 'administrator only' });
+  if (!me || me.role !== 'admin') { if (bearer(req)) sec.audit('admin.denied', clientIp(req), { what: what || 'view', who: me ? me.id : '' }); return send(res, me ? 403 : 401, { error: 'administrator only' }); }
+  if (req.method !== 'GET' || what === 'backup') sec.audit('admin.' + (what || 'view'), clientIp(req), { method: req.method, id: url.searchParams.get('id') || url.searchParams.get('slug') || '' });
   if (originOf(req) && db.origin !== originOf(req)) { db.origin = originOf(req); save(); }     // the site's own address (as the administrator reaches it), for links in the e-mails it sends by itself
 
   if (!what && req.method === 'GET') {
     return send(res, 200, {
       users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
-      plans: db.plans, payInfo: db.payInfo, legal: db.legal || { owner: '', contact: '' }, uplink: db.uplink || 400, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(), stats: cls.stats(),
+      plans: db.plans, payInfo: db.payInfo, legal: db.legal || { owner: '', contact: '' }, uplink: db.uplink || 400, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(), stats: cls.stats(), security: { ...sec.view(), warnings: ENV_WARNINGS },
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
     });
   }
@@ -688,7 +707,7 @@ async function handleAdmin(req, res, url, what) {
       openIfApproved(u);
       if (password && password.length < 8) return send(res, 400, { error: 'password too short' });
     }
-    if (password) { u.salt = crypto.randomBytes(12).toString('hex'); u.hash = hashPass(password, u.salt); }
+    if (password) { u.salt = crypto.randomBytes(16).toString('hex'); u.hash = hashPass(password, u.salt); if (b.id) u.since = Date.now(); }
     if (!isActive(u)) {                                        // a suspended teacher is cut off at once
       for (const r of rooms.values()) {
         if (r.cfg.ownerId !== u.id) continue;
@@ -788,6 +807,8 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
     const p = url.pathname;
+    sec.headers(req, res);
+    if (p.startsWith('/api/') && !sec.apiAllowed(clientIp(req), p)) return send(res, 429, { error: 'too many requests' }, { 'Retry-After': '30' });
 
     if (p.startsWith('/hls/')) {
       if (req.method !== 'GET') return send(res, 405, 'Method');
@@ -822,9 +843,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/ics') {                       // a planned session, as a file for the person's own calendar
       const room = roomOf(url), s = room && sessionsOf(room).find((x) => x.id === url.searchParams.get('id'));
       if (!s) return send(res, 404, 'Not found');
-      const hostName = String(req.headers['x-forwarded-host'] || req.headers.host || '');
-      const origin = /^[a-z0-9.-]+(:\d+)?$/i.test(hostName) ? `${/^(localhost|127\.)/.test(hostName) ? 'http' : 'https'}://${hostName}` : '';
-      return send(res, 200, icsOf(room, s, origin), { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="regam-live-${room.cfg.slug}.ics"` });
+      return send(res, 200, icsOf(room, s, siteOrigin(req)), { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="regam-live-${room.cfg.slug}.ics"` });
     }
     if (p === '/api/sound') return handleSound(req, res, url);
     if (p === '/api/pics') return handlePics(req, res, url);
@@ -853,17 +872,18 @@ const server = http.createServer(async (req, res) => {
       if (accessOf(room) === 'watch' && !who) return send(res, 401, { error: 'sign in' });
       if (cls.entry(room, who)) return send(res, 403, { error: 'not a student' });           // a paid or closed class
       if (!cls.known(room, who) && !codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
-      return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 6 * 3600e3)}; Path=/hls/; Max-Age=21600; HttpOnly; SameSite=Lax` });
+      return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 6 * 3600e3)}; Path=/hls/; Max-Age=21600; HttpOnly; SameSite=Lax${/^https:/.test(originOf(req)) ? '; Secure' : ''}` });
     }
     if (p === '/api/join' && req.method === 'POST') {            // "join with a code": which room does this entry code open?
       const code = String((await readJson(req)).code || '').replace(/\D/g, ''), ip = clientIp(req);
       let room = null, early = 0;
       if (code.length === 6) for (const r of rooms.values()) { if (!r.cfg.code) continue; const st = codeState(r, code); if (st.ok || st.early) { room = r; early = st.early || 0; break; } }
-      if (!codeAllowed(ip, !room)) return send(res, 429, { error: 'too many requests' });
+      if (!codeAllowed(ip, !room)) { sec.audit('code.blocked', ip, {}); return send(res, 429, { error: 'too many requests' }); }
       return room ? send(res, 200, { slug: room.cfg.slug, early }) : send(res, 404, { error: 'bad code' });
     }
     if (p === '/api/push/key') return send(res, 200, { key: VAPID_PUB });
     if (p === '/api/push' && req.method === 'POST') {            // the bell: tell this browser when that room goes on air (or stop telling it)
+      if (!sec.allowed('push:' + clientIp(req), 60, 3600e3)) return send(res, 429, { error: 'too many requests' });
       const b = await readJson(req), room = rooms.get(String(b.room || '')), u = pushUrl(b.endpoint);
       if (!room || !u || String(b.endpoint).length > 1000) return send(res, 400, { error: 'bad request' });
       const list = (db.push[room.cfg.slug] || []).filter((s) => s.e !== b.endpoint);
@@ -881,7 +901,7 @@ const server = http.createServer(async (req, res) => {
       const b = await readJson(req);
       const u = db.users.find((x) => x.login === clean(b.login, 30).toLowerCase());
       const got = hashPass(String(b.password || ''), u ? u.salt : 'no-such-user');
-      if (!u || !u.hash || !safeEq(got, u.hash)) { loginFailed(ip); return send(res, 401, { error: 'wrong login or password' }); }
+      if (!u || !u.hash || !safeEq(got, u.hash)) { loginFailed(ip); sec.audit('login.fail', ip, { login: clean(b.login, 30), where: 'pay' }); return send(res, 401, { error: 'wrong login or password' }); }
       if (!u.active && !u.pending) return send(res, 403, { error: 'account suspended' });
       let out;
       try { out = await pay.start(u, Number(b.months), originOf(req)); } catch (e) { console.error('payment start failed', e.message); out = { error: 'paypal refused' }; }
@@ -902,7 +922,7 @@ const server = http.createServer(async (req, res) => {
       room.cfg.students = (room.cfg.students || []).filter((id) => id !== mid);
       room.cfg.left = [...new Set([...(room.cfg.left || []), mid])].slice(-3000);
       save(); toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() });
-      return send(res, 200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${SITE_TITLE}</title><body style="font-family:system-ui;background:#0b0b12;color:#fff;padding:40px;text-align:center"><p>Vous ne recevrez plus les rappels de ce cours.</p><p dir="rtl">ما غاديش توصلك التذكيرات ديال هاد الدرس.</p>`, { 'Content-Type': 'text/html; charset=utf-8' });
+      return send(res, 200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escHtml(SITE_TITLE)}</title><body style="font-family:system-ui;background:#0b0b12;color:#fff;padding:40px;text-align:center"><p>Vous ne recevrez plus les rappels de ce cours.</p><p dir="rtl">ما غاديش توصلك التذكيرات ديال هاد الدرس.</p>`, { 'Content-Type': 'text/html; charset=utf-8' });
     }
     if (p === '/pay/return') {
       const out = await pay.finish(String(url.searchParams.get('token') || '').slice(0, 64));
@@ -931,20 +951,22 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/login' && req.method === 'POST') {
       const ip = clientIp(req);
-      if (!loginAllowed(ip)) return send(res, 429, { error: 'too many attempts' });
+      if (!loginAllowed(ip)) { sec.audit('login.blocked', ip, {}); return send(res, 429, { error: 'too many attempts' }); }
       const body = await readJson(req);
       const login = clean(body.login, 30).toLowerCase(), password = String(body.password || '');
       let id = null;
       const u = db.users.find((x) => x.login === login);
+      if (u && sec.count('fail:u:' + login, 15 * 60e3) >= 10) { sec.audit('login.blocked', ip, { login }); return send(res, 429, { error: 'too many attempts' }); }     // ten wrong passwords for one account, wherever they come from
       // hash even for an unknown login, so the answer takes the same time
       const got = hashPass(password, u ? u.salt : 'no-such-user');
       if (u && isActive(u) && u.hash && safeEq(got, u.hash)) id = u.id;
       // the administrator has no login: their password is enough, whatever the browser
       // put in the login field (autofill often writes an e-mail address there)
       else if (!u && safeEq(hmac(password), hmac(ADMIN_PASSWORD))) id = 'admin';
-      if (!id) { loginFailed(ip); return send(res, 401, { error: 'wrong login or password' }); }
-      const me = whoIs(sign('user', id, 1000));
-      return send(res, 200, { token: sign('user', id, 12 * 3600e3), role: me.role, name: me.name });
+      if (!id) { loginFailed(ip); if (u) sec.allowed('fail:u:' + login, 1e9, 15 * 60e3); sec.audit('login.fail', ip, { login }); return send(res, 401, { error: 'wrong login or password' }); }
+      const me = whoIs(sign('user', id, USER_TTL));
+      sec.audit(id === 'admin' ? 'login.admin' : 'login.teacher', ip, { login: id === 'admin' ? '' : login });
+      return send(res, 200, { token: sign('user', id, USER_TTL), role: me.role, name: me.name });
     }
     if (p === '/api/me') {
       const me = whoIs(bearer(req));
@@ -1063,6 +1085,9 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('message', (raw) => {
+    const tick = Date.now();                // more than 120 messages in three seconds is not a person
+    if (tick - (ws.floodAt || 0) > 3000) { ws.floodAt = tick; ws.floodN = 0; }
+    if (++ws.floodN > 120) { sec.audit('ws.flood.blocked', ws.ip, {}); return ws.terminate(); }
     let d;
     try { d = JSON.parse(raw); } catch { return; }
     if (!d || typeof d.t !== 'string') return;

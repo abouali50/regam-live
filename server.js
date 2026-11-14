@@ -862,6 +862,15 @@ const server = http.createServer(async (req, res) => {
       if (!codeAllowed(ip, !room)) return send(res, 429, { error: 'too many requests' });
       return room ? send(res, 200, { slug: room.cfg.slug, early }) : send(res, 404, { error: 'bad code' });
     }
+    if (p === '/api/push/key') return send(res, 200, { key: VAPID_PUB });
+    if (p === '/api/push' && req.method === 'POST') {            // the bell: tell this browser when that room goes on air (or stop telling it)
+      const b = await readJson(req), room = rooms.get(String(b.room || '')), u = pushUrl(b.endpoint);
+      if (!room || !u || String(b.endpoint).length > 1000) return send(res, 400, { error: 'bad request' });
+      const list = (db.push[room.cfg.slug] || []).filter((s) => s.e !== b.endpoint);
+      if (!b.off) { list.push({ e: String(b.endpoint), at: Date.now() }); if (list.length > 5000) list.shift(); }
+      db.push[room.cfg.slug] = list; save();
+      return send(res, 200, { on: !b.off });
+    }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
     if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans, pay: pay.ready(), months: pay.MONTHS });
     // Online payment of a subscription. The teacher proves who they are with their login and password
@@ -1113,7 +1122,7 @@ wss.on('connection', (ws, req) => {
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {
         t: 'init', live: room.live, likes: room.likes, reacts: room.totals, viewers: room.clients.size,
-        slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle,
+        slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, words: ws.mod ? room.cfg.words || [] : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
         code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? plannedOf(room) : undefined,
@@ -1141,7 +1150,7 @@ wss.on('connection', (ws, req) => {
       case 'color': ws.color = colorOf(d.c); return;          // the colour of this person's comments
 
       case 'msg': {
-        const text = clean(d.text, MAX_TEXT);
+        const text = ws.mod ? clean(d.text, MAX_TEXT) : maskWords(room, clean(d.text, MAX_TEXT));
         if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });   // comments are for signed-in people
         if (!text || !ws.name) return;
         if (cfg.banned[ws.uid]) return tx(ws, { t: 'err', code: 'banned' });
@@ -1175,7 +1184,7 @@ wss.on('connection', (ws, req) => {
         return tx(ws, { t: 'people', list, nameless, total: seen.size });
       }
       case 'ask': {                        // a question for the teacher: it goes to a list of its own, not into the comments
-        const text = clean(d.text, 300);
+        const text = maskWords(room, clean(d.text, 300));
         if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });
         if (!text || !ws.name || cfg.banned[ws.uid]) return;
         const now = Date.now(), who = ws.member || ws.uid;
@@ -1246,6 +1255,18 @@ wss.on('connection', (ws, req) => {
           toMods(room, { t: 'hands', list: handsList(room) });
         }
         return toUid(room, uid, { t: 'banned', on: d.on !== false });
+      }
+      case 'words': if (!ws.mod) return; cfg.words = wordsFrom(d.list); save(); return toMods(room, { t: 'words', list: cfg.words });
+      case 'relay': {                      // Facebook / YouTube at the same time: the keys are kept, never sent back
+        if (!ws.mod) return;
+        const r = (cfg.relay = cfg.relay || {});
+        for (const k of ['fb', 'yt']) if (typeof d[k] === 'string') { const v = d[k].trim(); if (!v) delete r[k]; else if (RELAY_KEY.test(v)) r[k] = v; else return tx(ws, { ...relayView(room), err: k }); }
+        if (typeof d.other === 'string') { const v = d.other.trim(); if (!v) delete r.other; else if (RELAY_URL.test(v)) r.other = v; else return tx(ws, { ...relayView(room), err: 'other' }); }
+        if (d.on !== undefined) r.on = !!d.on;
+        save();
+        if (room.relayCmd === undefined) room.relayCmd = '';
+        if (room.live) return toMods(room, relayView(room));
+        return void applyRelay(room);
       }
       case 'slow': cfg.slow = Math.max(0, Math.min(120, Number(d.sec) || 0)); save(); return broadcast(room, { t: 'slow', sec: cfg.slow });
       case 'pin': cfg.pinned = clean(d.text, 200); save(); return broadcast(room, { t: 'pin', text: cfg.pinned });
@@ -1435,6 +1456,96 @@ async function translate(q, source, target) {
   return clean((await r.json()).translatedText, 400);
 }
 
+// ---- words the host does not want to read in the comments: they are replaced by stars
+const maskWords = (room, text) => {
+  let out = text;
+  for (const w of room.cfg.words || []) out = out.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu'), '***');
+  return out;
+};
+const wordsFrom = (list) => [...new Set(String(list || '').split(/[,،;\n]/).map((x) => clean(x, 30).toLowerCase()).filter((x) => x.length >= 2))].slice(0, 100);
+
+// ---- the same live sent to Facebook and YouTube at the same time. The media server already makes the
+// picture and sound those sites take (H.264 + AAC): it only has to pass them on, to the address made of
+// the site's server and the host's stream key. The keys are secrets: they never go back to a browser.
+const RELAY_KEY = /^[A-Za-z0-9_\-.?=&%~+]{8,300}$/, RELAY_URL = /^rtmps?:\/\/[a-z0-9.-]+(:\d+)?\/[A-Za-z0-9/_\-.?=&%~+]{1,400}$/;
+function relayTargets(room) {
+  const r = room.cfg.relay || {};
+  if (!r.on) return [];
+  return [r.fb && RELAY_KEY.test(r.fb) && 'rtmps://live-api-s.facebook.com:443/rtmp/' + r.fb, r.yt && RELAY_KEY.test(r.yt) && 'rtmp://a.rtmp.youtube.com/live2/' + r.yt, r.other && RELAY_URL.test(r.other) && r.other].filter(Boolean);
+}
+const relayCmd = (room) => {
+  const t = relayTargets(room);
+  return t.length ? `ffmpeg -hide_banner -loglevel warning -rtsp_transport tcp -i rtsp://127.0.0.1:8554/air_${room.cfg.slug} -c copy -flags +global_header -f tee -map 0:v -map 0:a '${t.map((u) => '[f=flv:onfail=ignore]' + u).join('|')}'` : '';
+};
+const relayView = (room) => { const r = room.cfg.relay || {}; return { t: 'relay', on: !!r.on, fb: !!r.fb, yt: !!r.yt, other: !!r.other, pending: room.relayCmd !== undefined && room.relayCmd !== relayCmd(room) }; };
+// Set on the room's air path while the room is off air (changing it during a live could cut the live): so a change made during a live counts for the next one.
+async function applyRelay(room) {
+  const cmd = relayCmd(room);
+  if (room.live || (room.relayCmd === undefined && !cmd)) return;
+  const name = `air_${room.cfg.slug}`, head = { Authorization: MTX_AUTH, 'Content-Type': 'application/json' }, body = JSON.stringify({ runOnReady: cmd, runOnReadyRestart: !!cmd });
+  const call = (method, verb) => fetch(`${MTX_API}/v3/config/paths/${verb}/${name}`, { method, headers: head, body, signal: AbortSignal.timeout(4000) });
+  try {
+    let r = await call('PATCH', 'patch');
+    if (!r.ok && cmd) r = await call('POST', 'add');
+    if (r.ok || !cmd) room.relayCmd = cmd;
+  } catch { /* tried again a minute later */ }
+  toMods(room, relayView(room));
+}
+// The media server forgets this when it restarts: said again every minute to the rooms that are off air.
+setInterval(() => { for (const room of rooms.values()) if (!room.live && (room.cfg.relay || room.relayCmd !== undefined)) applyRelay(room); }, Number(env.RELAY_EVERY_MS) || 60e3);
+
+// ---- alerts to the administrator, by e-mail (to the address that receives the backups): the disk is
+// nearly full, or the media server has not answered for minutes. One message per problem and per day.
+db.alerts = db.alerts || {};
+async function alertAdmin(kind, subject, text) {
+  const to = (db.backup || {}).email;
+  if (!to || !acct.mailReady() || Date.now() - (db.alerts[kind] || 0) < 24 * 3600e3) return;
+  db.alerts[kind] = Date.now(); save();
+  try { await acct.mail(to, `${SITE_TITLE} - ${subject}`, text); } catch { /* the next check says it again tomorrow */ }
+}
+function checkHealth() {
+  try {
+    const s = fs.statfsSync(DATA_DIR), free = s.bavail * s.bsize, total = s.blocks * s.bsize, low = Number(env.DISK_LOW_BYTES) || 3e9;
+    if (free < low || free < total * 0.07) {
+      alertAdmin('disk', 'disque presque plein / disk almost full', `Il reste ${(free / 1e9).toFixed(1)} Go libres sur ${(total / 1e9).toFixed(0)} Go. Supprimez d'anciens enregistrements (Studio > Enregistrements) avant que les lives et les sauvegardes ne s'arrêtent.\n\n`
+        + `${(free / 1e9).toFixed(1)} GB free out of ${(total / 1e9).toFixed(0)} GB. Delete old recordings before lives and backups stop.`);
+    }
+  } catch { /* no such call on this system */ }
+  if (pollFails >= 90) alertAdmin('media', 'le serveur vidéo ne répond pas / the media server is not answering', 'Le serveur vidéo (MediaMTX) ne répond plus depuis plusieurs minutes : aucun live ne peut démarrer. Relancez la commande de mise à jour, ou redémarrez le serveur.\n\nThe media server has not answered for minutes: no live can start. Run the update command again, or restart the server.');
+}
+setInterval(checkHealth, Number(env.HEALTH_EVERY_MS) || 10 * 60e3);
+
+// ---- "the live is starting" on the phone: web push. People press the bell on a room's page; when that
+// room goes on air, their browser is told (a message without content: the browser then asks which room is live).
+if (!db.vapid) { const k = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' }); db.vapid = { pub: k.publicKey.export({ format: 'jwk' }), priv: k.privateKey.export({ format: 'jwk' }) }; save(); }
+db.push = db.push || {};                       // room -> [{ e: endpoint, at }]
+const b64u = (b) => Buffer.from(b).toString('base64url');
+const VAPID_PUB = b64u(Buffer.concat([Buffer.from([4]), Buffer.from(db.vapid.pub.x, 'base64url'), Buffer.from(db.vapid.pub.y, 'base64url')]));
+const PUSH_HOST = /^(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9-]+\.push\.apple\.com|[a-z0-9.-]+\.notify\.windows\.com)$/;
+const pushUrl = (e) => { try { const u = new URL(String(e)); return u.protocol === 'https:' && (PUSH_HOST.test(u.hostname) || (env.PUSH_TEST_HOST && u.host === env.PUSH_TEST_HOST)) ? u : null; } catch { return null; } };
+function vapidHeader(aud) {
+  const head = b64u(JSON.stringify({ typ: 'JWT', alg: 'ES256' })), body = b64u(JSON.stringify({ aud, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: db.origin || 'https://regam.live' }));
+  const sig = crypto.sign('sha256', Buffer.from(`${head}.${body}`), { key: crypto.createPrivateKey({ key: db.vapid.priv, format: 'jwk' }), dsaEncoding: 'ieee-p1363' });
+  return `vapid t=${head}.${body}.${b64u(sig)}, k=${VAPID_PUB}`;
+}
+async function pushLive(room) {
+  const list = db.push[room.cfg.slug] || [];
+  if (!list.length || Date.now() - (room.pushedAt || 0) < 10 * 60e3) return;      // a live that drops and comes back does not ring twice
+  room.pushedAt = Date.now();
+  const gone = new Set();
+  for (let i = 0; i < list.length; i += 50) {
+    await Promise.all(list.slice(i, i + 50).map(async (s) => {
+      const u = pushUrl(s.e);
+      if (!u) return gone.add(s.e);
+      try {
+        const r = await fetch(env.PUSH_TEST_HOST ? s.e.replace(/^https:/, 'http:') : s.e, { method: 'POST', headers: { Authorization: vapidHeader(u.origin), TTL: '1800', Urgency: 'high', 'Content-Length': '0' }, signal: AbortSignal.timeout(8000) });
+        if (r.status === 404 || r.status === 410) gone.add(s.e);                    // that browser no longer wants them
+      } catch { /* that one is missed this time */ }
+    }));
+  }
+  if (gone.size) { db.push[room.cfg.slug] = list.filter((s) => !gone.has(s.e)); save(); }
+}
+
 // Recording is the host's choice, live by live. The media server writes the file; we only
 // switch "record" on that room's air path (a change it applies without cutting the live).
 async function setRecording(room, on) {
@@ -1469,9 +1580,10 @@ async function pollLive() {
     const on = seen || (room.live && answered && room.missed < 3);
     if (on === room.live) continue;
     room.live = on;
-    if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; }      // a new live starts its reactions from zero
+    if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }      // a new live starts its reactions from zero
     broadcast(room, { t: 'live', on });
     if (!on) endStage(room, 'ended');
+    if (!on) applyRelay(room);                                                      // a change of Facebook/YouTube made during the live
     if (!on && room.rec) setRecording(room, false);                                 // the next live starts without recording
     if (!on && room.cfg.code) { room.cfg.code = newCode(room); save(); toMods(room, { t: 'code', code: room.cfg.code }); }   // the code of an unplanned live is good for that live only
   }

@@ -204,6 +204,27 @@
   pointBtn.hidden = handBtn.hidden;
   mountPeople($('#peopleBtn'), link);
 
+  // ------------------------------------- the bell: "the live is starting" --
+  {
+    const bell = $('#bellBtn'), can = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    const key = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+    const reg = () => navigator.serviceWorker.register('/sw.js');
+    const paint = (on) => { bell.classList.toggle('on', on); bell.textContent = on ? '🔔✓' : '🔔'; };
+    if (can) reg().then((r) => r.pushManager.getSubscription()).then((s) => paint(!!s)).catch(() => {});
+    bell.onclick = async () => {
+      if (!can) return chat.say(T(/iPhone|iPad/.test(navigator.userAgent) ? 'فالآيفون: كليكي على «مشاركة» ثم «على الشاشة الرئيسية»، حل REGAM Live من الأيقونة، وعاود كليكي على الجرس.' : 'هاد المتصفح ما كيدعمش الإشعارات.'), 12000);
+      try {
+        const r = await reg(), had = await r.pushManager.getSubscription();
+        const tell = (endpoint, off) => fetch('/api/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room: slug || cfg.room, endpoint, off }) });
+        if (had) { await tell(had.endpoint, true); await had.unsubscribe(); paint(false); return chat.say(T('ما بقيناش غادي نعلموك.')); }
+        if (await Notification.requestPermission() !== 'granted') return chat.say(T('خاصك تسمح بالإشعارات فالمتصفح.'), 8000);
+        const sub = await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key((await (await fetch('/api/push/key')).json()).key) });
+        const ok = (await tell(sub.endpoint, false)).ok;
+        paint(ok); chat.say(T(ok ? 'غادي نعلموك ملي يبدا اللايف.' : 'هاد المتصفح ما كيدعمش الإشعارات.'), 6000);
+      } catch { chat.say(T('خاصك تسمح بالإشعارات فالمتصفح.'), 8000); }
+    };
+  }
+
   // ----------------------------------------------------- reactions, share --
   mountReactions($('#reactions'), $('#hearts'), link, { canSend: true, totalEl: $('#likes') });
   $('#shareBtn').onclick = async () => {

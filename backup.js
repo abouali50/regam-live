@@ -28,6 +28,7 @@ module.exports = function backup({ db, dataDir, dbFile, freeze, mail, mailReady,
     if (copy.mail) delete copy.mail.pass;
     if (copy.ai) delete copy.ai.key;
     if (copy.pay) delete copy.pay.secret;
+    for (const r of copy.rooms || []) delete r.relay;       // stream keys of Facebook / YouTube
     return JSON.stringify(copy);
   }
   async function sendNow() {

@@ -59,7 +59,7 @@ async function until(fn, ms = 15000, step = 250) {
       if (s.pub) { delete window.paths[s.name]; const v = document.getElementById('v_' + s.name); if (v) v.remove(); } };
   });
 
-  const seen = { unauth: 0, posts: [], recConf: {}, recCalls: [], translated: [], ai: [] };
+  const seen = { unauth: 0, posts: [], recConf: {}, recCalls: [], translated: [], ai: [], relay: {}, pushes: [] };
   let sid = 0;
   const rtc = http.createServer(async (req, res) => {
     const m = req.url.match(/^\/([a-z0-9_-]+)\/(whip|whep)(?:\/(\w+))?$/);
@@ -79,9 +79,10 @@ async function until(fn, ms = 15000, step = 250) {
     if (req.url.startsWith('/v3/config/paths/')) {           // recording switched on or off for one room
       let body = ''; for await (const c of req) body += c;
       const [, verb, name] = req.url.match(/paths\/(\w+)\/(.+)$/) || [];
-      const known = !!seen.recConf[name], okAuth = req.headers.authorization === AUTH;
+      const known = name in seen.recConf, okAuth = req.headers.authorization === AUTH, sent = JSON.parse(body);
       const good = okAuth && (verb === 'add' ? !known : known);
-      if (good) seen.recConf[name] = JSON.parse(body).record;
+      if (good && 'record' in sent) seen.recConf[name] = sent.record; else if (good && !known) seen.recConf[name] = false;
+      if (good && 'runOnReady' in sent) seen.relay[name] = sent.runOnReady;
       seen.recCalls.push(`${verb}:${name}:${good}`);
       res.writeHead(good ? 200 : verb === 'patch' ? 404 : 400, { 'Content-Type': 'application/json' });
       return res.end('{}');
@@ -135,6 +136,7 @@ async function until(fn, ms = 15000, step = 250) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ content: [{ type: 'text', text }] }));
   }).listen(15001);
+  const pushSrv = http.createServer((req, res) => { seen.pushes.push({ url: req.url, auth: req.headers.authorization || '', ttl: req.headers.ttl }); res.writeHead(req.url.includes('gone') ? 410 : 201); res.end(); }).listen(15003);   // stands in for a browser's push service
   const hlsSrv = http.createServer((req, res) => {
     // like MediaMTX: without the CDN secret, a playlist request is answered with a redirect
     if (req.headers.authorization !== 'Bearer mtxpass') { seen.hlsNoSecret = (seen.hlsNoSecret || 0) + 1; res.writeHead(302, { Location: req.url + '?cookieCheck=1' }); return res.end(); }
@@ -149,7 +151,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -958,6 +960,28 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.click('#goBtn');
     check('viewers go back to "offline" when the live stops', (await until(() => viewer.locator('#offline').isVisible())) !== null);
     check('recording stops by itself when the live ends, and the next live starts without it', (await until(() => seen.recConf.air_main === false, 8000)) !== null && await studio.evaluate(() => document.querySelector('#recBtn').disabled));
+    // ---- words not wanted in comments, the live sent to Facebook / YouTube too, and the bell
+    {
+      const hostSay = (msg, want) => studio.evaluate(([m, w]) => new Promise((res) => { const s = new WebSocket(`ws://${location.host}/ws`); s.onopen = () => { s.send(JSON.stringify({ t: 'hello', uid: 'settingstester001', token: sessionStorage.getItem('regam.studio') })); s.send(JSON.stringify(m)); }; s.onmessage = (e) => { const d = JSON.parse(e.data); if (d.t === w) { res(d); s.close(); } }; setTimeout(() => res(null), 4000); }), [msg, want]);
+      const access = (await (await fetch(BASE + '/api/site')).json()).access;
+      const words = await hostSay({ t: 'words', list: 'Vilain, موسخ ,x' }, 'words');
+      const said = await studio.evaluate(() => new Promise((res) => { const s = new WebSocket(`ws://${location.host}/ws`); s.onopen = () => s.send(JSON.stringify({ t: 'hello', uid: 'wordtester0000001' })); s.onmessage = (e) => { const d = JSON.parse(e.data); if (d.t === 'init') { s.send(JSON.stringify({ t: 'name', name: 'Rachid' })); s.send(JSON.stringify({ t: 'msg', text: 'quel VILAIN cours موسخ' })); } for (const x of d.t === 'batch' ? d.ev : []) if (x.t === 'msg' && x.m.name === 'Rachid') { res(x.m.text); s.close(); } if (d.t === 'msg' && d.m.name === 'Rachid') { res(d.m.text); s.close(); } if (d.t === 'err') { res('err:' + d.code); s.close(); } }; setTimeout(() => res('none'), 4000); }));
+      check('words the host blocked are replaced by stars in the comments', !!words && words.list.join() === 'vilain,موسخ' && (said === 'quel *** cours ***' || (access !== 'open' && said === 'err:signin')), `${access} ${JSON.stringify(words)} ${said} ${await studio.evaluate(() => window.__w1)}`);
+      await hostSay({ t: 'words', list: '' }, 'words');
+      const badKey = await hostSay({ t: 'relay', fb: "abc' ; rm -rf /", on: true }, 'relay');
+      const saved = await hostSay({ t: 'relay', fb: 'FB-1234567890-0-AbCdEfGh?s_bl=1&a=xyz', yt: 'abcd-efgh-ijkl-mnop-qrst', on: true }, 'relay');
+      const cmd = await until(() => seen.relay.air_main, 8000);
+      check('the live can also be sent to Facebook and YouTube: the keys are checked, kept secret, and given to the media server', !!badKey && badKey.err === 'fb' && !!saved && saved.fb === true && saved.yt === true && !JSON.stringify(saved).includes('AbCdEfGh')
+        && !!cmd && cmd.includes("rtmps://live-api-s.facebook.com:443/rtmp/FB-1234567890-0-AbCdEfGh?s_bl=1&a=xyz|[f=flv:onfail=ignore]rtmp://a.rtmp.youtube.com/live2/abcd-efgh-ijkl-mnop-qrst'") && cmd.includes('rtsp://127.0.0.1:8554/air_main'), `${JSON.stringify(badKey)} ${JSON.stringify(saved)} ${cmd}`);
+      await hostSay({ t: 'relay', fb: '', yt: '', on: false }, 'relay');
+      check('with the keys removed, the media server stops sending the live elsewhere', (await until(() => seen.relay.air_main === '', 8000)) !== null);
+      const post = (b) => fetch(BASE + '/api/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+      const key = (await (await fetch(BASE + '/api/push/key')).json()).key;
+      const evil = await post({ room: 'main', endpoint: 'https://example.com/steal' }), ok1 = await post({ room: 'main', endpoint: 'https://127.0.0.1:15003/push/one' }), ok2 = await post({ room: 'main', endpoint: 'https://127.0.0.1:15003/push/gone' });
+      check('the bell: a browser asks to be told when the room goes live; only real push services are accepted', Buffer.from(key, 'base64url').length === 65 && evil.status === 400 && ok1.status === 200 && ok2.status === 200, `${key.length} ${evil.status} ${ok1.status} ${ok2.status}`);
+      const man = await fetch(BASE + '/manifest.webmanifest'), sw = await fetch(BASE + '/sw.js'), ic = await fetch(BASE + '/icon-192.png');
+      check('the site can be put on the phone\'s home screen (manifest, icon, service worker)', man.status === 200 && (await man.json()).display === 'standalone' && sw.status === 200 && /javascript/.test(sw.headers.get('content-type')) && ic.status === 200);
+    }
     // ---- sound for the time before the live
     {
       const tok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
@@ -1440,6 +1464,10 @@ async function until(fn, ms = 15000, step = 250) {
       const after = JSON.parse(fs.readFileSync(path.join(dataDir, 'db.json'), 'utf8'));
       check('putting a backup back replaces the data, keeps the keys the mailed copy left out, and restarts the server', back.ok && app.exitCode === 0 && after.payInfo === 'RESTORED'
         && after.mail.pass === full.mail.pass && after.ai.key === full.ai.key && after.pay.secret === 'secret-1' && fs.readdirSync(path.join(dataDir, 'backups')).some((f) => f.startsWith('before-restore-')), `exit ${app.exitCode}`);
+    }
+    {   // the bell rang when a live started after it was asked for
+      const jwtOk = seen.pushes.some((x) => { const m = x.auth.match(/^vapid t=([\w-]+)\.([\w-]+)\.([\w-]+), k=([\w-]+)$/); if (!m) return false; const c = JSON.parse(Buffer.from(m[2], 'base64url')); return c.aud === 'https://127.0.0.1:15003' && c.exp > Date.now() / 1000 && Buffer.from(m[3], 'base64url').length === 64; });
+      check('when the room goes live, the browsers that asked are told, with a signed request', seen.pushes.some((x) => x.url === '/push/one') && jwtOk, JSON.stringify(seen.pushes).slice(0, 300));
     }
     check('no script errors in the pages', errors.length === 0, errors.join(' | '));
     check('media server credentials were sent on every upstream call', seen.unauth === 0 && !seen.hlsNoSecret);

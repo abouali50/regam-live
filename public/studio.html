@@ -6,6 +6,11 @@
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#05060a">
 <title>الاستوديو · REGAM Live</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="REGAM Live">
 <link rel="stylesheet" href="/app.css">
 </head>
 <body class="studio">
@@ -265,7 +270,21 @@
           <option value="30">30 ثانية</option><option value="60">دقيقة</option>
         </select>
       </div>
+      <form id="wordsForm" class="row">
+        <label for="wordsInput">كلمات ممنوعة فالتعليقات</label>
+        <input id="wordsInput" type="text" maxlength="3000" placeholder="كلمة، كلمة أخرى" autocomplete="off">
+        <button class="btn" type="submit">حفظ</button>
+      </form>
       <label class="check" id="aiChatRow" hidden><input id="aiChatChk" type="checkbox"> <span>المساعد الذكي كيجاوب على الأسئلة فالتعليقات</span></label>
+      <form id="relayForm" class="relay-form">
+        <h3 class="sub">فيسبوك ويوتيوب فنفس الوقت</h3>
+        <p class="muted">اللايف ديالك كيدوز حتى ففيسبوك ولا يوتيوب. لصق هنا مفتاح البث (Stream key) اللي كيعطيوك. المفتاح سري وما كيبانش مرة أخرى.</p>
+        <label class="check"><input id="relayOn" type="checkbox"> <span>صيفط اللايف لفيسبوك / يوتيوب</span></label>
+        <label>مفتاح فيسبوك <span id="relayFbState" class="muted"></span><input id="relayFb" type="password" maxlength="300" autocomplete="off"></label>
+        <label>مفتاح يوتيوب <span id="relayYtState" class="muted"></span><input id="relayYt" type="password" maxlength="300" autocomplete="off"></label>
+        <p id="relayNote" class="muted" hidden></p>
+        <div class="dlg-actions"><button class="btn primary" type="submit">حفظ</button><button id="relayClear" class="btn" type="button">حيد المفاتيح</button></div>
+      </form>
       <div class="row">
         <label for="soundFile">صوت الانتظار</label>
         <input id="soundFile" type="file" accept="audio/*,.mp3,.m4a">

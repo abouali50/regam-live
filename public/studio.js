@@ -992,6 +992,26 @@
     $('#pinForm').onsubmit = (e) => { e.preventDefault(); link.send({ t: 'pin', text: $('#pinInput').value }); };
     $('#slowSel').onchange = () => link.send({ t: 'slow', sec: Number($('#slowSel').value) });
 
+    // words not wanted in the comments, and the same live on Facebook / YouTube
+    $('#wordsForm').onsubmit = (e) => { e.preventDefault(); link.send({ t: 'words', list: $('#wordsInput').value }); };
+    link.on('words', (d) => { $('#wordsInput').value = d.list.join('، '); status(T('تحفظات الكلمات الممنوعة.')); });
+    function showRelay(d) {
+      $('#relayOn').checked = d.on;
+      $('#relayFbState').textContent = d.fb ? T('(محفوظ)') : ''; $('#relayYtState').textContent = d.yt ? T('(محفوظ)') : '';
+      const note = d.err ? T('هاد المفتاح ما مقبولش. نسخو كيما هو من فيسبوك ولا يوتيوب.') : d.pending ? T('تحفظ. غادي يخدم من اللايف الجاي.') : '';
+      $('#relayNote').hidden = !note; $('#relayNote').textContent = note;
+    }
+    $('#relayForm').onsubmit = (e) => {
+      e.preventDefault();
+      const m = { t: 'relay', on: $('#relayOn').checked };
+      if ($('#relayFb').value.trim()) m.fb = $('#relayFb').value.trim();
+      if ($('#relayYt').value.trim()) m.yt = $('#relayYt').value.trim();
+      link.send(m); $('#relayFb').value = ''; $('#relayYt').value = '';
+    };
+    $('#relayOn').onchange = () => link.send({ t: 'relay', on: $('#relayOn').checked });
+    $('#relayClear').onclick = () => link.send({ t: 'relay', fb: '', yt: '', other: '', on: false });
+    link.on('relay', (d) => { showRelay(d); if (!d.err) status(T('تحفظ.')); });
+
     link.on('init', (d) => {
       if (!d.mod) return logout();            // token expired
       $('#viewers').textContent = d.viewers;
@@ -1003,6 +1023,7 @@
       $('#titleInput').value = d.title || '';
       $('#pinInput').value = d.pinned || '';
       $('#slowSel').value = String(d.slow);
+      $('#wordsInput').value = (d.words || []).join('، '); if (d.relay) showRelay(d.relay);
       maxGuests = d.maxGuests || 12;
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
       showWaiting(!!d.gate, d.waiting || []);

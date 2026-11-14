@@ -767,3 +767,16 @@ dialog.dlg, .onstage, .cap-menu, .react-row.react-box, .ai-panel { background: #
 a, .room-url, .acc-link, .next-ics { text-shadow: 0 1px 1px rgba(20,40,110,.55); }
 .wait-bar, .setup-note { background: linear-gradient(180deg, #fff3c4, #ffe394); border-color: #f2c452; color: #3a2a00; text-shadow: none; }
 .setup-note a, .wait-bar a { color: #2a2f8f; text-shadow: none; }
+
+/* ---- 14 Nov: what was violet is golden yellow, with black writing ---- */
+:root { --mauve: #f2c452; --mauve-deep: #b98a2a; --mauve-light: #fff0b0; }
+.side button, .side-link { background: linear-gradient(180deg, #fff0b0 0%, #ffdf80 45%, #f2c452 100%); background-image: linear-gradient(180deg, #fff0b0 0%, #ffdf80 45%, #f2c452 100%); border-color: #fff6cf; color: #000; text-shadow: 0 1px 0 rgba(255,255,255,.6); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 3px 0 #b98a2a, 0 6px 12px rgba(20,40,110,.25); }
+.side button:hover, .side-link:hover { background: linear-gradient(180deg, #fff6cf, #ffe79a 45%, #f6cd63); color: #000; }
+.side button.on, [dir="rtl"] .side button.on { background: linear-gradient(180deg, #ffe79a, #f2c452 55%, #e0a92e); color: #000; box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -3px 0 #000, 0 3px 0 #b98a2a; }
+.side .ico { stroke: #000; }
+.badge.off, .badge.on, #dashState { background: linear-gradient(180deg, #fff0b0, #f2c452); color: #000; text-shadow: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 2px 0 #b98a2a; }
+.badge.on::before { color: #e02424; }
+.roombar .btn { background: linear-gradient(180deg, #fff0b0, #ffdf80 50%, #f2c452); border-color: #fff6cf; color: #000; text-shadow: 0 1px 0 rgba(255,255,255,.6); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -3px 0 rgba(170,120,20,.35), 0 3px 0 #b98a2a, 0 8px 14px rgba(20,40,110,.22); }
+.btn.primary, .room-enter, .tile, .tile.tile-live, .chip[aria-selected="true"] { color: #000; }
+.tile .ico, .tile-live .ico { stroke: #000; }
+@media (max-width: 900px) { .side-link { border-top-color: #fff6cf; } }

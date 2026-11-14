@@ -978,6 +978,7 @@
       if (guests.length >= maxGuests) return status(T('المنصة عامرة. نزل شي واحد أولا.'));
       link.send({ t: 'stage', uid: h.uid });
     }
+    const handSeen = new Set();                     // requests the host has put aside for now
     function showHands(list) {
       $('#noHands').hidden = list.length > 0;
       $('#hands').replaceChildren(...list.map((h) => el('li', {},
@@ -985,6 +986,16 @@
         el('button', { class: 'btn primary', type: 'button', onclick: () => acceptHand(h) }, T('قبول')))));
       if (list.length > handList.length) chime();
       handList = list; paintBar();
+      // the same requests, on the side of the screen whatever section is open: seen at once, accepted with one click
+      for (const uid of handSeen) if (!list.some((h) => h.uid === uid)) handSeen.delete(uid);
+      const fresh = list.filter((h) => !handSeen.has(h.uid));
+      $('#handPop').hidden = !fresh.length;
+      $('#handPop').replaceChildren(...fresh.slice(0, 4).map((h) => el('div', { class: 'hand-card' + (h.point ? ' is-point' : '') },
+        avatar(h.name, h.av, 40),
+        el('span', { class: 'hand-text' }, el('strong', { dir: 'auto' }, h.name), el('span', {}, h.point ? '☝️ ' + T('نقطة نظام') : '✋ ' + T('بغا يطلع للمنصة'))),
+        el('button', { class: 'btn primary', type: 'button', onclick: () => acceptHand(h) }, T('قبول')),
+        el('button', { class: 'hand-x', type: 'button', title: T('من بعد'), 'aria-label': T('من بعد'), onclick: () => { handSeen.add(h.uid); showHands(handList); } }, '✕'))),
+        fresh.length > 4 ? el('p', { class: 'hand-more' }, '+' + (fresh.length - 4)) : '');
     }
 
     // ---------------------------------------------------------- settings --

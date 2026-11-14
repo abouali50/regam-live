@@ -641,6 +641,7 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  'بغا يطلع للمنصة': ['demande à monter sur scène', 'asks to come on stage'],
   'دخل ب Face ID / البصمة': ['Se connecter avec Face ID / empreinte', 'Sign in with Face ID / fingerprint'],
   'فعل Face ID / البصمة فهاد الجهاز': ['Activer Face ID / empreinte sur cet appareil', 'Turn on Face ID / fingerprint on this device'],
   'حيد Face ID / البصمة': ['Désactiver Face ID / empreinte', 'Turn off Face ID / fingerprint'],

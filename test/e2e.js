@@ -245,6 +245,7 @@ async function until(fn, ms = 15000, step = 250) {
     // ---- guest on stage -------------------------------------------------------
     await viewer.click('#handBtn');
     check('stage request appears in the studio', (await until(() => studio.locator('#hands li', { hasText: 'كريم' }).isVisible())) !== null);
+    check('and is shown at once on the side of the screen, with a button to accept', await studio.locator('#handPop .hand-card', { hasText: 'كريم' }).locator('.btn.primary').isVisible());
     check('the request is also shown in the bar at the top of the studio', await studio.locator('#waitBar', { hasText: 'كريم' }).isVisible() && await studio.evaluate(() => document.querySelector('#waitBar').getBoundingClientRect().top < 80));
     await studio.click('#hands li button');
     check('viewer receives the invitation', (await until(() => viewer.locator('#inviteDlg[open]').isVisible())) !== null);

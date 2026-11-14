@@ -1081,6 +1081,10 @@ async function until(fn, ms = 15000, step = 250) {
       await until(() => pv.locator('#liveBadge.off').isVisible());
       await pv.context().close(); await pctx.close();
     }
+    {   // a device whose clock is an hour ahead still shows and plans lives at the right hour
+      const r = await studio.evaluate(() => { const c = Object.create(siteClock); c.skew = 0; c.set(Date.now() - 3600e3 + 4000); const fast = c.skew; const shown = c.at(1800000000000).getTime(); c.set(Date.now() + 90e3); return { fast, shown, small: c.skew, real: siteClock.skew }; });
+      check('a device with a clock one hour off is corrected against the site\'s clock; a small difference is left alone', r.fast === -3600e3 && r.shown === 1800000000000 + 3600e3 && r.small === 0 && r.real === 0, JSON.stringify(r));
+    }
     // ---- the studio organised in sections with a side menu
     {
       const sp = await (await browser.newContext({ locale: 'fr-FR', viewport: { width: 1400, height: 900 }, permissions: ['camera', 'microphone'] })).newPage();

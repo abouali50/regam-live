@@ -623,7 +623,7 @@
     function showDash() {
       $('#dashNone').hidden = sessions.length > 0;
       $('#dashNext').replaceChildren(...sessions.slice(0, 3).map((x) => {
-        const d = new Date(x.at);
+        const d = siteClock.at(x.at);
         return el('li', {}, el('span', { class: 'sess-day' }, el('span', {}, d.toLocaleDateString(loc(), { weekday: 'short' })), el('b', {}, String(d.getDate())), el('span', {}, d.toLocaleDateString(loc(), { month: 'short' }))),
           el('span', { class: 'sess-main' }, el('strong', {}, x.title || mine.title), el('span', { class: 'sess-hours', dir: 'ltr' }, timeOf(x.at) + (x.end ? ' – ' + timeOf(x.end) : ''))),
           el('span', { class: 'sess-acts' }, el('button', { class: 'btn primary sess-go', type: 'button', onclick: () => startPlanned(x) }, T('ابدا اللايف')),
@@ -637,9 +637,9 @@
     let roomCode = '', sessions = [], picked = '';        // picked: the session the invitation is about
     const pad = (n) => String(n).padStart(2, '0');
     const loc = () => (LANG === 'ar' ? 'ar-MA' : LANG);
-    const whenOf = (s) => new Date(s.at).toLocaleString(loc(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-      + (s.end ? ' – ' + new Date(s.end).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) : '');
-    const timeOf = (ms) => new Date(ms).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' });
+    const whenOf = (s) => siteClock.at(s.at).toLocaleString(loc(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      + (s.end ? ' – ' + siteClock.at(s.end).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) : '');
+    const timeOf = (ms) => siteClock.at(ms).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' });
     const lasts = (x) => { const m = Math.round((x.end - x.at) / 60000); return m < 60 ? T('{n} دقيقة', { n: m }) : m % 60 ? T('{h} س {n} د', { h: Math.floor(m / 60), n: m % 60 }) : T('{h} س', { h: m / 60 }); };
     function inviteFor(x) {                           // the text to send: for one planned live, or (x null) for an unplanned one
       const code = !roomCode ? '' : x ? x.code : roomCode;       // a planned live has its own code and link
@@ -672,7 +672,7 @@
       $('#sessNote').hidden = sessions.length > 0;
       // one card per planned live, soonest first: the day as a calendar leaf, then the hours, the topic, the code
       $('#sessList').replaceChildren(...sessions.map((x) => {
-        const d = new Date(x.at);
+        const d = siteClock.at(x.at);
         return el('li', { class: 'sess-card', title: T('ابدا اللايف'), onclick: (e) => { if (!e.target.closest('button')) startPlanned(x); } },
           el('span', { class: 'sess-day' }, el('span', {}, d.toLocaleDateString(loc(), { weekday: 'short' })), el('b', {}, String(d.getDate())), el('span', {}, d.toLocaleDateString(loc(), { month: 'short' }))),
           el('span', { class: 'sess-main' },
@@ -702,8 +702,8 @@
     $('#schedCancel').onclick = () => schedDlg.close();
     $('#schedForm').onsubmit = (e) => {
       e.preventDefault();
-      const at = new Date($('#nextDate').value + 'T' + $('#nextTime').value).getTime();
-      if (!(at > Date.now() - 3600e3)) { $('#schedErr').hidden = false; $('#schedErr').textContent = T('الوقت ما مقبولش. اختار وقت جاي.'); return; }
+      const at = new Date($('#nextDate').value + 'T' + $('#nextTime').value).getTime() + siteClock.skew;
+      if (!(at > siteClock.now() - 3600e3)) { $('#schedErr').hidden = false; $('#schedErr').textContent = T('الوقت ما مقبولش. اختار وقت جاي.'); return; }
       link.send({ t: 'session', at, end: at + Number($('#nextDur').value) * 60000, title: $('#nextTitle').value, free: $('#nextFree').checked });
     };
     $('#inviteCopy').onclick = (e) => copyText(inviteFor(null), e.currentTarget);
@@ -716,7 +716,7 @@
 
     // ---- the class: free or paid entry, the students, reminders, attendance sheets
     let payReady = false;
-    const dayTime = (ms) => new Date(ms).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' });
+    const dayTime = (ms) => siteClock.at(ms).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' });
     function showClass(c) {
       if (typeof c.payReady === 'boolean') payReady = c.payReady;
       const f = $('#feeForm').elements;
@@ -729,7 +729,7 @@
       $('#closedChk').checked = c.closed; $('#remindChk').checked = c.remind;
       $('#studentsTitle').textContent = T('التلاميذ ({n})', { n: c.students.length });
       $('#studentList').replaceChildren(...c.students.map((m) => el('li', {},
-        el('span', {}, m.name + ' ', el('span', { class: 'muted', dir: 'ltr' }, m.email), m.paid ? el('span', { class: 'badge on' }, T('خالص حتى ل {day}', { day: new Date(m.paid).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : LANG) })) : null),
+        el('span', {}, m.name + ' ', el('span', { class: 'muted', dir: 'ltr' }, m.email), m.paid ? el('span', { class: 'badge on' }, T('خالص حتى ل {day}', { day: siteClock.at(m.paid).toLocaleDateString(LANG === 'ar' ? 'ar-MA' : LANG) })) : null),
         el('button', { class: 'btn danger', type: 'button', onclick: () => link.send({ t: 'student', id: m.id, on: false }) }, T('حيد')))));
       $('#studentNote').textContent = c.err === 'unknown' ? T('ما لقيناش حساب مفعل بهاد الإيميل. خاص هاد الشخص يسجل فالموقع أولا.') : '';
       if (!c.err) $('#studentEmail').value = '';
@@ -749,14 +749,14 @@
     function csvOf(a) {                               // opens in Excel: semicolons, and a mark that says the text is UTF-8
       const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
       return '\ufeff' + [[T('الاسم'), T('الإيميل'), T('دخل مع'), T('الدقايق')].map(q).join(';'),
-        ...a.rows.map((r) => [r.name, r.email, new Date(r.first).toLocaleTimeString(LANG === 'ar' ? 'ar-MA' : LANG, { hour: '2-digit', minute: '2-digit' }), mins(r.secs)].map(q).join(';'))].join('\r\n');
+        ...a.rows.map((r) => [r.name, r.email, siteClock.at(r.first).toLocaleTimeString(LANG === 'ar' ? 'ar-MA' : LANG, { hour: '2-digit', minute: '2-digit' }), mins(r.secs)].map(q).join(';'))].join('\r\n');
     }
     function showAtt(list) {
       $('#attNote').hidden = list.length > 0;
       $('#attList').replaceChildren(...list.map((a) => el('li', {},
         el('span', {}, el('strong', {}, a.title || mine.title), ' ', el('span', { class: 'muted' }, dayTime(a.at)), ' · ', T('{n} حاضر، القمة {peak}، المعدل {m} دقيقة', { n: a.rows.length, peak: a.peak, m: a.rows.length ? Math.round(a.rows.reduce((x, r) => x + r.secs, 0) / a.rows.length / 60) : 0 })),
         el('button', { class: 'btn', type: 'button', onclick: () => {
-          const link2 = el('a', { href: URL.createObjectURL(new Blob([csvOf(a)], { type: 'text/csv;charset=utf-8' })), download: `presence-${new Date(a.at).toISOString().slice(0, 10)}.csv` });
+          const link2 = el('a', { href: URL.createObjectURL(new Blob([csvOf(a)], { type: 'text/csv;charset=utf-8' })), download: `presence-${siteClock.at(a.at).toISOString().slice(0, 10)}.csv` });
           document.body.append(link2); link2.click(); link2.remove();
         } }, T('حمل اللائحة')))));
     }
@@ -1025,6 +1025,7 @@
 
     link.on('init', (d) => {
       if (!d.mod) return logout();            // token expired
+      siteClock.set(d.now);
       $('#viewers').textContent = d.viewers;
       if (d.uplink) uplink = d.uplink;
       if (d.cls) showClass(d.cls);

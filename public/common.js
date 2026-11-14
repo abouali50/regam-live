@@ -48,6 +48,14 @@ const TOUCH = matchMedia('(pointer: coarse)').matches;
 const focusSoon = (node) => { if (!TOUCH) setTimeout(() => node.focus(), 0); };
 // --------------------------------------------------------------- account --
 // A viewer's account: name, e-mail and password, opened with a code sent by e-mail.
+// A device whose clock is wrong by an hour or more (a time zone set wrong, the time typed by hand) would show and
+// plan lives at the wrong hour. The site's own time is the reference: the difference is taken off what is shown and typed.
+const siteClock = {
+  skew: 0,
+  set(serverNow) { const raw = Number(serverNow) - Date.now(); if (Number.isFinite(raw)) this.skew = Math.abs(raw) < 20 * 60e3 ? 0 : Math.round(raw / 900e3) * 900e3; },
+  now() { return Date.now() + this.skew; },
+  at(ms) { return new Date(ms - this.skew); },       // the moment `ms`, as this device's clock face would show it
+};
 const account = {
   get token() { return store.get('regam.member') || ''; },
   get name() { return store.get('regam.memberName') || ''; },

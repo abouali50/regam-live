@@ -8,6 +8,7 @@
   const cfgRes = await fetch('/api/config?room=' + slug);
   if (!cfgRes.ok) { location.replace('/rooms'); return; }
   const cfg = await cfgRes.json();
+  siteClock.set(cfg.now);
   window.REGAM_ROOM = cfg.room;
   if (cfg.rooms > 1 || cfg.accounts) $('#roomsLink').hidden = false;
   if (cfg.rooms > 1) { $('#roomHost').textContent = cfg.host; $('#roomHost').hidden = false; }
@@ -52,11 +53,11 @@
     line.hidden = !next;
     if (!next) return;
     const loc = LANG === 'ar' ? 'ar-MA' : LANG;
-    const when = new Date(next.at).toLocaleString(loc, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
-      + (next.end ? ' – ' + new Date(next.end).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '');
+    const when = siteClock.at(next.at).toLocaleString(loc, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+      + (next.end ? ' – ' + siteClock.at(next.end).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '');
     // how long until it starts, kept up to date
     const left = () => {
-      const m = Math.round((next.at - Date.now()) / 60000);
+      const m = Math.round((next.at - siteClock.now()) / 60000);
       return m <= 0 ? T('دابا') : m < 60 ? T('من هنا {n} دقيقة', { n: m }) : m < 48 * 60 ? T('من هنا {h} ساعة و {n} دقيقة', { h: Math.floor(m / 60), n: m % 60 }) : T('من هنا {d} يوم', { d: Math.round(m / 1440) });
     };
     const paint = () => line.replaceChildren(el('span', {}, T('اللايف الجاي: {when}', { when }) + (next.title ? ' · ' + next.title : '')), el('span', { class: 'next-left' }, left()),
@@ -473,7 +474,7 @@
     const loc = LANG === 'ar' ? 'ar-MA' : LANG;
     $('#replayBox').hidden = !d.replays.length; $('#fileBox').hidden = !d.files.length; $('#extras').hidden = !d.replays.length && !d.files.length;
     $('#replays').replaceChildren(...d.replays.map((r) => el('li', {},
-      el('span', {}, el('strong', {}, r.title), ' ', el('span', { class: 'muted' }, new Date(r.at).toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric' }))),
+      el('span', {}, el('strong', {}, r.title), ' ', el('span', { class: 'muted' }, siteClock.at(r.at).toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric' }))),
       el('button', { class: 'btn primary', type: 'button', onclick: () => { $('#replayTitle').textContent = r.title; $('#replayVideo').src = r.url; $('#replayDlg').showModal(); $('#replayVideo').play().catch(() => {}); } }, T('▶ شوف')))));
     $('#classFiles').replaceChildren(...d.files.map((f) => el('li', {},
       el('span', {}, '📄 ' + f.name + ' ', el('span', { class: 'muted', dir: 'ltr' }, f.size >= 1e6 ? (f.size / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(f.size / 1e3)) + ' KB')),
@@ -528,7 +529,7 @@
       if (d.bad) { link.code = ''; store.set(codeKey, ''); }
       typedCode = false;
       err.hidden = stale || (!d.bad && !d.wait && !d.early);
-      err.textContent = d.early ? T('هاد الكود ديال لايف مبرمج ل {when}. غادي يخدم نص ساعة قبل البداية.', { when: new Date(d.early).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) })
+      err.textContent = d.early ? T('هاد الكود ديال لايف مبرمج ل {when}. غادي يخدم نص ساعة قبل البداية.', { when: siteClock.at(d.early).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) })
         : T(d.wait ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط ولا سالا الوقت ديالو. شوف الدعوة وعاود.');
       clearTimeout(earlyRetry);                // a planned live not open yet: asked again by itself, its host may start it ahead of time
       if (d.early) earlyRetry = setTimeout(() => { if (dlg.open && !$('#codeInput').value) link.hello(); }, 20000);

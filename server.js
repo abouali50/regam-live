@@ -800,7 +800,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
         rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room), bgs: bgOn(room).map(bgUrl), bgAll: BG.map((n) => ({ name: n, url: bgUrl(n), on: bgOn(room).includes(n) })),
-        access: accessOf(room), accounts: acct.mailReady(), assistant: ai.inHelp(),
+        access: accessOf(room), accounts: acct.mailReady(), assistant: ai.inHelp(), now: Date.now(),
       });
     }
     if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady(), assistant: ai.inHelp(), build: BUILD, legal: { owner: (db.legal || {}).owner || '', contact: (db.legal || {}).contact || '' } });
@@ -871,7 +871,7 @@ const server = http.createServer(async (req, res) => {
       db.push[room.cfg.slug] = list; save();
       return send(res, 200, { on: !b.off });
     }
-    if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, rooms: [...rooms.values()].map(publicRoom) });
+    if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, now: Date.now(), rooms: [...rooms.values()].map(publicRoom) });
     if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans, pay: pay.ready(), months: pay.MONTHS });
     // Online payment of a subscription. The teacher proves who they are with their login and password
     // (their account may be waiting for approval or run out, so they have no studio session).
@@ -1121,7 +1121,7 @@ wss.on('connection', (ws, req) => {
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {
-        t: 'init', live: room.live, likes: room.likes, reacts: room.totals, viewers: room.clients.size,
+        t: 'init', now: Date.now(), live: room.live, likes: room.likes, reacts: room.totals, viewers: room.clients.size,
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, words: ws.mod ? room.cfg.words || [] : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),

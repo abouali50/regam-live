@@ -5,6 +5,7 @@
   async function load() {
     let data;
     try { data = await fetch('/api/rooms').then((r) => r.json()); } catch { return; }
+    siteClock.set(data.now);
     document.title = data.site;
     $('#noRooms').hidden = data.rooms.length > 0;
     // the calendar: every planned session of every room, soonest first
@@ -12,14 +13,14 @@
     const planned = data.rooms.flatMap((r) => (r.sessions || []).map((s) => ({ ...s, room: r }))).sort((a, b) => a.at - b.at).slice(0, 12);
     $('#agenda').hidden = planned.length === 0;
     $('#agendaList').replaceChildren(...planned.map((s) => el('li', {},
-      el('span', { class: 'agenda-day' }, new Date(s.at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' })),
-      el('span', { class: 'agenda-time', dir: 'ltr' }, new Date(s.at).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) + (s.end ? ' – ' + new Date(s.end).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '')),
+      el('span', { class: 'agenda-day' }, siteClock.at(s.at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' })),
+      el('span', { class: 'agenda-time', dir: 'ltr' }, siteClock.at(s.at).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) + (s.end ? ' – ' + siteClock.at(s.end).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '')),
       el('span', { class: 'agenda-what' }, el('strong', {}, s.room.title), s.title ? ' · ' + s.title : ''),
       el('span', { class: 'agenda-acts' },
         el('a', { class: 'btn small', href: `/api/ics?room=${encodeURIComponent(s.room.slug)}&id=${s.id}` }, T('زيدو للأجندة')),
         el('a', { class: 'btn small primary', href: '/r/' + s.room.slug }, T('دخل للقاعة'))))));
     // rooms on air right now are shown at once; all the others stay folded behind one button
-    const when = (r) => new Date(r.next.at).toLocaleString(loc, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const when = (r) => siteClock.at(r.next.at).toLocaleString(loc, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     const byRank = (x, y) => (y.live - x.live) || (y.viewers - x.viewers) || x.title.localeCompare(y.title);
     const live = data.rooms.filter((r) => r.live).sort(byRank);
     $('#liveNow').hidden = live.length === 0;

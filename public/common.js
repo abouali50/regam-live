@@ -67,6 +67,33 @@ function avatar(name, av, size = 32) {
   if (av) box.append(el('img', { src: '/media/avatar/' + av, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }));
   return box;
 }
+// Face ID / fingerprint (passkeys): the device keeps the key, the site checks a signature. No password is typed.
+const passkey = {
+  can: () => !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create),
+  b64: (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+  bin: (s) => Uint8Array.from(atob(String(s).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
+  post: async (what, body, token) => { const r = await fetch('/api/member/passkey/' + what, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body || {}) }); return { ok: r.ok, data: await r.json().catch(() => ({})) }; },
+  async add() {                                  // this device, for the account that is signed in
+    const o = (await passkey.post('options', {}, account.token)).data;
+    if (!o.challenge) return false;
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge: passkey.bin(o.challenge), rp: { id: o.rpId, name: o.rpName }, user: { id: passkey.bin(o.userId), name: o.userName, displayName: o.displayName },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], attestation: 'none', timeout: 60000,
+      authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'required', userVerification: 'required' },
+      excludeCredentials: (o.exclude || []).map((id) => ({ type: 'public-key', id: passkey.bin(id) })),
+    } });
+    const r = cred.response;
+    return (await passkey.post('add', { state: o.state, id: cred.id, clientDataJSON: passkey.b64(r.clientDataJSON), publicKey: passkey.b64(r.getPublicKey()), alg: r.getPublicKeyAlgorithm(), label: navigator.platform || '' }, account.token)).ok;
+  },
+  async login() {                                // returns { token, name } or null
+    const o = (await passkey.post('start')).data;
+    if (!o.challenge) return null;
+    const cred = await navigator.credentials.get({ publicKey: { challenge: passkey.bin(o.challenge), rpId: o.rpId, userVerification: 'required', timeout: 60000 } });
+    const r = cred.response;
+    const res = await passkey.post('login', { state: o.state, id: cred.id, clientDataJSON: passkey.b64(r.clientDataJSON), authenticatorData: passkey.b64(r.authenticatorData), signature: passkey.b64(r.signature) });
+    return res.ok ? res.data : null;
+  },
+};
 // The profile of the signed-in person: photo, name, e-mail, way out.
 async function openProfile() {
   let dlg = document.getElementById('profileDlg');
@@ -75,6 +102,7 @@ async function openProfile() {
   const me = await fetch('/api/member/me', { headers: auth }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   if (!me) return;
   const note = el('p', { class: 'muted', role: 'status' });
+  const keyOff = el('button', { class: 'acc-link', id: 'keyOff', type: 'button', hidden: !me.keys, onclick: async () => { if ((await passkey.post('remove', {}, account.token)).ok) { me.keys = 0; keyOff.hidden = true; note.textContent = T('تحيد Face ID / البصمة من الحساب ديالك.'); } } }, T('حيد Face ID / البصمة'));
   const pic = el('span', { class: 'profile-pic' });
   const paint = () => pic.replaceChildren(avatar(me.name, me.av ? `${me.id}?v=${me.av}` : '', 112));
   paint();
@@ -107,6 +135,13 @@ async function openProfile() {
     file,
     el('label', { class: 'acc-field' }, T('الاسم (كيبان للناس)'), name),
     el('p', { class: 'muted', dir: 'ltr' }, me.email),
+    passkey.can() ? el('div', { class: 'profile-key' },
+      el('button', { class: 'btn', id: 'keyAdd', type: 'button', onclick: async () => {
+        try { const ok = await passkey.add(); if (ok) me.keys = (me.keys || 0) + 1; note.textContent = T(ok ? 'تفعل Face ID / البصمة فهاد الجهاز. المرة الجاية دخل بلا كلمة السر.' : 'ما تفعلش. عاود جرب.'); }
+        catch (e) { note.textContent = T(e && e.name === 'InvalidStateError' ? 'هاد الجهاز مفعل من قبل.' : 'ما تفعلش. عاود جرب.'); }
+        keyOff.hidden = !me.keys;
+      } }, '🔐 ' + T('فعل Face ID / البصمة فهاد الجهاز')),
+      keyOff) : null,
     note,
     el('div', { class: 'dlg-actions' },
       el('button', { class: 'btn primary', type: 'button', onclick: async () => {
@@ -160,7 +195,12 @@ function openAccount(view = 'login') {
   const submit = el('button', { class: 'btn primary', type: 'submit' });
   const links = el('p', { class: 'acc-links' });
   const title = el('h2', {});
-  const form = el('form', { class: 'acc-form' }, title, note, name.row, email.row, pass.row, code.row, err, el('div', { class: 'dlg-actions' }, submit, el('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, T('إلغاء'))), links);
+  const keyBtn = el('button', { class: 'btn acc-key', id: 'keyLogin', type: 'button', hidden: true, onclick: async () => {
+    err.hidden = true;
+    try { const d = await passkey.login(); if (d) { account.set(d.token, d.name); location.reload(); } else { err.hidden = false; err.textContent = T('ما لقيناش حساب بهاد Face ID / البصمة. دخل بكلمة السر، ومن بعد فعلها من البروفايل.'); } }
+    catch { /* the person closed the system's window */ }
+  } }, '🔐 ' + T('دخل ب Face ID / البصمة'));
+  const form = el('form', { class: 'acc-form' }, title, note, keyBtn, name.row, email.row, pass.row, code.row, err, el('div', { class: 'dlg-actions' }, submit, el('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, T('إلغاء'))), links);
   dlg = el('dialog', { id: 'accountDlg', class: 'dlg' }, form);
   document.body.append(dlg);
   const linkTo = (text, v) => el('button', { class: 'acc-link', type: 'button', onclick: () => show(v) }, text);
@@ -176,6 +216,7 @@ function openAccount(view = 'login') {
     title.textContent = T({ login: 'الدخول', signup: 'إنشاء حساب', code: 'فعل الحساب ديالك', forgot: 'نسيتي كلمة السر؟', reset: 'كلمة سر جديدة' }[v]);
     submit.textContent = T({ login: 'دخل للحساب', signup: 'صيفط ليا الكود', code: 'فعل الحساب', forgot: 'صيفط ليا الكود', reset: 'بدل كلمة السر ودخل' }[v]);
     name.row.hidden = v !== 'signup';
+    keyBtn.hidden = v !== 'login' || !passkey.can();
     email.row.hidden = v === 'code' || v === 'reset';
     pass.row.hidden = v === 'code' || v === 'forgot';
     code.row.hidden = v !== 'code' && v !== 'reset';

@@ -151,7 +151,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -366,6 +366,45 @@ async function until(fn, ms = 15000, step = 250) {
       check('nothing opens before the right code: sign-in refused, wrong code refused', early.status === 403 && (await until(() => a.locator('#accountDlg .err').isVisible())) !== null);
       await a.fill('#accountDlg .acc-code', codeIn(lastMail())); await a.click('#accountDlg button[type=submit]');
       check('the right code activates the account and signs the person in', (await until(() => a.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null && await a.locator('#heroHello').isVisible());
+    {   // Face ID / fingerprint: a device is added from the profile, then signs in without a password
+      const J2 = { 'Content-Type': 'application/json' };
+      let tok = '', mail = '';
+      { const r = await fetch(BASE + '/api/member/login', { method: 'POST', headers: J2, body: JSON.stringify({ email: 'samira@example.com', password: 'motdepasse1' }) }); mail = 'samira@example.com'; if (r.ok) tok = (await r.json()).token; else mail = 'login ' + r.status; }
+      const LB = BASE.replace('127.0.0.1', 'localhost');
+      const kc = await browser.newContext({ locale: 'fr-FR' }), kp = await kc.newPage();
+      kp.on('pageerror', (e) => errors.push('passkey: ' + e.message));
+      const cdp = await kc.newCDPSession(kp);
+      await cdp.send('WebAuthn.enable');
+      await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+      await kp.goto(LB + '/rooms');
+      await kp.evaluate(([t]) => { localStorage.setItem('regam.member', t); localStorage.setItem('regam.memberName', 'Test'); }, [tok]);
+      await kp.reload();
+      const added = await kp.evaluate(() => passkey.add().catch((e) => 'err ' + e.name + ' ' + e.message));
+      const meKeys = (await (await fetch(BASE + '/api/member/me', { headers: { Authorization: 'Bearer ' + tok } })).json()).keys;
+      await kp.evaluate(() => account.clear());
+      const got = await kp.evaluate(() => passkey.login().catch((e) => 'err ' + e.name + ' ' + e.message));
+      const who = got && got.token ? await (await fetch(BASE + '/api/member/me', { headers: { Authorization: 'Bearer ' + got.token } })).json() : {};
+      check('Face ID / fingerprint: a device is turned on from the profile and then signs in without a password', !!tok && added === true && meKeys === 1 && who.email === mail, `${mail} ${JSON.stringify(added)} ${meKeys} ${JSON.stringify(got).slice(0, 120)}`);
+      // a made-up answer, an answer for another site, and the same answer twice are refused
+      const forged = await kp.evaluate(async () => {
+        const o = (await passkey.post('start')).data;
+        const cred = await navigator.credentials.get({ publicKey: { challenge: passkey.bin(o.challenge), rpId: o.rpId, userVerification: 'required' } });
+        const r = cred.response, body = { state: o.state, id: cred.id, clientDataJSON: passkey.b64(r.clientDataJSON), authenticatorData: passkey.b64(r.authenticatorData), signature: passkey.b64(r.signature) };
+        const sig = new Uint8Array(r.signature); sig[sig.length - 1] ^= 1;
+        const badSig = (await passkey.post('login', { ...body, signature: passkey.b64(sig) })).ok;
+        const o2 = (await passkey.post('start')).data;
+        const otherChallenge = (await passkey.post('login', { ...body, state: o2.state })).ok;
+        const o3 = (await passkey.post('start')).data;
+        const c3 = await navigator.credentials.get({ publicKey: { challenge: passkey.bin(o3.challenge), rpId: o3.rpId, userVerification: 'required' } });
+        const b3 = { state: o3.state, id: c3.id, clientDataJSON: passkey.b64(c3.response.clientDataJSON), authenticatorData: passkey.b64(c3.response.authenticatorData), signature: passkey.b64(c3.response.signature) };
+        const first = (await passkey.post('login', b3)).ok, again = (await passkey.post('login', b3)).ok;
+        return { badSig, otherChallenge, first, again };
+      });
+      const off = await fetch(BASE + '/api/member/passkey/remove', { method: 'POST', headers: { ...J2, Authorization: 'Bearer ' + tok }, body: '{}' });
+      const afterOff = await kp.evaluate(() => passkey.login().then((d) => !!d).catch(() => false));
+      check('a forged or replayed Face ID answer is refused, and turning it off closes that way in', forged.badSig === false && forged.otherChallenge === false && forged.first === true && forged.again === false && off.status === 200 && afterOff === false, JSON.stringify(forged) + ' ' + afterOff);
+      await kc.close();
+    }
       const dup = await fetch(BASE + '/api/member/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'X', email: 'samira@example.com', password: 'autrechose1' }) });
       check('an address cannot be registered twice', dup.status === 409);
 
@@ -863,7 +902,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('a teacher with a wrong password is refused', (await until(() => teacher.locator('#loginErr').isVisible(), 5000)) !== null);
     await teacher.fill('#pw', 'salma-pass-9'); await teacher.click('#loginForm button[type=submit]'); await teacher.waitForSelector('#app:not([hidden])');
     const teacherTok = await teacher.evaluate(() => sessionStorage.getItem('regam.studio'));
-    check('the teacher lands in their own room, without the administration link', (await teacher.textContent('#roomName')) === 'Programmation Python' && await teacher.locator('#adminLink').isHidden() && (await teacher.textContent('#roomLink')).endsWith('/r/programmation-python'));
+    check('the teacher lands in their own room, without the administration link', (await until(async () => (await teacher.textContent('#roomName')) === 'Programmation Python', 6000)) !== null && await teacher.locator('#adminLink').isHidden() && (await teacher.textContent('#roomLink')).endsWith('/r/programmation-python'));
     const asTeacher = { Authorization: 'Bearer ' + teacherTok };
     check('a teacher cannot reach the administration or another room', (await fetch(BASE + '/api/admin', { headers: asTeacher })).status === 403
       && (await fetch(BASE + '/api/admin/room', { method: 'POST', headers: asTeacher, body: '{"title":"x","ownerId":"admin"}' })).status === 403

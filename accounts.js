@@ -9,6 +9,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
   db.mail = db.mail || {};                       // { host, port, user, pass, from } - set in the administration page
   db.access = ['open', 'join', 'watch'].includes(db.access) ? db.access : 'open';
 
+  const LOGIN_MAX = Number(env.LOGIN_MAX) || 12;   // sign-in tries per network address in a quarter of an hour
   const OUTBOX = env.MAIL_OUTBOX || '';          // tests: write the messages to a file instead of sending them
   const mailReady = () => !!(db.mail.host && db.mail.user && db.mail.pass);
   const hash = (password, salt) => crypto.scryptSync(String(password), salt, 32).toString('hex');
@@ -20,6 +21,9 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     const id = verify(token, 'member');
     return (id && db.members.find((m) => m.id === id && m.verified)) || null;
   }
+
+  const spent = new Map();                       // passkey challenges already answered
+  setInterval(() => { const old = Date.now() - 6 * 60e3; for (const [k, t] of spent) if (t < old) spent.delete(k); }, 60e3).unref();
 
   // ---- limits: a few tries per address and per network, so codes cannot be guessed or mail flooded
   const hits = new Map();                        // key -> [timestamps]
@@ -72,7 +76,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
   async function handle(req, res, what) {
     if (what === 'me' && req.method === 'GET') {
       const m = memberOf((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
-      return m ? send(res, 200, { id: m.id, name: m.name, email: m.email, av: m.av || 0 }) : send(res, 401, { error: 'signed out' });
+      return m ? send(res, 200, { id: m.id, name: m.name, email: m.email, av: m.av || 0, keys: (m.keys || []).length }) : send(res, 401, { error: 'signed out' });
     }
     if (req.method !== 'POST') return send(res, 405, { error: 'method' });
     const b = await readJson(req), ip = clientIp(req), email = emailOf(b.email), lang = String(b.lang || 'ar');
@@ -86,7 +90,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     if (what === 'delete') {                     // a person removes their own account, with their password
       const m = memberOf((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
       if (!m) return send(res, 401, { error: 'signed out' });
-      if (!allowed('login:' + ip, 12, 15 * 60e3)) return send(res, 429, { error: 'too many requests' });
+      if (!allowed('login:' + ip, LOGIN_MAX, 15 * 60e3)) return send(res, 429, { error: 'too many requests' });
       if (!safeEq(hash(String(b.password || ''), m.salt), m.hash)) return send(res, 401, { error: 'bad login' });
       db.members = db.members.filter((x) => x.id !== m.id); onRemove(m.id); save();
       return send(res, 200, { ok: true });
@@ -94,6 +98,51 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     const hostName = String(req.headers['x-forwarded-host'] || req.headers.host || '');
     const origin = /^[a-z0-9.-]+(:\d+)?$/i.test(hostName) ? `${req.headers['x-forwarded-proto'] === 'http' || /^(localhost|127\.)/.test(hostName) ? 'http' : 'https'}://${hostName}` : '';
     if (!allowed('ip:' + ip, 40, 3600e3)) return send(res, 429, { error: 'too many requests' });
+
+    // ---- Face ID / fingerprint (passkeys, WebAuthn): the phone or computer keeps a key that only its owner's
+    // face or finger unlocks; the site keeps the public half and checks a signature at each sign-in. No password travels.
+    if (what.startsWith('passkey/')) {
+      const rpId = origin.replace(/^https?:\/\//, '').replace(/:\d+$/, ''), b64 = (v) => Buffer.from(String(v || ''), 'base64url');
+      const me = memberOf((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
+      const challenge = () => { const c = crypto.randomBytes(32).toString('base64url'); return { challenge: c, state: sign('wa', c, 5 * 60e3) }; };
+      // what the browser says it signed: the right kind of request, our challenge, our own address
+      const clientOk = (raw, type, state) => { try { const c = JSON.parse(b64(raw).toString('utf8')), want = verify(state, 'wa'); if (!origin || !want || c.type !== type || c.challenge !== want || c.origin !== origin || spent.has(want)) return false; spent.set(want, Date.now()); return true; } catch { return false; } };       // each challenge serves once
+      if (what === 'passkey/options') {         // signed in: about to add this device
+        if (!me) return send(res, 401, { error: 'signed out' });
+        return send(res, 200, { ...challenge(), rpId, rpName: siteTitle, userId: Buffer.from(me.id).toString('base64url'), userName: me.email, displayName: me.name, exclude: (me.keys || []).map((k) => k.id), count: (me.keys || []).length });
+      }
+      if (what === 'passkey/add') {
+        if (!me) return send(res, 401, { error: 'signed out' });
+        const id = String(b.id || ''), alg = Number(b.alg), pk = String(b.publicKey || '');
+        if (!clientOk(b.clientDataJSON, 'webauthn.create', b.state) || !/^[\w-]{16,400}$/.test(id) || ![-7, -257].includes(alg) || pk.length > 2000) return send(res, 400, { error: 'bad passkey' });
+        try { crypto.createPublicKey({ key: b64(pk), format: 'der', type: 'spki' }); } catch { return send(res, 400, { error: 'bad passkey' }); }
+        if (db.members.some((m) => (m.keys || []).some((k) => k.id === id))) return send(res, 409, { error: 'bad passkey' });
+        me.keys = [...(me.keys || []), { id, pk, alg, n: 0, at: Date.now(), label: clean(b.label, 40) }].slice(-5);
+        save();
+        return send(res, 200, { ok: true, count: me.keys.length });
+      }
+      if (what === 'passkey/remove') {          // this account goes back to the password only
+        if (!me) return send(res, 401, { error: 'signed out' });
+        delete me.keys; save();
+        return send(res, 200, { ok: true, count: 0 });
+      }
+      if (what === 'passkey/start') return send(res, 200, { ...challenge(), rpId });
+      if (what === 'passkey/login') {
+        if (!allowed('login:' + ip, LOGIN_MAX, 15 * 60e3)) return send(res, 429, { error: 'too many requests' });
+        const id = String(b.id || ''), m = db.members.find((x) => x.verified && (x.keys || []).some((k) => k.id === id)), k = m && m.keys.find((x) => x.id === id);
+        const auth = b64(b.authenticatorData), bad = () => send(res, 401, { error: 'bad passkey' });
+        if (!k || auth.length < 37 || !clientOk(b.clientDataJSON, 'webauthn.get', b.state)) return bad();
+        if (!auth.subarray(0, 32).equals(crypto.createHash('sha256').update(rpId).digest()) || (auth[32] & 0x05) !== 0x05) return bad();      // made for this site, by a person who was there and was recognised
+        const n = auth.readUInt32BE(33);
+        if (k.n && n <= k.n) return bad();                                           // a copy of the key being used
+        let good = false;
+        try { good = crypto.verify('sha256', Buffer.concat([auth, crypto.createHash('sha256').update(b64(b.clientDataJSON)).digest()]), crypto.createPublicKey({ key: b64(k.pk), format: 'der', type: 'spki' }), b64(b.signature)); } catch { good = false; }
+        if (!good) return bad();
+        k.n = n; k.used = Date.now(); save();
+        return send(res, 200, { token: tokenFor(m), name: m.name });
+      }
+      return send(res, 404, { error: 'not found' });
+    }
 
     if (what === 'signup') {
       if (!mailReady()) return send(res, 503, { error: 'mail not set up' });
@@ -120,7 +169,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     }
     if (what === 'login') {
       const m = byEmail(email);
-      if (!allowed('login:' + ip, 12, 15 * 60e3)) return send(res, 429, { error: 'too many requests' });
+      if (!allowed('login:' + ip, LOGIN_MAX, 15 * 60e3)) return send(res, 429, { error: 'too many requests' });
       if (!m || !safeEq(hash(String(b.password || ''), m.salt), m.hash)) return send(res, 401, { error: 'bad login' });
       if (!m.verified) {                         // signed up but never typed the code: send a new one
         if (mailReady() && allowed('mail:' + email, 5, 3600e3)) { try { await sendCode(m, lang, origin); } catch { /* shown as unverified anyway */ } }

@@ -42,7 +42,7 @@
   if (cfg.assistant) mountAssistant();
   // the room's entry code: from the invitation link (?code=...), or typed once and remembered
   const codeKey = 'regam.code.' + cfg.room;
-  let earlyRetry = 0;
+  let earlyRetry = 0, wallRetry = 0;
   let typedCode = !!new URLSearchParams(location.search).get('code');       // was the code being sent just given (typed, or in the invitation link)?
   link.code = (new URLSearchParams(location.search).get('code') || store.get(codeKey) || '').replace(/\D/g, '');
   if (new URLSearchParams(location.search).get('code')) { store.set(codeKey, link.code); history.replaceState(null, '', location.pathname); }
@@ -557,6 +557,8 @@
       if ((d.fee || d.closed) && cfg.access !== 'watch') { $('#signBtns').hidden = !!account.token; if (account.token) { account.clear(); location.reload(); } return; }
       if (account.token) { account.clear(); location.reload(); return; }
       $('#signBtns').hidden = false;
+      clearTimeout(wallRetry);                 // asked again by itself: the host may start a live that is open to everyone
+      wallRetry = setTimeout(() => { if (!account.token && !document.getElementById('accountDlg')?.open) link.hello(); }, 20000);
     })
     .on('err', (d) => { if (d.code === 'signin') openAccount('login'); });
   $('#signIn').onclick = () => openAccount('login');

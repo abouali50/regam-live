@@ -1580,7 +1580,11 @@ async function pollLive() {
     const on = seen || (room.live && answered && room.missed < 3);
     if (on === room.live) continue;
     room.live = on;
-    if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }      // a new live starts its reactions from zero
+    if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }
+    if (on) {                                                                       // going on air ahead of a planned live starts that live: its code, its link and its "open" setting count from now
+      const s = plannedOf(room)[0];
+      if (s && !s.opened && s.at - Date.now() < 3 * 3600e3) { s.opened = Date.now(); save(); toMods(room, { t: 'sessions', list: plannedOf(room) }); }
+    }      // a new live starts its reactions from zero
     broadcast(room, { t: 'live', on });
     if (!on) endStage(room, 'ended');
     if (!on) applyRelay(room);                                                      // a change of Facebook/YouTube made during the live

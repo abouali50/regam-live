@@ -67,6 +67,22 @@ function createPainter(canvas, { brand = 'REGAM Live', fixed = false } = {}) {
       // they have their own page, which the host shows when wanted. Only the host stays, small, in a corner.
       contain(screen, 0, 0, W, H);
       if (cam) { const m = Math.round(W * 0.012), tw = Math.round(W * 0.17), th = Math.round(tw * 0.75); tile(cam, W - m - tw, H - m - th, tw, th, ''); }
+    } else if (cam && people.length > 1) {
+      // the host with guests: the host large on the left, the guests one above the other in a column on the right
+      // (two columns from seven guests on, so that each stays readable)
+      const guests = people.slice(1), g = guests.length, gap = 4, colsG = g <= 6 ? 1 : 2, rowsG = Math.ceil(g / colsG);
+      const colW = Math.round(W * (colsG === 1 ? 0.25 : 0.19)), sideW = colsG * colW + (colsG - 1) * gap, hostW = W - sideW - gap;
+      const th = Math.min((H - gap * (rowsG - 1)) / rowsG, Math.round(colW * 0.75));
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, hostW, H); ctx.clip();
+      picture(people[0], 0, 0, hostW, H);
+      ctx.restore();
+      guests.forEach((p, i) => {
+        const col = Math.floor(i / rowsG), row = i % rowsG, x = hostW + gap + col * (colW + gap), y = row * (th + gap);
+        ctx.save(); ctx.beginPath(); ctx.rect(x, y, colW, th); ctx.clip();
+        picture(p, x, y, colW, th);
+        if (p.label) nameTag(p.label, x, y, colW, th, Math.round(H * 0.03));
+        ctx.restore();
+      });
     } else if (people.length) {
       // no screen: an even grid. 1 full, 2 side by side, up to 4 in two columns, up to 9 in three, then four
       const n = people.length, cols = n === 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4, rows = Math.ceil(n / cols), gap = n === 1 ? 0 : 4;

@@ -816,3 +816,10 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
   box-shadow: inset 0 2px 0 rgba(255,255,255,.55), inset 0 -4px 0 rgba(0,0,0,.18), 0 5px 0 #33105f, 0 10px 18px rgba(10,18,50,.35); }
 .tile .ico, .tile-live .ico { stroke: #fff; stroke-width: 2.2; filter: drop-shadow(0 1px 0 rgba(0,0,0,.5)); }
 .tile:active { box-shadow: inset 0 3px 6px rgba(20,0,50,.6); }
+
+/* ---- 16 Nov: the sections of the studio sit under the window (the host and the guests), in a row; the window takes the width ---- */
+.studio .layout, .studio .layout:has(> .chat.collapsed) { grid-template-columns: minmax(0, 1fr) max-content; }
+.studio .layout:has(> .chat:not(.collapsed)) { grid-template-columns: minmax(0, 1fr) 370px; }
+.studio .side { position: static; flex-direction: row; flex-wrap: wrap; gap: 8px; margin: 10px 0; align-self: auto; }
+.studio .side button, .studio .side-link { width: auto; flex: 1 1 150px; justify-content: center; padding: 9px 12px; margin: 0; }
+@media (max-width: 900px) { .studio .side button, .studio .side-link { flex: 1 1 120px; } }

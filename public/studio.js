@@ -603,7 +603,9 @@
     for (const node of stageBox.children) node.dataset.tab = TAB_OF[node.id] || (node.classList.contains('settings') ? 'settings' : 'live');
     if (new URLSearchParams(location.search).get('all')) document.body.classList.add('all-tabs');      // every section at once (for checks)
     function showTab(name) {
-      for (const node of stageBox.children) node.classList.toggle('tab-off', node.dataset.tab !== name);
+      const nav = $('#sideNav'), win = stageBox.querySelector('.player');
+      if (name === 'live' && win) win.after(nav); else stageBox.prepend(nav);          // the sections: under the window that shows the host and the guests; at the top elsewhere
+      for (const node of stageBox.children) if (node !== nav) node.classList.toggle('tab-off', node.dataset.tab !== name);
       for (const b of $('#sideNav').querySelectorAll('button[data-tab]')) { const on = b.dataset.tab === name; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
       try { sessionStorage.setItem('regam.tab', name); } catch { /* private mode */ }
       stageBox.scrollTop = 0;

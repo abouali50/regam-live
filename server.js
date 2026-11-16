@@ -285,8 +285,15 @@ function plannedOf(room) {                  // with each session's own entry cod
   for (const s of list) if (!s.code) s.code = newCode(room);
   return list;
 }
-const sessionsOf = (room) => plannedOf(room).map((s) => ({ id: s.id, at: s.at, end: s.end, title: s.title }));     // what everybody may see
-const nextOf = (room) => sessionsOf(room)[0] || null;
+// What a visitor may see of the agenda. A planned live is private unless its host marked it public: it is shown to
+// nobody but the people who hold its link (its code). Public lives are shown to everyone.
+const sessionsOf = (room, code) => {
+  const c = String(code || '').replace(/\D/g, '');
+  return plannedOf(room).filter((s) => s.pub || (c.length === 6 && s.code && safeEq(s.code, c))).map((s) => ({ id: s.id, at: s.at, end: s.end, title: s.title }));
+};
+const nextOf = (room, code) => sessionsOf(room, code)[0] || null;
+// Is the live of this room one that the home page may announce? A planned live: if it is public. An unplanned one: if the room asks for no code.
+const liveShown = (room) => { if (!room.live) return false; const s = room.cfg.active && (room.cfg.sessions || []).find((x) => x.id === room.cfg.active); return s ? !!s.pub : !room.cfg.code; };
 // One session as a calendar file, so people can add it to their own agenda.
 function icsOf(room, s, origin) {
   const z = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
@@ -644,7 +651,7 @@ function serveClassFile(req, res, url, rest) {
 }
 
 // ---------------------------------------------------------- administration --
-const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: r.live, viewers: peopleIn(r), liveTitle: r.cfg.liveTitle, locked: !!r.cfg.code, fee: cls.feeOf(r) || undefined, closed: !!r.cfg.closed || undefined, next: nextOf(r), sessions: sessionsOf(r).slice(0, 10) });
+const publicRoom = (r) => ({ capacity: r.cfg.capacity || 0, slug: r.cfg.slug, title: r.cfg.title, topic: r.cfg.topic, host: ownerName(r), live: liveShown(r), viewers: r.live && !liveShown(r) ? 0 : peopleIn(r), liveTitle: liveShown(r) ? r.cfg.liveTitle : '', locked: !!r.cfg.code, fee: cls.feeOf(r) || undefined, closed: !!r.cfg.closed || undefined, next: nextOf(r), sessions: sessionsOf(r).slice(0, 10) });
 function slugFor(title) {
   let base = String(title).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
   if (!SLUG.test(base)) base = 'room';
@@ -833,7 +840,7 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
-        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room), bgs: bgOn(room).map(bgUrl), bgAll: BG.map((n) => ({ name: n, url: bgUrl(n), on: bgOn(room).includes(n) })),
+        rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room, url.searchParams.get('code')), sessions: sessionsOf(room, url.searchParams.get('code')).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room), bgs: bgOn(room).map(bgUrl), bgAll: BG.map((n) => ({ name: n, url: bgUrl(n), on: bgOn(room).includes(n) })),
         access: accessOf(room), accounts: acct.mailReady(), assistant: ai.inHelp(), now: Date.now(), tz: siteTz(),
       });
     }
@@ -854,7 +861,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (p.startsWith('/api/member/')) return await acct.handle(req, res, p.slice(12));
     if (p === '/api/ics') {                       // a planned session, as a file for the person's own calendar
-      const room = roomOf(url), s = room && sessionsOf(room).find((x) => x.id === url.searchParams.get('id'));
+      const room = roomOf(url), s = room && plannedOf(room).find((x) => x.id === url.searchParams.get('id'));      // the identifier is only known to who was shown that live
       if (!s) return send(res, 404, 'Not found');
       return send(res, 200, icsOf(room, s, siteOrigin(req)), { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="regam-live-${room.cfg.slug}.ics"` });
     }
@@ -1167,7 +1174,7 @@ wss.on('connection', (ws, req) => {
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, admin: ws.admin || undefined, words: ws.mod ? room.cfg.words || [] : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
-        code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? plannedOf(room) : undefined,
+        code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room, ws.mod ? '' : d.code), sessions: ws.mod ? plannedOf(room) : undefined,
         aiChat: ws.mod ? { ready: ai.inChat(), on: !room.cfg.aiOff } : undefined,
         cls: ws.mod ? { ...cls.view(room), payReady: pay.ready() } : undefined, att: ws.mod ? cls.sheets(room) : undefined,
         uplink: ws.mod ? db.uplink || 400 : undefined,
@@ -1363,10 +1370,10 @@ wss.on('connection', (ws, req) => {
         else {
           const at = Number(d.at), end = Number(d.end) || 0, now = Date.now();
           if (!(at > now - 3600e3 && at < now + 366 * 24 * 3600e3) || (end && (end <= at || end > at + 24 * 3600e3)) || list.length >= 40) return tx(ws, { t: 'sessions', list, err: 'bad' });
-          cfg.sessions = [...list, { id: 's' + crypto.randomBytes(5).toString('hex'), at, end, title: clean(d.title, 80), code: newCode(room), free: d.free ? true : undefined }];
+          cfg.sessions = [...list, { id: 's' + crypto.randomBytes(5).toString('hex'), at, end, title: clean(d.title, 80), code: newCode(room), free: d.free ? true : undefined, pub: d.pub ? true : undefined }];
         }
         save();
-        broadcast(room, { t: 'next', next: nextOf(room) });
+        for (const c of room.clients) tx(c, { t: 'next', next: nextOf(room, c.sessCode) });      // each one is told about the lives they may know of
         return toMods(room, { t: 'sessions', list: plannedOf(room) });
       }
       case 'helper': {                     // the host names an assistant (by the e-mail of their account) or removes one
@@ -1578,6 +1585,7 @@ function vapidHeader(aud) {
 }
 async function pushLive(room) {
   const list = db.push[room.cfg.slug] || [];
+  if (!liveShown(room)) return;                // a private live rings nobody
   if (!list.length || Date.now() - (room.pushedAt || 0) < 10 * 60e3) return;      // a live that drops and comes back does not ring twice
   room.pushedAt = Date.now();
   const gone = new Set();

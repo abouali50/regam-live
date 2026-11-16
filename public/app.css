@@ -443,6 +443,7 @@ li.guest-box { list-style: none; flex-wrap: wrap; }
 .sess-code { margin: 0; }
 .sess-acts { display: grid; gap: 6px; }
 .sess-card { cursor: pointer; }
+.sess-priv { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.5); }
 .acc-key { width: 100%; margin-bottom: 4px; }
 .profile-key { display: grid; gap: 4px; justify-items: start; margin: 6px 0; }
 .relay-form { display: grid; gap: 8px; margin: 14px 0; padding-top: 12px; border-top: 1px solid var(--line); }

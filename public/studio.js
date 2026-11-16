@@ -681,6 +681,7 @@
             el('strong', {}, x.title || mine.title),
             el('span', { class: 'sess-hours', dir: 'ltr' }, timeOf(x.at) + (x.end ? ' – ' + timeOf(x.end) : '')), x.end ? el('span', { class: 'muted' }, lasts(x)) : null,
             roomCode ? el('span', { class: 'sess-code', dir: 'ltr' }, '🔑 ' + x.code.slice(0, 3) + ' ' + x.code.slice(3)) : null,
+            el('span', { class: x.pub ? 'sess-free' : 'sess-priv' }, T(x.pub ? 'عمومي' : 'خاص')),
             x.free ? el('span', { class: 'sess-free' }, T('مفتوح بلا حساب')) : null),
           el('span', { class: 'sess-acts' },
             el('button', { class: 'btn primary sess-go', type: 'button', onclick: () => startPlanned(x) }, T('ابدا اللايف')),
@@ -697,7 +698,7 @@
     $('#schedOpen').onclick = () => {
       const n = siteClock.at(siteClock.now() + 3600e3);
       $('#nextDate').value = `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`; const t0 = siteClock.at(siteClock.now()); $('#nextDate').min = `${t0.getFullYear()}-${pad(t0.getMonth() + 1)}-${pad(t0.getDate())}`;
-      $('#nextTime').value = `${pad(n.getHours())}:00`; $('#nextDur').value = '60'; $('#nextTitle').value = ''; $('#nextFree').checked = false;
+      $('#nextTime').value = `${pad(n.getHours())}:00`; $('#nextDur').value = '60'; $('#nextTitle').value = ''; $('#nextFree').checked = false; $('#nextPub').checked = false;
       $('#schedErr').hidden = true;
       schedDlg.showModal();
     };
@@ -706,7 +707,7 @@
       e.preventDefault();
       const at = siteClock.parse($('#nextDate').value, $('#nextTime').value);
       if (!(at > siteClock.now() - 3600e3)) { $('#schedErr').hidden = false; $('#schedErr').textContent = T('الوقت ما مقبولش. اختار وقت جاي.'); return; }
-      link.send({ t: 'session', at, end: at + Number($('#nextDur').value) * 60000, title: $('#nextTitle').value, free: $('#nextFree').checked });
+      link.send({ t: 'session', at, end: at + Number($('#nextDur').value) * 60000, title: $('#nextTitle').value, free: $('#nextFree').checked, pub: $('#nextPub').checked });
     };
     $('#inviteCopy').onclick = (e) => copyText(inviteFor(null), e.currentTarget);
     link.on('code', (d) => { roomCode = d.code || ''; showInvite(); })

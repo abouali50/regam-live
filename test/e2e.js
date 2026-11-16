@@ -604,7 +604,7 @@ async function until(fn, ms = 15000, step = 250) {
       check('guests on stage are not cut when the code is switched on', await studio.evaluate(() => window.__studio.stage.size === 2) && await viewer.locator('#stageBar').isVisible(), JSON.stringify({ stage: await studio.evaluate(() => [...window.__studio.stage].map(([n, x]) => [n, !!x.rx, x.rx && x.rx.pc.connectionState])), bar: await viewer.locator('#stageBar').isVisible(), g2bar: await g2.locator('#stageBar').isVisible(), list: await studio.locator('#onStage li').allTextContents(), status: await studio.textContent('#status'), vchat: await viewer.evaluate(() => [...document.querySelectorAll('.chat .note, .chat-note, .sys')].map((n) => n.textContent).slice(-3)) }));
       // the invitation: date, link carrying the code, the code itself
       const soon = new Date(Date.now() + 26 * 3600e3), two = (n) => String(n).padStart(2, '0');
-      const plan = async (d, mins, title) => { await studio.click('#schedOpen'); await studio.fill('#nextDate', `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`); await studio.fill('#nextTime', `${two(d.getHours())}:${two(d.getMinutes())}`); await studio.selectOption('#nextDur', String(mins)); await studio.fill('#nextTitle', title); await studio.click('#nextSave'); };
+      const plan = async (d, mins, title) => { await studio.click('#schedOpen'); await studio.fill('#nextDate', `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`); await studio.fill('#nextTime', `${two(d.getHours())}:${two(d.getMinutes())}`); await studio.selectOption('#nextDur', String(mins)); await studio.fill('#nextTitle', title); if (title !== 'Privé') await studio.check('#nextPub'); await studio.click('#nextSave'); };
       await plan(soon, 60, 'MetaMask الدرس الثاني');
       const invite = await until(async () => { const t = await studio.inputValue('#inviteText'); return t.includes('MetaMask') && t; }, 6000);
       const url = (String(invite).match(/https?:\/\/\S+/) || [''])[0];
@@ -659,6 +659,14 @@ async function until(fn, ms = 15000, step = 250) {
       for (let i = 0; i < 20; i++) stale.push(await knock('111111'));
       const afterStale = await knock(nowCode);
       check('an old code a browser kept sending does not lock the person out: the right code still opens', stale.every((x) => x === 'code-bad') && !afterStale.startsWith('code') && afterStale !== 'none', `${stale.join()} ${afterStale}`);
+      {   // a private planned live is shown to nobody but the people who hold its link
+        await plan(new Date(Date.now() + 30 * 3600e3), 30, 'Privé');
+        const pCode = await until(async () => { const t = await studio.inputValue('#inviteText'), m = t.match(/code=(\d{6})/); return t.includes('Privé') && m && m[1]; }, 6000);
+        const seen = async (q) => (await (await fetch(BASE + '/api/config?room=main' + q)).json()).sessions.map((x) => x.title);
+        const noLink = await seen(''), withLink = await seen('&code=' + pCode), home = (await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === 'main').sessions.map((x) => x.title);
+        check('a private planned live is not shown on the site: only the people who hold its link see it', !!pCode && !noLink.includes('Privé') && withLink.includes('Privé') && !home.includes('Privé') && noLink.includes('MetaMask الدرس الثاني'), `${noLink} | ${withLink} | ${home}`);
+        await studio.locator('#sessList .sess-card', { hasText: 'Privé' }).locator('.btn.danger').click();
+      }
       // a live planned for tomorrow: its code waits, until its host starts it from its card
       await plan(new Date(Date.now() + 26 * 3600e3), 30, 'Demain');
       const tomCode = await until(async () => { const t = await studio.inputValue('#inviteText'), m = t.match(/code=(\d{6})/); return t.includes('Demain') && m && m[1]; }, 6000);
@@ -1079,6 +1087,7 @@ async function until(fn, ms = 15000, step = 250) {
       check('and can bring the recitation back', back.status === 200 && (await (await fetch(BASE + '/api/config')).json()).sound === 'https://sound.test.invalid/rahman.mp3');
       // waiting pictures
       const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+      await until(() => idle.evaluate(() => !!document.querySelector('#offline .reef.on')), 8000);
       const before = await idle.evaluate(() => getComputedStyle(document.querySelector('#offline .reef.on')).backgroundImage);
       const picNo = await fetch(BASE + '/api/pics', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: png });
       const picBad = await fetch(BASE + '/api/pics', { method: 'POST', headers: { 'Content-Type': 'image/svg+xml', Authorization: 'Bearer ' + tok }, body: png });
@@ -1120,6 +1129,7 @@ async function until(fn, ms = 15000, step = 250) {
         return { hour: c.at(Date.UTC(2026, 10, 16, 19, 0)).getHours(), text: c.at(Date.UTC(2026, 10, 16, 19, 0)).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), typed: c.parse('2026-11-16', '20:00') === Date.UTC(2026, 10, 16, 19, 0), wall: c.wall() + new Date().getTimezoneOffset(), real: siteClock.tz }; });
       const far = await browser.newContext({ locale: 'fr-FR', timezoneId: 'Asia/Tokyo' }), fp = await far.newPage();
       await fp.goto(BASE + '/rooms');
+      await until(() => fp.evaluate(() => siteClock.tz !== null), 8000);
       const tokyo = await fp.evaluate(() => ({ off: new Date().getTimezoneOffset(), tz: siteClock.tz, shown: siteClock.at(Date.UTC(2026, 10, 16, 19, 0)).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }));
       const here = await studio.evaluate(() => siteClock.at(Date.UTC(2026, 10, 16, 19, 0)).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
       await far.close();

@@ -5,7 +5,9 @@
   const badge = $('#liveBadge'), handBtn = $('#handBtn'), guestLine = $('#guestLine');
   // the room comes from the address (/r/<room>); the front page is the first room
   const slug = (location.pathname.match(/^\/r\/([a-z0-9-]+)$/) || [])[1] || '';
-  const cfgRes = await fetch('/api/config?room=' + slug);
+  // the code of the invitation (in the address, or kept from an earlier visit) tells which private live this person may be shown
+  const myCode = (() => { try { return (new URLSearchParams(location.search).get('code') || localStorage.getItem('regam.code.' + (slug || 'main')) || '').replace(/\D/g, ''); } catch { return ''; } })();
+  const cfgRes = await fetch('/api/config?room=' + slug + (myCode ? '&code=' + myCode : ''));
   if (!cfgRes.ok) { location.replace('/rooms'); return; }
   const cfg = await cfgRes.json();
   siteClock.set(cfg.now, cfg.tz);

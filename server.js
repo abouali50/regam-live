@@ -1091,9 +1091,9 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('message', (raw) => {
-    const tick = Date.now();                // more than 120 messages in three seconds is not a person
-    if (tick - (ws.floodAt || 0) > 3000) { ws.floodAt = tick; ws.floodN = 0; }
-    if (++ws.floodN > 120) { sec.audit('ws.flood.blocked', ws.ip, {}); return ws.terminate(); }
+    const tick = Date.now();                // hundreds of messages in three seconds is not a person. The studio and its helpers are not counted:
+    if (tick - (ws.floodAt || 0) > 3000) { ws.floodAt = tick; ws.floodN = 0; }      // drawing on the board or bringing several guests on stage sends bursts, and cutting the host cuts the live
+    if (!ws.mod && !ws.helper && ++ws.floodN > 300) { sec.audit('ws.flood.blocked', ws.ip, {}); return ws.terminate(); }
     let d;
     try { d = JSON.parse(raw); } catch { return; }
     if (!d || typeof d.t !== 'string') return;

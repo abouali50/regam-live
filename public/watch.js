@@ -188,7 +188,7 @@
   let pointUp = false;
   function setHand(on, point) {
     handUp = on && !point; pointUp = on && !!point;
-    handBtn.textContent = T(handUp ? 'إلغاء الطلب' : 'طلب الطلوع');
+    handBtn.textContent = T(handUp ? 'إلغاء الطلب' : '🎤 طلب الكلمة');
     handBtn.classList.toggle('active', handUp);
     pointBtn.textContent = T(pointUp ? 'إلغاء نقطة النظام' : '☝️ نقطة نظام');
     pointBtn.classList.toggle('active', pointUp);

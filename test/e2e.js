@@ -611,7 +611,7 @@ async function until(fn, ms = 15000, step = 250) {
       const badJoin = await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code === '333333' ? '444444' : '333333' }) });
       await hp.fill('#joinCode', code.slice(0, 3) + ' ' + code.slice(3)); await hp.click('#joinForm button[type=submit]');
       check('on the home page, typing the invitation code leads straight into its room', badJoin.status === 404 && (await until(() => hp.locator('#liveBadge.on').isVisible(), 10000)) !== null && hp.url().endsWith('/r/main')
-        && (await hp.textContent('#handBtn')) === 'Demander à monter');
+        && (await hp.textContent('#handBtn')) === '🎤 Demander la parole');
       await hp.context().close();
       // the calendar: a second session, the agenda on the home page, the calendar file
       const later = new Date(Date.now() + 5 * 24 * 3600e3);
@@ -863,12 +863,12 @@ async function until(fn, ms = 15000, step = 250) {
     await fr.goto(BASE + '/');
     await until(() => fr.locator('#liveBadge.on').isVisible());
     const frText = await fr.evaluate(() => [document.documentElement.lang, document.documentElement.dir, document.querySelector('#liveBadge').textContent, document.querySelector('#handBtn').textContent, document.querySelector('.composer input').placeholder, document.querySelector('.chat-head span').textContent, document.querySelector('#shareBtn').textContent].join(' | '));
-    check('a French browser gets the page in French, left to right', frText === 'fr | ltr | En direct | Demander à monter | Écrire un commentaire… | Commentaires | Partager', frText);
+    check('a French browser gets the page in French, left to right', frText === 'fr | ltr | En direct | 🎤 Demander la parole | Écrire un commentaire… | Commentaires | Partager', frText);
     check('no Arabic interface text is left on the French page', await fr.evaluate(() => { const skip = ['.msgs', '.pinned', '#title', '#guestLine', '.lang']; const c = document.body.cloneNode(true); skip.forEach((q) => c.querySelectorAll(q).forEach((n) => n.remove())); c.querySelectorAll('[hidden],dialog,script').forEach((n) => n.remove()); return !/[\u0600-\u06FF]/.test(c.textContent); }));
     await fr.screenshot({ path: path.join(OUT, 'viewer-fr.png') });
     await fr.selectOption('.lang', 'en');
     await fr.waitForLoadState('load');
-    check('the language menu switches to English and remembers it', (await until(async () => (await fr.textContent('#handBtn')) === 'Ask to join' && (await fr.evaluate(() => document.documentElement.lang)) === 'en')) !== null);
+    check('the language menu switches to English and remembers it', (await until(async () => (await fr.textContent('#handBtn')) === '🎤 Ask to speak' && (await fr.evaluate(() => document.documentElement.lang)) === 'en')) !== null);
     const frStudio = await frCtx.newPage();
     await frStudio.goto(BASE + '/studio?all=1');
     await frStudio.evaluate(() => localStorage.setItem('regam.lang', 'fr')); await frStudio.reload();

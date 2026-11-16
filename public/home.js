@@ -5,7 +5,7 @@
   async function load() {
     let data;
     try { data = await fetch('/api/rooms').then((r) => r.json()); } catch { return; }
-    siteClock.set(data.now);
+    siteClock.set(data.now, data.tz);
     document.title = data.site;
     $('#noRooms').hidden = data.rooms.length > 0;
     // the calendar: every planned session of every room, soonest first

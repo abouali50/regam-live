@@ -194,11 +194,17 @@ const acct = require('./accounts')({ db, save, send, readJson, sign, verify, cle
 const ai = require('./ai')({ db, save, clean, env });
 const bak = require('./backup')({ db, dataDir: DATA_DIR, dbFile: DB_FILE, freeze: () => { frozen = true; clearTimeout(saveTimer); }, mail: acct.mail, mailReady: acct.mailReady, siteTitle: SITE_TITLE });
 const SITE_TZ = env.SITE_TZ || 'Africa/Casablanca';
+// The site's time: so many minutes ahead of UTC. Every page shows and plans lives in that time, whatever the
+// visitor's device believes (time-zone tables in phones and servers go out of date when a country changes its
+// clock). It is taken from the administrator's own clock when they open the studio; until then, from this server's table.
+const tableTz = () => { try { return Math.round((Date.parse(new Date().toLocaleString('en-US', { timeZone: SITE_TZ }) + ' UTC') - Date.now()) / 900e3) * 15; } catch { return 0; } };
+const siteTz = () => (Number.isFinite(db.tzMin) ? db.tzMin : tableTz());
+const siteWhen = (ms, lang, opts) => new Date(ms + siteTz() * 60e3).toLocaleString(lang, { ...opts, timeZone: 'UTC' });
 const QUESTION = /[?؟]|^\s*(comment|pourquoi|quand|où|ou est|est-ce|c'est quoi|combien|how|why|what|when|where|who|can |is |does |كيف|كيفاش|شنو|شنا|علاش|واش|فين|فوقاش|شحال|متى|هل|ماذا|لماذا|أين|كم)|@ai\b|@assistant|المساعد/i;
 // What the help assistant may know about the site (nothing private: no codes, no e-mails).
 function siteFacts() {
-  const when = (ms) => new Date(ms).toLocaleString('fr-FR', { timeZone: SITE_TZ, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-  const lines = [`Site name: ${SITE_TITLE}. Times below are in the ${SITE_TZ} time zone. Now: ${when(Date.now())}.`,
+  const when = (ms) => siteWhen(ms, 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  const lines = [`Site name: ${SITE_TITLE}. Times below are in the site's own time (${SITE_TZ}). Now: ${when(Date.now())}.`,
     acct.access() === 'watch' ? 'An account is required to watch: "Créer un compte", then validate with the 6-digit code (or the link) received by e-mail, then sign in.'
       : acct.access() === 'join' ? 'Watching is open to all; an account is required to comment or to come on stage.' : acct.mailReady() ? 'Accounts are optional.' : 'There are no viewer accounts on this site.',
     'To enter a room: open the home page and click "Entrer dans la salle", or open the invitation link. If the room asks for an entry code, type the 6-digit code from the invitation (each planned live has its own code, valid from 30 minutes before its start).',
@@ -661,7 +667,7 @@ function openIfApproved(u) {                     // first approval: open the roo
     db.rooms.push(cfg); openRoom(cfg);
   }
 }
-const cls = require('./school')({ db, save, rooms, acct, sign, env, toMods: (room, obj) => toHost(room, obj), ownerName, plannedOf });
+const cls = require('./school')({ db, save, rooms, acct, sign, env, toMods: (room, obj) => toHost(room, obj), ownerName, plannedOf, siteWhen });
 const pay = require('./pay')({ db, save, env, grant: (u, months) => { addMonths(u, months); openIfApproved(u); save(); },
   grantEntry: (mid, slug, days) => {               // a student paid the entry of a room
     const m = acct.byId(mid), room = rooms.get(slug);
@@ -821,7 +827,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {
         site: SITE_TITLE, room: room.cfg.slug, title: room.cfg.title, topic: room.cfg.topic, host: ownerName(room),
         rooms: rooms.size, hls: `${HLS_PUBLIC_URL || '/hls'}/air_${room.cfg.slug}/index.m3u8`, locked: !!room.cfg.code, next: nextOf(room), sessions: sessionsOf(room).slice(0, 10), sound: soundUrl(room), sounds: soundList(room), soundOwn: !!room.cfg.sound, pics: picUrls(room), bgs: bgOn(room).map(bgUrl), bgAll: BG.map((n) => ({ name: n, url: bgUrl(n), on: bgOn(room).includes(n) })),
-        access: accessOf(room), accounts: acct.mailReady(), assistant: ai.inHelp(), now: Date.now(),
+        access: accessOf(room), accounts: acct.mailReady(), assistant: ai.inHelp(), now: Date.now(), tz: siteTz(),
       });
     }
     if (p === '/api/site') return send(res, 200, { site: SITE_TITLE, access: acct.access(), accounts: acct.mailReady(), assistant: ai.inHelp(), build: BUILD, legal: { owner: (db.legal || {}).owner || '', contact: (db.legal || {}).contact || '' } });
@@ -869,7 +875,7 @@ const server = http.createServer(async (req, res) => {
       if (!room) return send(res, 404, { error: 'no such room' });
       if (room.cfg.gate && !room.admitted.has(String(url.searchParams.get('uid') || ''))) return send(res, 403, { error: 'not admitted' });
       const who = acct.memberOf(bearer(req));
-      if (accessOf(room) === 'watch' && !who) return send(res, 401, { error: 'sign in' });
+      if (accessOf(room) === 'watch' && !who && !room.cfg.code) return send(res, 401, { error: 'sign in' });      // with an entry code, the code checked below is the invitation
       if (cls.entry(room, who)) return send(res, 403, { error: 'not a student' });           // a paid or closed class
       if (!cls.known(room, who) && !codeOk(room, url.searchParams.get('code'))) return send(res, 403, { error: 'bad code' });
       return send(res, 200, { ok: true }, { 'Set-Cookie': `rlp_${room.cfg.slug}=${sign('pass', room.cfg.slug, 6 * 3600e3)}; Path=/hls/; Max-Age=21600; HttpOnly; SameSite=Lax${/^https:/.test(originOf(req)) ? '; Secure' : ''}` });
@@ -891,7 +897,7 @@ const server = http.createServer(async (req, res) => {
       db.push[room.cfg.slug] = list; save();
       return send(res, 200, { on: !b.off });
     }
-    if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, now: Date.now(), rooms: [...rooms.values()].map(publicRoom) });
+    if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, now: Date.now(), tz: siteTz(), rooms: [...rooms.values()].map(publicRoom) });
     if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans, pay: pay.ready(), months: pay.MONTHS });
     // Online payment of a subscription. The teacher proves who they are with their login and password
     // (their account may be waiting for approval or run out, so they have no studio session).
@@ -1100,7 +1106,7 @@ wss.on('connection', (ws, req) => {
       const user = whoIs(d.token);
       const host = canHost(user, room);
       const member = host ? null : acct.memberOf(d.mt);
-      if (!host && !member && accessOf(room) === 'watch') return tx(ws, { t: 'signin' });   // the site is for signed-in people only
+      if (!host && !member && accessOf(room) === 'watch' && !room.cfg.code) return tx(ws, { t: 'signin' });   // the site is for signed-in people only; a room with an entry code asks for the code instead: who has it was invited
       const helper = !!member && (room.cfg.helpers || []).includes(member.id);
       if (!host && !helper) {                              // a paid class, or one kept for its students
         const why = cls.entry(room, member);
@@ -1128,7 +1134,7 @@ wss.on('connection', (ws, req) => {
         return;
       }
       ws.room = room; ws.uid = d.uid;
-      ws.mod = host;
+      ws.mod = host; ws.admin = !!user && user.role === 'admin';
       ws.helper = helper;
       ws.userId = ws.mod ? user.id : null;
       ws.member = member ? member.id : null;
@@ -1148,8 +1154,8 @@ wss.on('connection', (ws, req) => {
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {
-        t: 'init', now: Date.now(), live: room.live, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
-        slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, words: ws.mod ? room.cfg.words || [] : undefined, relay: ws.mod ? relayView(room) : undefined,
+        t: 'init', now: Date.now(), tz: siteTz(), live: room.live, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
+        slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, admin: ws.admin || undefined, words: ws.mod ? room.cfg.words || [] : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
         code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room), sessions: ws.mod ? plannedOf(room) : undefined,
@@ -1282,6 +1288,12 @@ wss.on('connection', (ws, req) => {
           toMods(room, { t: 'hands', list: handsList(room) });
         }
         return toUid(room, uid, { t: 'banned', on: d.on !== false });
+      }
+      case 'tz': {                         // the administrator's clock says what time it is on the site
+        const m = Math.round(Number(d.min) / 15) * 15;
+        if (!ws.admin || !Number.isFinite(m) || Math.abs(m) > 14 * 60 || m === db.tzMin) return;
+        db.tzMin = m; save();
+        return broadcast(room, { t: 'tz', tz: m });
       }
       case 'words': if (!ws.mod) return; cfg.words = wordsFrom(d.list); save(); return toMods(room, { t: 'words', list: cfg.words });
       case 'relay': {                      // Facebook / YouTube at the same time: the keys are kept, never sent back

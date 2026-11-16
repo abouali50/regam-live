@@ -8,7 +8,7 @@
   const cfgRes = await fetch('/api/config?room=' + slug);
   if (!cfgRes.ok) { location.replace('/rooms'); return; }
   const cfg = await cfgRes.json();
-  siteClock.set(cfg.now);
+  siteClock.set(cfg.now, cfg.tz);
   window.REGAM_ROOM = cfg.room;
   if (cfg.rooms > 1 || cfg.accounts) $('#roomsLink').hidden = false;
   if (cfg.rooms > 1) { $('#roomHost').textContent = cfg.host; $('#roomHost').hidden = false; }

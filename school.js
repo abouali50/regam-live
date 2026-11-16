@@ -2,7 +2,7 @@
 // before each planned live, and the attendance sheet of each live.
 'use strict';
 
-module.exports = function school({ db, save, rooms, acct, sign, env, toMods, ownerName, plannedOf }) {
+module.exports = function school({ db, save, rooms, acct, sign, env, toMods, ownerName, plannedOf, siteWhen }) {
   const TZ = env.SITE_TZ || 'Africa/Casablanca';
   const now = () => Date.now();
   const feeOf = (room) => (room.cfg.fee && room.cfg.fee.amount > 0 ? room.cfg.fee : null);
@@ -38,7 +38,7 @@ module.exports = function school({ db, save, rooms, acct, sign, env, toMods, own
   }
 
   // ---- reminders: the day before and one hour before each planned live, to the class list
-  const when = (ms, lang) => new Date(ms).toLocaleString(lang, { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  const when = (ms, lang) => (siteWhen ? siteWhen(ms, lang, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : new Date(ms).toLocaleString(lang, { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }));
   async function remind(room, s, soon) {
     const origin = db.origin;
     if (!origin || !acct.mailReady()) return;

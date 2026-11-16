@@ -51,10 +51,24 @@ const focusSoon = (node) => { if (!TOUCH) setTimeout(() => node.focus(), 0); };
 // A device whose clock is wrong by an hour or more (a time zone set wrong, the time typed by hand) would show and
 // plan lives at the wrong hour. The site's own time is the reference: the difference is taken off what is shown and typed.
 const siteClock = {
-  skew: 0,
-  set(serverNow) { const raw = Number(serverNow) - Date.now(); if (Number.isFinite(raw)) this.skew = Math.abs(raw) < 20 * 60e3 ? 0 : Math.round(raw / 900e3) * 900e3; },
-  now() { return Date.now() + this.skew; },
-  at(ms) { return new Date(ms - this.skew); },       // the moment `ms`, as this device's clock face would show it
+  delta: 0, tz: null,                               // site's clock minus this device's; the site's time, in minutes ahead of UTC
+  set(serverNow, tz) { const d = Number(serverNow) - Date.now(); if (Number.isFinite(d)) this.delta = d; if (Number.isFinite(tz)) this.tz = tz; },
+  now() { return Date.now() + this.delta; },
+  // The moment `ms` as the site's clock shows it, in a Date whose local fields (hours, day...) carry those numbers:
+  // formatting it, or reading getHours(), gives the site's time on any device.
+  at(ms) {
+    if (this.tz === null) return new Date(ms);
+    const u = new Date(ms + this.tz * 60e3);
+    return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), u.getUTCHours(), u.getUTCMinutes(), u.getUTCSeconds());
+  },
+  // "2026-11-16" + "20:00" typed in the site's time -> the moment
+  parse(day, time) {
+    const [y, mo, d] = String(day).split('-').map(Number), [h, mi] = String(time).split(':').map(Number);
+    if (this.tz === null) return new Date(day + 'T' + time).getTime();
+    return Date.UTC(y, mo - 1, d, h, mi || 0) - this.tz * 60e3;
+  },
+  // what this device's own clock face shows, as minutes ahead of the true UTC (the site's clock is the reference)
+  wall() { return Math.round((-new Date().getTimezoneOffset() - this.delta / 60e3) / 15) * 15; },
 };
 const account = {
   get token() { return store.get('regam.member') || ''; },

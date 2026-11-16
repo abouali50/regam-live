@@ -693,8 +693,8 @@
     // the form, like a meeting planner: topic, day, start time, how long
     const schedDlg = $('#schedDlg');
     $('#schedOpen').onclick = () => {
-      const n = new Date(Date.now() + 3600e3);
-      $('#nextDate').value = `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`; const t0 = new Date(); $('#nextDate').min = `${t0.getFullYear()}-${pad(t0.getMonth() + 1)}-${pad(t0.getDate())}`;
+      const n = siteClock.at(siteClock.now() + 3600e3);
+      $('#nextDate').value = `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`; const t0 = siteClock.at(siteClock.now()); $('#nextDate').min = `${t0.getFullYear()}-${pad(t0.getMonth() + 1)}-${pad(t0.getDate())}`;
       $('#nextTime').value = `${pad(n.getHours())}:00`; $('#nextDur').value = '60'; $('#nextTitle').value = ''; $('#nextFree').checked = false;
       $('#schedErr').hidden = true;
       schedDlg.showModal();
@@ -702,7 +702,7 @@
     $('#schedCancel').onclick = () => schedDlg.close();
     $('#schedForm').onsubmit = (e) => {
       e.preventDefault();
-      const at = new Date($('#nextDate').value + 'T' + $('#nextTime').value).getTime() + siteClock.skew;
+      const at = siteClock.parse($('#nextDate').value, $('#nextTime').value);
       if (!(at > siteClock.now() - 3600e3)) { $('#schedErr').hidden = false; $('#schedErr').textContent = T('الوقت ما مقبولش. اختار وقت جاي.'); return; }
       link.send({ t: 'session', at, end: at + Number($('#nextDur').value) * 60000, title: $('#nextTitle').value, free: $('#nextFree').checked });
     };
@@ -1021,11 +1021,13 @@
     };
     $('#relayOn').onchange = () => link.send({ t: 'relay', on: $('#relayOn').checked });
     $('#relayClear').onclick = () => link.send({ t: 'relay', fb: '', yt: '', other: '', on: false });
+    link.on('tz', (d) => { siteClock.tz = d.tz; showInvite(); });
     link.on('relay', (d) => { showRelay(d); if (!d.err) status(T('تحفظ.')); });
 
     link.on('init', (d) => {
       if (!d.mod) return logout();            // token expired
-      siteClock.set(d.now);
+      siteClock.set(d.now, d.tz);
+      if (d.admin && siteClock.wall() !== d.tz) link.send({ t: 'tz', min: siteClock.wall() });      // the administrator's clock is the site's time
       $('#viewers').textContent = d.viewers;
       if (d.uplink) uplink = d.uplink;
       if (d.cls) showClass(d.cls);

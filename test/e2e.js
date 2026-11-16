@@ -449,6 +449,13 @@ async function until(fn, ms = 15000, step = 250) {
         const closedAfter = await passOf();
         check('a planned live marked open lets people watch without an account once it runs, and the site closes again after it', !!one && one.free === true && closedBefore === 401 && openDuring === 200 && cfgDuring === 'join' && sees && closedAfter === 401, `${closedBefore} ${openDuring} ${cfgDuring} ${sees} ${closedAfter}`);
         await anon.reload();
+        // a room with an entry code: the code is the invitation, no account is asked to watch
+        const codeSay = (on) => studio.evaluate((o) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'codesettester0001', token: sessionStorage.getItem('regam.studio') })); w.send(JSON.stringify({ t: 'code', on: o })); }; w.onmessage = (e) => { const d = JSON.parse(e.data); if (d.t === 'code') { res(d.code); w.close(); } }; setTimeout(() => res(null), 4000); }), on);
+        const coded = await codeSay(true);
+        const ask = (c) => anon.evaluate((c2) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'codeonlytester001', code: c2 })); w.onmessage = (e) => { const d = JSON.parse(e.data); res(d.t === 'batch' ? 'init' : d.t); w.close(); }; setTimeout(() => res('none'), 4000); }), c);
+        const noCode = await ask(''), withCode = await ask(coded), passCode = await anon.evaluate(async (c) => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=' + c)).status, coded), passNone = await passOf();
+        await codeSay(false);
+        check('on a site that asks for an account, a room with an entry code lets in whoever has the code, without an account', /^\d{6}$/.test(String(coded)) && noCode === 'code' && withCode === 'init' && passCode === 200 && passNone === 403 && (await passOf()) === 401, `${coded} ${noCode} ${withCode} ${passCode} ${passNone}`);
       }
       await adminSet({ access: 'join' });
       await anon.reload();
@@ -1095,9 +1102,15 @@ async function until(fn, ms = 15000, step = 250) {
       await until(() => pv.locator('#liveBadge.off').isVisible());
       await pv.context().close(); await pctx.close();
     }
-    {   // a device whose clock is an hour ahead still shows and plans lives at the right hour
-      const r = await studio.evaluate(() => { const c = Object.create(siteClock); c.skew = 0; c.set(Date.now() - 3600e3 + 4000); const fast = c.skew; const shown = c.at(1800000000000).getTime(); c.set(Date.now() + 90e3); return { fast, shown, small: c.skew, real: siteClock.skew }; });
-      check('a device with a clock one hour off is corrected against the site\'s clock; a small difference is left alone', r.fast === -3600e3 && r.shown === 1800000000000 + 3600e3 && r.small === 0 && r.real === 0, JSON.stringify(r));
+    {   // the site's time is the same on every device, whatever its time zone or clock
+      const r = await studio.evaluate(() => { const c = Object.create(siteClock); c.tz = 60; c.delta = -3600e3;
+        return { hour: c.at(Date.UTC(2026, 10, 16, 19, 0)).getHours(), text: c.at(Date.UTC(2026, 10, 16, 19, 0)).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), typed: c.parse('2026-11-16', '20:00') === Date.UTC(2026, 10, 16, 19, 0), wall: c.wall() + new Date().getTimezoneOffset(), real: siteClock.tz }; });
+      const far = await browser.newContext({ locale: 'fr-FR', timezoneId: 'Asia/Tokyo' }), fp = await far.newPage();
+      await fp.goto(BASE + '/rooms');
+      const tokyo = await fp.evaluate(() => ({ off: new Date().getTimezoneOffset(), tz: siteClock.tz, shown: siteClock.at(Date.UTC(2026, 10, 16, 19, 0)).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }));
+      const here = await studio.evaluate(() => siteClock.at(Date.UTC(2026, 10, 16, 19, 0)).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+      await far.close();
+      check('times are shown and typed in the site\'s own time: a phone set to another time zone shows the same hour as the studio', r.hour === 20 && r.text === '20:00' && r.typed && r.wall === 60 && Number.isFinite(r.real) && tokyo.off === -540 && tokyo.tz === r.real && tokyo.shown === here, JSON.stringify({ r, tokyo, here }));
     }
     // ---- the studio organised in sections with a side menu
     {

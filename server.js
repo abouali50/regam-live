@@ -238,7 +238,13 @@ async function aiReply(room, ws, msg) {
 // the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
 const OPEN_EARLY = 30 * 60e3, OPEN_LATE = 30 * 60e3;
 // A planned live marked "open" lets people watch without an account while it lasts, on a site that otherwise asks for one.
-const runningOf = (room) => { const now = Date.now(); return (room.cfg.sessions || []).filter((s) => (s.opened || now >= s.at - OPEN_EARLY) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE); };
+// The planned lives that count right now. While the room is on air for one planned live (its host started it), that
+// one alone: the people invited to another live of the same room, with another link, are not let into this one.
+const runningOf = (room) => {
+  const now = Date.now(), all = room.cfg.sessions || [];
+  const mine = room.live && room.cfg.active ? all.find((s) => s.id === room.cfg.active) : null;
+  return mine ? [mine] : all.filter((s) => (s.opened || now >= s.at - OPEN_EARLY) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);
+};
 const accessOf = (room) => (acct.access() === 'watch' && room && runningOf(room).some((s) => s.free) ? 'join' : acct.access());
 const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || accessOf(room) === 'watch' || !!(room.cfg.fee && room.cfg.fee.amount > 0) || !!room.cfg.closed;
 // Entry code of a room (like a meeting passcode): the host sends it with the invitation.
@@ -248,11 +254,12 @@ const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || accessOf(room
 function codeState(room, code) {
   if (!room.cfg.code) return { ok: true };
   const c = String(code || '').replace(/\D/g, ''), now = Date.now(), all = room.cfg.sessions || [];
-  const current = all.filter((s) => (s.opened || now >= s.at - OPEN_EARLY) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);      // opened: its host started it ahead of time
+  const current = runningOf(room);
   // the room's own code always opens it; the code of a planned live opens it around that live
   if (safeEq(room.cfg.code, c) || current.some((s) => s.code && safeEq(s.code, c))) return { ok: true };
-  const later = all.find((s) => s.code && !s.opened && now < s.at - OPEN_EARLY && safeEq(s.code, c));
-  return later ? { ok: false, early: later.at } : { ok: false };
+  const theirs = all.find((s) => s.code && !current.includes(s) && safeEq(s.code, c) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);      // the code of another planned live of this room
+  if (!theirs) return { ok: false };
+  return now < theirs.at - OPEN_EARLY && !theirs.opened ? { ok: false, early: theirs.at } : { ok: false, other: true };
 }
 const codeOk = (room, code) => codeState(room, code).ok;
 // Guessing codes is slowed down: twelve different wrong codes from one address in ten minutes, then a pause.
@@ -883,7 +890,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/join' && req.method === 'POST') {            // "join with a code": which room does this entry code open?
       const code = String((await readJson(req)).code || '').replace(/\D/g, ''), ip = clientIp(req);
       let room = null, early = 0;
-      if (code.length === 6) for (const r of rooms.values()) { if (!r.cfg.code) continue; const st = codeState(r, code); if (st.ok || st.early) { room = r; early = st.early || 0; break; } }
+      if (code.length === 6) for (const r of rooms.values()) { if (!r.cfg.code) continue; const st = codeState(r, code); if (st.ok || st.early || st.other) { room = r; early = st.early || 0; break; } }
       if (!codeAllowed(ip, !room)) { sec.audit('code.blocked', ip, {}); return send(res, 429, { error: 'too many requests' }); }
       return room ? send(res, 200, { slug: room.cfg.slug, early }) : send(res, 404, { error: 'bad code' });
     }
@@ -1116,8 +1123,10 @@ wss.on('connection', (ws, req) => {
       }
       if (!host && !helper && room.cfg.code && !cls.known(room, member)) {             // the room has an entry code (students of the class are not asked again)
         const st = codeState(room, d.code);
-        if (!codeAllowed(ws.ip, !st.ok && !st.early && d.code ? String(d.code).replace(/\D/g, '').slice(0, 12) : '')) return tx(ws, { t: 'code', wait: true });
-        if (!st.ok) return tx(ws, { t: 'code', bad: !!d.code && !st.early, early: st.early });
+        if (!codeAllowed(ws.ip, !st.ok && !st.early && !st.other && d.code ? String(d.code).replace(/\D/g, '').slice(0, 12) : '')) return tx(ws, { t: 'code', wait: true });
+        if (!st.ok) return tx(ws, { t: 'code', bad: !!d.code && !st.early && !st.other, early: st.early, other: st.other });
+        const used = String(d.code || '').replace(/\D/g, '');
+        ws.sessCode = (room.cfg.sessions || []).some((x) => x.code && safeEq(x.code, used)) ? used : '';      // came in with the link of a planned live
       }
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full
@@ -1350,7 +1359,7 @@ wss.on('connection', (ws, req) => {
       case 'session': {                    // the room's calendar: plan a session, or remove one
         const list = plannedOf(room);
         if (d.del) cfg.sessions = list.filter((s) => s.id !== String(d.del));
-        else if (d.open) { const s = list.find((x) => x.id === String(d.open)); if (s) s.opened = Date.now(); }     // started by its host, at any time: its code and link work from now
+        else if (d.open) { const s = list.find((x) => x.id === String(d.open)); if (s) { s.opened = Date.now(); cfg.active = s.id; } }     // started by its host, at any time: its code and link work from now
         else {
           const at = Number(d.at), end = Number(d.end) || 0, now = Date.now();
           if (!(at > now - 3600e3 && at < now + 366 * 24 * 3600e3) || (end && (end <= at || end > at + 24 * 3600e3)) || list.length >= 40) return tx(ws, { t: 'sessions', list, err: 'bad' });
@@ -1621,11 +1630,20 @@ async function pollLive() {
     room.live = on;
     if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }
     if (on) {                                                                       // going on air ahead of a planned live starts that live: its code, its link and its "open" setting count from now
-      const s = plannedOf(room)[0];
-      if (s && !s.opened && s.at - Date.now() < 3 * 3600e3) { s.opened = Date.now(); save(); toMods(room, { t: 'sessions', list: plannedOf(room) }); }
+      const picked = (room.cfg.sessions || []).find((x) => x.id === room.cfg.active), s = picked || plannedOf(room)[0];      // the one the host started from its card, else the next one
+      if (s && (picked || s.at - Date.now() < 3 * 3600e3)) {
+        if (!s.opened) s.opened = Date.now();
+        room.cfg.active = s.id; save(); toMods(room, { t: 'sessions', list: plannedOf(room) });
+        for (const c of [...room.clients]) if (!c.mod && !c.helper && !slotOf(room, c.uid) && c.sessCode && !safeEq(c.sessCode, s.code || '')) c.close();      // who came in with the link of another live comes back through the code
+      } else if (room.cfg.active) { delete room.cfg.active; save(); }
     }      // a new live starts its reactions from zero
     broadcast(room, { t: 'live', on });
     if (!on) endStage(room, 'ended');
+    if (!on && room.cfg.active) {                                                   // the planned live is over: it goes back to its own hours
+      const s = (room.cfg.sessions || []).find((x) => x.id === room.cfg.active);
+      if (s) delete s.opened;
+      delete room.cfg.active; save();
+    }
     if (!on) applyRelay(room);                                                      // a change of Facebook/YouTube made during the live
     if (!on && room.rec) setRecording(room, false);                                 // the next live starts without recording
     if (!on && room.cfg.code) { room.cfg.code = newCode(room); save(); toMods(room, { t: 'code', code: room.cfg.code }); }   // the code of an unplanned live is good for that live only

@@ -454,6 +454,19 @@ async function until(fn, ms = 15000, step = 250) {
         const coded = await codeSay(true);
         const ask = (c) => anon.evaluate((c2) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'codeonlytester001', code: c2 })); w.onmessage = (e) => { const d = JSON.parse(e.data); res(d.t === 'batch' ? 'init' : d.t); w.close(); }; setTimeout(() => res('none'), 4000); }), c);
         const noCode = await ask(''), withCode = await ask(coded), passCode = await anon.evaluate(async (c) => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=' + c)).status, coded), passNone = await passOf();
+        {   // two groups, two links: while the live of one group is on air, the link of the other does not open it
+          const t1 = Date.now() + 26 * 3600e3, t2 = Date.now() + 50 * 3600e3;
+          await hostSay({ t: 'session', at: t1, end: t1 + 3600e3, title: 'Groupe A' });
+          const both = await hostSay({ t: 'session', at: t2, end: t2 + 3600e3, title: 'Groupe B' });
+          const A = (both || []).find((x) => x.title === 'Groupe A'), B = (both || []).find((x) => x.title === 'Groupe B');
+          const passWith = (c) => anon.evaluate(async (c2) => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=' + c2)).status, c);
+          await hostSay({ t: 'session', open: A && A.id });
+          const aIn = await passWith(A && A.code), bOut = await passWith(B && B.code), bSays = await anon.evaluate((c2) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'othergrouptest001', code: c2 })); w.onmessage = (e) => { const d = JSON.parse(e.data); res(d.t === 'code' ? (d.other ? 'other' : d.early ? 'early' : d.bad ? 'bad' : 'ask') : d.t); w.close(); }; setTimeout(() => res('none'), 4000); }), B && B.code);
+          await hostSay({ t: 'session', open: B && B.id });
+          const bIn = await passWith(B && B.code), aOut = await passWith(A && A.code);
+          await hostSay({ t: 'session', del: A && A.id }); await hostSay({ t: 'session', del: B && B.id });
+          check('two groups with two links: while the live of one is on air, the link of the other group does not open it', !!A && !!B && A.code !== B.code && aIn === 200 && bOut === 403 && (bSays === 'other' || bSays === 'early') && bIn === 200 && aOut === 403, `${aIn} ${bOut} ${bSays} ${bIn} ${aOut}`);
+        }
         await codeSay(false);
         check('on a site that asks for an account, a room with an entry code lets in whoever has the code, without an account', /^\d{6}$/.test(String(coded)) && noCode === 'code' && withCode === 'init' && passCode === 200 && passNone === 403 && (await passOf()) === 401, `${coded} ${noCode} ${withCode} ${passCode} ${passNone}`);
       }

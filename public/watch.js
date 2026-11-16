@@ -528,11 +528,11 @@
       const stale = d.bad && !typedCode;
       if (d.bad) { link.code = ''; store.set(codeKey, ''); }
       typedCode = false;
-      err.hidden = stale || (!d.bad && !d.wait && !d.early);
-      err.textContent = d.early ? T('هاد الكود ديال لايف مبرمج ل {when}. غادي يخدم نص ساعة قبل البداية.', { when: siteClock.at(d.early).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) })
+      err.hidden = stale || (!d.bad && !d.wait && !d.early && !d.other);
+      err.textContent = d.other ? T('هاد الكود ديال لايف آخر. دابا كاين لايف آخر فهاد القاعة: عاود فالوقت ديال اللايف ديالك.') : d.early ? T('هاد الكود ديال لايف مبرمج ل {when}. غادي يخدم نص ساعة قبل البداية.', { when: siteClock.at(d.early).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) })
         : T(d.wait ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط ولا سالا الوقت ديالو. شوف الدعوة وعاود.');
       clearTimeout(earlyRetry);                // a planned live not open yet: asked again by itself, its host may start it ahead of time
-      if (d.early) earlyRetry = setTimeout(() => { if (dlg.open && !$('#codeInput').value) link.hello(); }, 20000);
+      if (d.early || d.other) earlyRetry = setTimeout(() => { if (dlg.open && !$('#codeInput').value) link.hello(); }, 20000);
       $('#codeForm').onsubmit = (e) => {
         e.preventDefault();
         link.code = $('#codeInput').value.replace(/\D/g, '');

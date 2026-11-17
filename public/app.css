@@ -877,3 +877,8 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .site-dl { display: grid; gap: 10px; padding: 18px 20px; border-radius: 18px; background: rgba(20,28,74,.6); border: 1px solid #8f9bd0; }
 .site-dl h3 { margin: 0; color: var(--gold); font-size: 20px; } .site-dl p { margin: 0; line-height: 1.55; }
 .site-dl-row { display: flex; gap: 10px; flex-wrap: wrap; } .site-dl-row small { font-weight: 600; opacity: .75; }
+
+/* ---- 17 Nov: in the studio the window comes first: narrower comments, less empty space around ---- */
+.studio .layout:has(> .chat:not(.collapsed)) { grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; }
+.studio .layout { padding-inline: 12px; gap: 12px; }
+@media (min-width: 901px) { .studio .player { max-height: none; } }

@@ -68,20 +68,15 @@ function createPainter(canvas, { brand = 'REGAM Live', fixed = false } = {}) {
       contain(screen, 0, 0, W, H);
       if (cam) { const m = Math.round(W * 0.012), tw = Math.round(W * 0.17), th = Math.round(tw * 0.75); tile(cam, W - m - tw, H - m - th, tw, th, ''); }
     } else if (cam && people.length > 1) {
-      // the host with guests: the host large on the left, the guests one above the other in a column on the right
-      // (two columns from seven guests on, so that each stays readable)
-      const guests = people.slice(1), g = guests.length, gap = 4, colsG = g <= 6 ? 1 : 2, rowsG = Math.ceil(g / colsG);
-      const colW = Math.round(W * (colsG === 1 ? 0.25 : 0.19)), sideW = colsG * colW + (colsG - 1) * gap, hostW = W - sideW - gap;
-      const th = Math.min((H - gap * (rowsG - 1)) / rowsG, Math.round(colW * 0.75));
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, hostW, H); ctx.clip();
-      picture(people[0], 0, 0, hostW, H);
-      ctx.restore();
+      // the host with guests: the host keeps the whole picture, as large as when alone; the guests stand in small
+      // frames one above the other along the right edge (two columns from seven guests on)
+      picture(people[0], 0, 0, W, H);
+      const guests = people.slice(1), g = guests.length, m = Math.round(H * 0.025), gap = Math.round(H * 0.014);
+      const colsG = g <= 6 ? 1 : 2, rowsG = Math.ceil(g / colsG);
+      const th = Math.min(Math.round(H * 0.2), Math.floor((H - 2 * m - gap * (rowsG - 1)) / rowsG)), tw = Math.round(th * 16 / 9);
       guests.forEach((p, i) => {
-        const col = Math.floor(i / rowsG), row = i % rowsG, x = hostW + gap + col * (colW + gap), y = row * (th + gap);
-        ctx.save(); ctx.beginPath(); ctx.rect(x, y, colW, th); ctx.clip();
-        picture(p, x, y, colW, th);
-        if (p.label) nameTag(p.label, x, y, colW, th, Math.round(H * 0.03));
-        ctx.restore();
+        const col = Math.floor(i / rowsG), row = i % rowsG;
+        tile(p.frame, W - m - tw - col * (tw + gap), m + row * (th + gap), tw, th, p.label);
       });
     } else if (people.length) {
       // no screen: an even grid. 1 full, 2 side by side, up to 4 in two columns, up to 9 in three, then four

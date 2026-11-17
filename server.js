@@ -239,12 +239,16 @@ async function aiReply(room, ws, msg) {
 // the stream is only handed to people holding a pass when the room has a waiting room or the site asks for an account
 const OPEN_EARLY = 30 * 60e3, OPEN_LATE = 30 * 60e3;
 // A planned live marked "open" lets people watch without an account while it lasts, on a site that otherwise asks for one.
+// A planned live that was held is over for good a few minutes after its host stopped it: its link and its code have
+// served, and open nothing afterwards. (The few minutes let a host who stopped by mistake start the same live again.)
+const SPENT_AFTER = Number(env.SPENT_AFTER_MS) || 10 * 60e3;
+const spent = (s) => !!s.over && Date.now() - s.over > SPENT_AFTER;
 // The planned lives that count right now. While the room is on air for one planned live (its host started it), that
 // one alone: the people invited to another live of the same room, with another link, are not let into this one.
 const runningOf = (room) => {
   const now = Date.now(), all = room.cfg.sessions || [];
   const mine = room.live && room.cfg.active ? all.find((s) => s.id === room.cfg.active) : null;
-  return mine ? [mine] : all.filter((s) => (s.opened || now >= s.at - OPEN_EARLY) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);
+  return mine ? [mine] : all.filter((s) => !spent(s) && (s.opened || now >= s.at - OPEN_EARLY) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);
 };
 const accessOf = (room) => (acct.access() === 'watch' && room && runningOf(room).some((s) => s.free) ? 'join' : acct.access());
 const passNeeded = (room) => !!room.cfg.gate || !!room.cfg.code || accessOf(room) === 'watch' || !!(room.cfg.fee && room.cfg.fee.amount > 0) || !!room.cfg.closed;
@@ -258,7 +262,7 @@ function codeState(room, code) {
   const current = runningOf(room);
   // the room's own code always opens it; the code of a planned live opens it around that live
   if (safeEq(room.cfg.code, c) || current.some((s) => s.code && safeEq(s.code, c))) return { ok: true };
-  const theirs = all.find((s) => s.code && !current.includes(s) && safeEq(s.code, c) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);      // the code of another planned live of this room
+  const theirs = all.find((s) => s.code && !spent(s) && !current.includes(s) && safeEq(s.code, c) && now < (s.end || s.at + 3 * 3600e3) + OPEN_LATE);      // the code of another planned live of this room
   if (!theirs) return { ok: false };
   return now < theirs.at - OPEN_EARLY && !theirs.opened ? { ok: false, early: theirs.at } : { ok: false, other: true };
 }
@@ -282,7 +286,7 @@ const newCode = (room) => {                 // six digits, different from the ro
 function plannedOf(room) {                  // with each session's own entry code: for the host only
   const c = room.cfg, now = Date.now();
   if (c.next && !c.sessions) { c.sessions = [{ id: 's' + c.next.at, at: c.next.at, end: 0, title: c.next.title || '' }]; delete c.next; }     // from the earlier single "next live"
-  const list = (c.sessions || []).filter((s) => (s.end || s.at + 3 * 3600e3) > now).sort((a, b) => a.at - b.at);
+  const list = (c.sessions || []).filter((s) => (s.end || s.at + 3 * 3600e3) > now && !spent(s)).sort((a, b) => a.at - b.at);
   for (const s of list) if (!s.code) s.code = newCode(room);
   return list;
 }
@@ -1694,6 +1698,7 @@ async function pollLive() {
       const picked = (room.cfg.sessions || []).find((x) => x.id === room.cfg.active), s = picked || plannedOf(room)[0];      // the one the host started from its card, else the next one
       if (s && (picked || s.at - Date.now() < 3 * 3600e3)) {
         if (!s.opened) s.opened = Date.now();
+        delete s.over;                                                                // started again within the few minutes
         room.cfg.active = s.id; save(); toMods(room, { t: 'sessions', list: plannedOf(room) });
         for (const c of [...room.clients]) if (!c.mod && !c.helper && !slotOf(room, c.uid) && c.sessCode && !safeEq(c.sessCode, s.code || '')) c.close();      // who came in with the link of another live comes back through the code
       } else if (room.cfg.active) { delete room.cfg.active; save(); }
@@ -1702,8 +1707,9 @@ async function pollLive() {
     if (!on) endStage(room, 'ended');
     if (!on && room.cfg.active) {                                                   // the planned live is over: it goes back to its own hours
       const s = (room.cfg.sessions || []).find((x) => x.id === room.cfg.active);
-      if (s) delete s.opened;
+      if (s) { delete s.opened; s.over = Date.now(); }                              // it was held: its link is used up
       delete room.cfg.active; save();
+      setTimeout(() => toMods(room, { t: 'sessions', list: plannedOf(room) }), SPENT_AFTER + 2000).unref();
     }
     if (!on) applyRelay(room);                                                      // a change of Facebook/YouTube made during the live
     if (!on && room.rec) setRecording(room, false);                                 // the next live starts without recording

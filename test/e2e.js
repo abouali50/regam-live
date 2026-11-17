@@ -167,7 +167,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', CHAIN_RPC: 'http://127.0.0.1:15004', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', SPENT_AFTER_MS: '3000', CHAIN_RPC: 'http://127.0.0.1:15004', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -1351,12 +1351,20 @@ async function until(fn, ms = 15000, step = 250) {
         const now = (await (await fetch(BASE + '/api/plans')).json()).plans;
         await post('/api/admin/settings', { plans: [...now.map((x, i) => (i === 0 ? { ...x, minutes: 2 } : x)), { name: 'Essai', price: 0, capacity: 20, minutes: 15 }, { name: 'Annuel', price: 500, capacity: 200, yearly: true }] }, H);
         const listed = (await (await fetch(BASE + '/api/plans')).json()).plans, freePlan = listed.find((x) => x.name === 'Essai');
+        const soonAt = Date.now() + 3600e3, joinWith = async (c) => { const r = await post('/api/join', { code: c }); return { status: r.status, ...(await r.json().catch(() => ({}))) }; };
+        host.say({ t: 'session', at: soonAt, end: soonAt + 3600e3, title: 'Unique' });
+        const uniq = await until(() => { const m = host.last('sessions'); return m && m.list.find((x) => x.title === 'Unique'); }, 5000);
+        const linkBefore = await joinWith(uniq && uniq.code);
         forcedAir.add('air_' + slug);
+        const linkDuring = await until(async () => { const j = await joinWith(uniq && uniq.code); return j.status === 200 && !j.early ? j : null; }, 10000);
         const over = await until(() => { const m = host.last('limit'); return m && m.over ? m : null; }, 20000);
         const warned = host.got.some((d) => d.t === 'limit' && d.left >= 1);
         const shownOff = await until(async () => ((await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === slug).live === false ? true : null), 8000);
         forcedAir.delete('air_' + slug);
         await sleep(2500);
+        const linkAfter = await until(async () => { const j = await joinWith(uniq && uniq.code); return j.status === 404 ? j : null; }, 12000);
+        const goneFromAgenda = await until(() => { const m = host.last('sessions'); return m && !m.list.some((x) => x.title === 'Unique') ? true : null; }, 8000);
+        check('the link of a planned live serves for that live only: once the live was held and stopped, the same link opens nothing', !!uniq && linkBefore.early > 0 && !!linkDuring && linkDuring.slug === slug && !!linkAfter && goneFromAgenda === true, `${JSON.stringify(linkBefore)} ${JSON.stringify(linkDuring)} ${JSON.stringify(linkAfter)} ${goneFromAgenda}`);
         const trial = await (await post('/api/apply', { planId: freePlan.id, name: 'Hind Essai', contact: 'hind@example.com', roomTitle: 'Coaching Hind', topic: 'Coaching', login: 'hindessai', password: 'hind-pass-12' })).json();
         const trialIn = await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'hindessai', password: 'hind-pass-12' }) });
         const yearPlan = listed.find((x) => x.name === 'Annuel');

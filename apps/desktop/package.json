@@ -1,0 +1,16 @@
+{
+  "name": "regam-live",
+  "productName": "REGAM Live",
+  "version": "1.0.0",
+  "description": "REGAM Live - live classes, meetings and coaching",
+  "author": "Aziz Mernissi",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "33.2.1"
+  }
+}

@@ -169,6 +169,7 @@
     $('#payLog').replaceChildren(...(p.log.length ? p.log.map((l) => el('li', {}, el('span', { class: 'admin-main-cell' }, el('strong', {}, l.name), el('span', { class: 'muted', dir: 'ltr' }, l.login),
       el('span', {}, l.kind === 'entry' ? T('{amount} دولار، دخول ل «{room}» ({teacher})', { amount: l.amount, room: l.room, teacher: l.teacher }) : T('{amount} دولار، {n} شهر', { amount: l.amount, n: l.months })), el('span', { class: 'muted' }, when(l.at)))))
       : [el('li', { class: 'muted' }, T('مازال ما كاين حتى خلاص.'))]));
+    if (!$('#walletForm').contains(document.activeElement)) $('#walletForm').elements.wallet.value = p.wallet || '';
     const f = $('#payKeys').elements;
     if ($('#payKeys').contains(document.activeElement)) return;
     f.clientId.value = p.clientId; f.sandbox.checked = p.sandbox;
@@ -179,6 +180,13 @@
     const f = e.target.elements;
     api('/settings', { method: 'POST', body: JSON.stringify({ pay: { clientId: f.clientId.value.trim(), secret: f.secret.value.trim(), sandbox: f.sandbox.checked } }) })
       .then((r) => { f.secret.value = ''; document.activeElement.blur(); return done(r, T('تحفظ. جرب المفاتيح دابا.')); });
+  };
+  $('#walletForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const w = e.target.elements.wallet.value.trim();
+    if (w && !/^0x[0-9a-fA-F]{40}$/.test(w)) return say(T('هاد العنوان ماشي صحيح: خاصو يبدا ب 0x ويكون فيه 42 حرف.'), true);
+    document.activeElement.blur();
+    done(await api('/settings', { method: 'POST', body: JSON.stringify({ pay: { wallet: w } }) }), T(w ? 'تحفظ العنوان. الخلاص بالمحفظة خدام.' : 'تحيد العنوان. الخلاص بالمحفظة توقف.'));
   };
   $('#payTest').onclick = async () => {
     say(T('كنجربو المفاتيح…'));

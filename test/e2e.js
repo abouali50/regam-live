@@ -141,6 +141,18 @@ async function until(fn, ms = 15000, step = 250) {
     res.end(JSON.stringify({ content: [{ type: 'text', text }] }));
   }).listen(15001);
   const pushSrv = http.createServer((req, res) => { seen.pushes.push({ url: req.url, auth: req.headers.authorization || '', ttl: req.headers.ttl }); res.writeHead(req.url.includes('gone') ? 410 : 201); res.end(); }).listen(15003);   // stands in for a browser's push service
+  // stands in for the BNB Smart Chain: the test decides what each transaction looks like
+  const chain = { head: 1000, txs: {} };
+  const chainSrv = http.createServer((req, res) => {
+    let body = ''; req.on('data', (c) => { body += c; }); req.on('end', () => {
+      const q = JSON.parse(body || '{}'), hex = (n) => '0x' + BigInt(n).toString(16), pad = (a) => '0x' + '0'.repeat(24) + a.slice(2).toLowerCase();
+      let result = null; const t = chain.txs[(q.params || [])[0]];
+      if (q.method === 'eth_blockNumber') result = hex(chain.head);
+      if (q.method === 'eth_getTransactionReceipt' && t) result = { status: t.status || '0x1', blockNumber: hex(t.block), to: t.token, logs: [{ address: t.token, topics: ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', pad(t.from), pad(t.to)], data: '0x' + BigInt(t.value).toString(16).padStart(64, '0') }] };
+      if (q.method === 'eth_getBlockByNumber') { const b = Object.values(chain.txs).find((x) => hex(x.block) === q.params[0]); result = { timestamp: hex(Math.floor((b ? b.ts : Date.now()) / 1000)) }; }
+      res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ jsonrpc: '2.0', id: q.id, result }));
+    });
+  }).listen(15004);
   const hlsSrv = http.createServer((req, res) => {
     // like MediaMTX: without the CDN secret, a playlist request is answered with a redirect
     if (req.headers.authorization !== 'Bearer mtxpass') { seen.hlsNoSecret = (seen.hlsNoSecret || 0) + 1; res.writeHead(302, { Location: req.url + '?cookieCheck=1' }); return res.end(); }
@@ -155,7 +167,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', CHAIN_RPC: 'http://127.0.0.1:15004', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -1323,6 +1335,36 @@ async function until(fn, ms = 15000, step = 250) {
         const yStart = await (await post('/api/pay/start', { login: 'saraannuel', password: 'sara-pass-123', months: 1 })).json();
         const yOrd = yStart.url ? pp.orders[new URL(yStart.url).searchParams.get('token')] : null;
         check('a plan priced by the year is paid at once, at its own price, for twelve months', !!yOrd && yOrd.unit.amount.value === '500.00' && /:12$/.test(yOrd.unit.custom_id), JSON.stringify(yStart).slice(0, 200) + ' ' + JSON.stringify(yOrd && yOrd.unit));
+        {   // payment with a crypto wallet: the site reads the transfer on the chain before opening anything
+          const SITE = '0x' + '1a'.repeat(20), PAYER = '0x' + '2b'.repeat(20), THIEF = '0x' + '3c'.repeat(20), USDT = '0x55d398326f99059ff775485246999027b3197955';
+          const badAddr = await post('/api/admin/settings', { pay: { wallet: 'not-an-address' } }, H);
+          const before = (await (await fetch(BASE + '/api/plans')).json()).wallet;
+          await post('/api/admin/settings', { pay: { wallet: SITE } }, H);
+          const offered = (await (await fetch(BASE + '/api/plans')).json()).wallet;
+          const st = (await (await post('/api/pay/start', { login: 'saraannuel', password: 'sara-pass-123', months: 1, via: 'wallet', from: PAYER, token: 'USDT' })).json()).wallet || {};
+          const conf = async (order, tx) => (await post('/api/pay/wallet', { order, tx })).json();
+          const h = (c) => '0x' + c.repeat(64);
+          const unknown = await conf(st.order, h('a'));                                                             // not on the chain yet
+          chain.txs[h('b')] = { token: USDT, from: THIEF, to: SITE, value: st.value, block: 980, ts: Date.now() };      // somebody else's transfer
+          const notMine = await conf(st.order, h('b'));
+          chain.txs[h('c')] = { token: USDT, from: PAYER, to: SITE, value: (BigInt(st.value || 0) - 1n).toString(), block: 985, ts: Date.now() };      // one cent short
+          const tooLittle = await conf(st.order, h('c'));
+          chain.txs[h('d')] = { token: USDT, from: PAYER, to: SITE, value: st.value, block: 990, ts: Date.now() - 3 * 3600e3 };      // an old transfer of the same amount
+          const tooOld = await conf(st.order, h('d'));
+          chain.txs[h('e')] = { token: USDT, from: PAYER, to: SITE, value: st.value, block: 999, ts: Date.now() };       // the real one, one block deep
+          const young = await conf(st.order, h('e'));
+          const closedYet = (await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'saraannuel', password: 'sara-pass-123' }) })).status;
+          chain.head = 1005;
+          const paid = await conf(st.order, h('e')), again = await conf(st.order, h('e'));
+          const openNow = (await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'saraannuel', password: 'sara-pass-123' }) })).status;
+          const st2 = (await (await post('/api/pay/start', { login: 'saraannuel', password: 'sara-pass-123', months: 1, via: 'wallet', from: PAYER, token: 'USDT' })).json()).wallet || {};
+          const reused = await conf(st2.order, h('e'));
+          const logged = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).pay.log[0];
+          check('wallet payment (USDT on BNB Smart Chain): only the right transfer, from the payer, of the full price, recent and confirmed, opens the account; once', badAddr.ok && before === false && !!offered && offered.tokens.includes('USDT')
+            && st.value === '500000000000000000000' && st.to === SITE && st.chainId === 56 && unknown.pending === true && notMine.ok === false && !notMine.pending && tooLittle.ok === false && tooOld.ok === false
+            && young.pending === true && closedYet !== 200 && paid.ok === true && again.ok === true && openNow === 200 && reused.ok === false && reused.error === 'used' && logged.via === 'wallet' && logged.amount === '500.00',
+            JSON.stringify({ st, unknown, notMine, tooLittle, tooOld, young, closedYet, paid, openNow, reused, logged }).slice(0, 700));
+        }
         check('a plan can limit how long one live lasts (a warning, then the live ends), and a free plan opens at once without payment', listed[0].minutes === 2 && !!over && over.minutes === 2 && warned && shownOff === true && trial.free === true && trialIn.status === 200 && listed.find((x) => x.name === 'Annuel').yearly === true, `${JSON.stringify(over)} ${warned} ${shownOff} ${JSON.stringify(trial).slice(0, 120)} ${trialIn.status}`);
         await post('/api/admin/settings', { plans: listed.map((x) => ({ ...x, minutes: 0 })) }, H);
       }

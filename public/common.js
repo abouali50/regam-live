@@ -89,6 +89,54 @@ function avatar(name, av, size = 32) {
   if (av) box.append(el('img', { src: '/media/avatar/' + av, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }));
   return box;
 }
+// Payment with a crypto wallet (MetaMask, Trust Wallet, Binance Wallet, OKX, Coinbase Wallet...): the wallet sends
+// USDT or USDC on BNB Smart Chain straight to the site's address; the site then checks the transaction on the chain.
+//   start(from, token) -> the site's answer { wallet: { order, chainId, token, to, value } } or { error }
+//   onPaid(result)     -> called once the site has seen the payment
+// Returns the block to put in the page: a choice of coin, the button, and what is happening.
+function walletPayBox(start, onPaid) {
+  const eth = () => window.ethereum || window.BinanceChain || null;
+  const coin = el('select', { class: 'wallet-coin', 'aria-label': 'coin' }, el('option', { value: 'USDT' }, 'USDT'), el('option', { value: 'USDC' }, 'USDC'));
+  const note = el('p', { class: 'muted wallet-note', role: 'status' });
+  const say = (text, bad) => { note.textContent = text; note.classList.toggle('bad', !!bad); };
+  const here = location.host + location.pathname + location.search;
+  const openIn = el('p', { class: 'wallet-open', hidden: true }, T('ما لقيناش محفظة فهاد المتصفح. حل هاد الصفحة من داخل المحفظة ديالك:'), ' ',
+    el('a', { class: 'btn', href: 'https://metamask.app.link/dapp/' + here }, 'MetaMask'), ' ',
+    el('a', { class: 'btn', href: 'https://link.trustwallet.com/open_url?coin_id=20000714&url=' + encodeURIComponent(location.href) }, 'Trust Wallet'), ' ',
+    el('span', { class: 'muted' }, T('ولا من المتصفح ديال Binance، OKX ولا أي محفظة أخرى.')));
+  const btn = el('button', { class: 'btn primary wallet-btn', type: 'button', onclick: async () => {
+    const w = eth();
+    if (!w) { openIn.hidden = false; return; }
+    btn.disabled = true;
+    try {
+      say(T('وافق فالمحفظة ديالك…'));
+      const [from] = await w.request({ method: 'eth_requestAccounts' });
+      const out = await start(from, coin.value), o = out && out.wallet;
+      if (!o) throw Object.assign(new Error('start'), { site: (out && out.error) || 'refused' });
+      const hex = '0x' + Number(o.chainId).toString(16);
+      try { await w.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] }); }
+      catch (e) {
+        if (e && (e.code === 4902 || /unrecognized|not been added/i.test(String(e.message)))) await w.request({ method: 'wallet_addEthereumChain', params: [{ chainId: hex, chainName: 'BNB Smart Chain', nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 }, rpcUrls: ['https://bsc-dataseed.binance.org'], blockExplorerUrls: ['https://bscscan.com'] }] });
+        else throw e;
+      }
+      const data = '0xa9059cbb' + o.to.slice(2).toLowerCase().padStart(64, '0') + BigInt(o.value).toString(16).padStart(64, '0');      // transfer(to, amount) of the coin
+      const tx = await w.request({ method: 'eth_sendTransaction', params: [{ from, to: o.token, data, value: '0x0' }] });
+      say(T('الخلاص تصيفط. كنتسناو التأكيد من الشبكة (شي دقيقة)…'));
+      for (let i = 0; i < 90; i++) {
+        const r = await fetch('/api/pay/wallet', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: o.order, tx }) }).then((x) => x.json()).catch(() => ({ pending: true }));
+        if (r.ok) { say(T('وصل الخلاص. شكرا!')); return onPaid(r); }
+        if (!r.pending) throw Object.assign(new Error('refused'), { site: r.error || 'refused' });
+        await new Promise((res) => setTimeout(res, 4000));
+      }
+      say(T('مازال ما تأكدش. إلا تخصمات الفلوس، تواصل مع الإدارة وعطيهم رقم العملية: {tx}', { tx }), true);
+    } catch (e) {
+      const refused = e && (e.code === 4001 || /reject|denied|cancel/i.test(String(e.message)));
+      say(refused ? T('لغيتي العملية فالمحفظة.') : T('الخلاص بالمحفظة ما دازش. تأكد بلي عندك {coin} و شوية ديال BNB للرسوم، وعاود جرب.', { coin: coin.value }) + (e && e.site ? ` [${e.site}]` : ''), true);
+    }
+    btn.disabled = false;
+  } }, '👛 ' + T('خلص بالمحفظة (كريبتو)'));
+  return el('div', { class: 'wallet-box' }, el('div', { class: 'wallet-row' }, btn, coin), el('p', { class: 'muted' }, T('MetaMask، Trust Wallet، Binance Wallet، OKX… ب USDT ولا USDC على شبكة BNB Smart Chain (BEP-20).')), openIn, note);
+}
 // One line for a subscription plan, the same on every page.
 const planText = (p) => (p.price === 0 ? T('{name}: حتى ل {n} متابع، فابور', { name: p.name, n: p.capacity })
   : T(p.yearly ? '{name}: حتى ل {n} متابع، {price} دولار فالعام' : '{name}: حتى ل {n} متابع، {price} دولار فالشهر', { name: p.name, n: p.capacity, price: p.price }))

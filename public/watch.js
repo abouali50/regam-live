@@ -489,6 +489,12 @@
   // ---- a paid class: pay with PayPal, come back, come in
   const payBtn = $('#payBtn');
   const priceLine = (fee) => T(fee.days === 1 ? 'هاد الدرس بالخلاص: {amount} دولار لنهار واحد.' : 'هاد الدرس بالخلاص: {amount} دولار ل 30 يوم.', { amount: fee.amount });
+  // the same entry, paid with a crypto wallet
+  const walletEntry = walletPayBox(
+    (from, token) => fetch('/api/pay/entry?room=' + encodeURIComponent(cfg.room), { method: 'POST', headers: { Authorization: 'Bearer ' + account.token, 'Content-Type': 'application/json' }, body: JSON.stringify({ via: 'wallet', from, token }) }).then((r) => r.json()).catch(() => ({ error: 'refused' })),
+    () => location.reload());
+  walletEntry.hidden = true; walletEntry.id = 'walletEntry';
+  payBtn.after(walletEntry);
   payBtn.onclick = async () => {
     payBtn.disabled = true;
     const r = await fetch('/api/pay/entry?room=' + encodeURIComponent(cfg.room), { method: 'POST', headers: { Authorization: 'Bearer ' + account.token } }).catch(() => null);
@@ -547,11 +553,11 @@
     })
     .on('pay', (d) => {                       // a paid class: the price, and the way to pay it
       doorShut = true; setLive(false); knockBtn.hidden = true; $('#signBtns').hidden = true;
-      $('#offlineText').textContent = priceLine(d.fee) + ' ' + T(d.ready ? 'خلص ب PayPal ولا بالكارط، ومن بعد كتدخل نيشان.' : 'الخلاص أونلاين ما خدامش دابا. تواصل مع الأستاذ.');
-      payBtn.hidden = !d.ready;
+      $('#offlineText').textContent = priceLine(d.fee) + ' ' + T(d.ready ? 'خلص ب PayPal ولا بالكارط، ومن بعد كتدخل نيشان.' : d.wallet ? 'خلص بالمحفظة ديالك، ومن بعد كتدخل نيشان.' : 'الخلاص أونلاين ما خدامش دابا. تواصل مع الأستاذ.');
+      payBtn.hidden = !d.ready; walletEntry.hidden = !d.wallet;
     })
     .on('closed', () => {                     // a class kept for its own students
-      doorShut = true; setLive(false); knockBtn.hidden = true; payBtn.hidden = true; $('#signBtns').hidden = true;
+      doorShut = true; setLive(false); knockBtn.hidden = true; payBtn.hidden = true; walletEntry.hidden = true; $('#signBtns').hidden = true;
       $('#offlineText').textContent = T('هاد القاعة خاصة بالتلاميذ ديال الأستاذ. طلب منو يزيدك للائحة بالإيميل ديال الحساب ديالك.');
     })
     .on('signin', (d) => {                    // the site (or this class) is for signed-in people: show the way in
@@ -568,7 +574,7 @@
   $('#signUp').onclick = () => openAccount('signup');
   link.on('init', async (d) => {
     doorShut = false; $('#signBtns').hidden = true;
-    knockBtn.hidden = true; payBtn.hidden = true;
+    knockBtn.hidden = true; payBtn.hidden = true; walletEntry.hidden = true;
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');
     if ($('#codeDlg').open) $('#codeDlg').close();
     showNext(d.next);

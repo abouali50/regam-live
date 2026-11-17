@@ -24,6 +24,12 @@
   const monthsLabel = (n) => T(n === 1 ? 'شهر واحد' : n === 12 ? 'عام (12 شهر)' : '{n} شهور', { n });
   for (const sel of document.querySelectorAll('select[name=months]')) sel.replaceChildren(...(data.months || [1]).map((n) => el('option', { value: n }, monthsLabel(n))));
   $('#renewBox').hidden = !data.pay;
+  for (const b of document.querySelectorAll('.pay-online button[type=submit]')) b.hidden = !data.paypal;      // PayPal only when its keys are set
+  // pay with a crypto wallet: same login, password and length, another road for the money
+  const walletFor = (form, creds) => walletPayBox(
+    (from, token) => { const c = creds(); return fetch('/api/pay/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: c.login, password: c.password, months: Number(form.elements.months.value), via: 'wallet', from, token }) }).then((r) => r.json()).catch(() => ({ error: 'refused' })); },
+    () => { $('#paidMsg').hidden = false; $('#paidMsg').classList.remove('bad'); $('#paidMsg').textContent = T('وصل الخلاص. الحساب ديالك مفتوح: دخل للاستوديو باسم الدخول وكلمة السر ديالك.'); $('#paidMsg').scrollIntoView({ block: 'center' }); });
+  if (data.wallet) { const f = $('#renewForm'); f.append(walletFor(f, () => ({ login: f.elements.login.value, password: f.elements.password.value }))); }
   const PAYERR = {
     'wrong login or password': 'اسم الدخول ولا كلمة السر غالطين.', 'too many attempts': 'محاولات بزاف. عاود من بعد شوية.',
     'account suspended': 'هاد الحساب موقوف. تواصل مع الإدارة.', 'no plan': 'هاد الحساب ما عندوش عرض. تواصل مع الإدارة.',
@@ -63,6 +69,7 @@
     }
     applied = { login: body.login, password: body.password };
     $('#payNow').hidden = !out.pay; $('#renewBox').hidden = true;
+    if (out.wallet) $('#payNow').append(walletFor($('#payNow'), () => applied));
     if (out.plan.yearly) { const sel = $('#payNow').elements.months; sel.value = '12'; sel.closest('label').hidden = true; }      // a yearly plan is paid for the year
     $('#payNow').onsubmit = (ev) => { ev.preventDefault(); payWith(applied.login, applied.password, ev.target.elements.months.value, ev.target.querySelector('button'), $('#paidMsg')); };
     $('#applyBox').hidden = true; $('#applyDone').hidden = false;

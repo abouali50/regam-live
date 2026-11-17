@@ -831,3 +831,12 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .pro-plans { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .pro-plans li { padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.12); font-weight: 600; }
 .rooms-toggle[hidden] { display: none; }
+
+/* payment with a crypto wallet */
+.wallet-box { grid-column: 1 / -1; display: grid; gap: 6px; margin-top: 8px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.wallet-box[hidden] { display: none; }
+.wallet-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.wallet-coin { width: auto; }
+.wallet-note.bad { color: #ffd0d0; font-weight: 700; }
+.wallet-open { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.wallet-open[hidden] { display: none; }

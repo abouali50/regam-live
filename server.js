@@ -912,7 +912,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { on: !b.off });
     }
     if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, now: Date.now(), tz: siteTz(), rooms: [...rooms.values()].map(publicRoom) });
-    if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans, pay: pay.ready(), months: pay.MONTHS });
+    if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans, pay: pay.ready(), paypal: pay.paypal(), wallet: pay.walletView(), months: pay.MONTHS });
     // Online payment of a subscription. The teacher proves who they are with their login and password
     // (their account may be waiting for approval or run out, so they have no studio session).
     if (p === '/api/pay/start' && req.method === 'POST') {
@@ -923,6 +923,7 @@ const server = http.createServer(async (req, res) => {
       const got = hashPass(String(b.password || ''), u ? u.salt : 'no-such-user');
       if (!u || !u.hash || !safeEq(got, u.hash)) { loginFailed(ip); sec.audit('login.fail', ip, { login: clean(b.login, 30), where: 'pay' }); return send(res, 401, { error: 'wrong login or password' }); }
       if (!u.active && !u.pending) return send(res, 403, { error: 'account suspended' });
+      if (b.via === 'wallet') { const w = pay.startWalletPlan(u, Number(b.months), b.from, b.token); return send(res, w.error ? 400 : 200, w); }
       let out;
       try { out = await pay.start(u, Number(b.months), originOf(req)); } catch (e) { console.error('payment start failed', e.message); out = { error: 'paypal refused' }; }
       return out.error ? send(res, out.error === 'paypal refused' ? 502 : 400, out) : send(res, 200, out);
@@ -931,9 +932,17 @@ const server = http.createServer(async (req, res) => {
       const who = acct.memberOf(bearer(req)), room = roomOf(url), fee = room && cls.feeOf(room);
       if (!who) return send(res, 401, { error: 'sign in' });
       if (!fee) return send(res, 400, { error: 'free' });
+      const pb = await readJson(req).catch(() => ({}));
+      if (pb && pb.via === 'wallet') { const w = pay.startWalletEntry(who, room, fee, pb.from, pb.token); return send(res, w.error ? 400 : 200, w); }
       let out;
       try { out = await pay.startEntry(who, room, fee, originOf(req)); } catch (e) { console.error('payment start failed', e.message); out = { error: 'paypal refused' }; }
       return out.error ? send(res, out.error === 'paypal refused' ? 502 : 400, out) : send(res, 200, out);
+    }
+    if (p === '/api/pay/wallet' && req.method === 'POST') {      // the wallet has sent the transaction: it is read on the chain
+      if (!sec.allowed('paywallet:' + clientIp(req), 120, 3600e3)) return send(res, 429, { error: 'too many requests' });
+      const b = await readJson(req), out = await pay.finishWallet(String(b.order || ''), b.tx);
+      if (out.ok && out.slug) { const room = rooms.get(out.slug); if (room) toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() }); }
+      return send(res, 200, { ok: !!out.ok, pending: !!out.pending, error: out.error, slug: out.slug });
     }
     if (p === '/api/leave') {                    // "no more reminders": the link at the foot of a reminder
       const room = roomOf(url), key = verify(String(url.searchParams.get('k') || ''), 'leave');
@@ -969,7 +978,7 @@ const server = http.createServer(async (req, res) => {
       const free = plan.price === 0;               // a free plan opens at once: nothing to pay, nothing to approve
       if (free) { const u = db.users[db.users.length - 1]; u.active = true; openIfApproved(u); sec.audit('teacher.free.opened', ip, { login }); }
       save();
-      return send(res, 200, { ok: true, payInfo: db.payInfo, plan, pay: !free && pay.ready(), free });
+      return send(res, 200, { ok: true, payInfo: db.payInfo, plan, pay: !free && pay.ready(), paypal: !free && pay.paypal(), wallet: !free && pay.walletView(), free });
     }
     if (p === '/api/login' && req.method === 'POST') {
       const ip = clientIp(req);
@@ -1127,7 +1136,7 @@ wss.on('connection', (ws, req) => {
       if (!host && !helper) {                              // a paid class, or one kept for its students
         const why = cls.entry(room, member);
         if (why === 'account') return tx(ws, { t: 'signin', fee: cls.feeOf(room) || undefined, closed: !!room.cfg.closed });
-        if (why === 'pay') return tx(ws, { t: 'pay', fee: cls.feeOf(room), ready: pay.ready() });
+        if (why === 'pay') return tx(ws, { t: 'pay', fee: cls.feeOf(room), ready: pay.paypal(), wallet: pay.walletView() });
         if (why === 'closed') return tx(ws, { t: 'closed' });
       }
       if (!host && !helper && room.cfg.code && !cls.known(room, member)) {             // the room has an entry code (students of the class are not asked again)

@@ -642,6 +642,7 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  'ما كاين حتى لقاء دابا. رجع فالوقت ديال اللقاء ديالك بالرابط اللي وصلك: غادي تدخل نيشان.': ['Aucune réunion n’est en cours pour le moment. Revenez à l’heure de la vôtre avec le lien que vous avez reçu : vous entrerez directement.', 'No meeting is in progress right now. Come back at the time of yours with the link you received: you will come straight in.'],
   'مازال ما جاش وقت اللقاء. مبرمج ل {when}. خلي هاد الصفحة محلولة ولا رجع فداك الوقت بنفس الرابط: غادي تدخل نيشان.': ['Ce n’est pas encore l’heure de la réunion. Elle est prévue le {when}. Gardez cette page ouverte ou revenez à ce moment-là avec le même lien : vous entrerez directement.', 'It is not time for the meeting yet. It is planned for {when}. Keep this page open or come back then with the same link: you will come straight in.'],
   'دابا كاين لايف آخر فهاد القاعة. اللايف ديالك مبرمج ل {when}: خلي هاد الصفحة محلولة ولا رجع فالوقت ديالو بنفس الرابط.': ['Un autre live est en cours dans cette salle. Le vôtre est prévu le {when} : gardez cette page ouverte ou revenez à son heure avec le même lien.', 'Another live is running in this room. Yours is planned for {when}: keep this page open or come back at its time with the same link.'],
   'الدعم: الرسائل اللي وصلات': ['Support : les messages reçus', 'Support: messages received'],

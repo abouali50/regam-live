@@ -1191,6 +1191,9 @@ wss.on('connection', (ws, req) => {
         return ws.close();
       }
       if (!host && !helper && room.cfg.gate && !room.admitted.has(String(d.uid))) {      // waiting room: the host lets people in one by one
+        // Nobody is announced to the host while no meeting is on: the room is off air and no planned live is open.
+        // The visitor is told so (and when theirs is, if their link says); their page asks again by itself.
+        if (!room.live && !runningOf(room).length) { const nx = nextOf(room, d.code); return tx(ws, { t: 'notyet', at: nx ? nx.at : 0 }); }
         ws.uid = String(d.uid);
         if (room.refused.has(ws.uid)) return tx(ws, { t: 'refused' });
         if (room.waiters.size >= 2000) { tx(ws, { t: 'full', capacity: 0 }); return ws.close(); }

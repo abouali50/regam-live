@@ -79,6 +79,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     if (!m || !m.code || m.codeExp < Date.now()) return false;
     if ((m.codeTries = (m.codeTries || 0) + 1) > 6) { m.code = ''; save(); return false; }
     if (!safeEq(m.code, String(code || '').trim())) { save(); return false; }
+    m.used = m.code; m.usedExp = m.codeExp;      // kept until it would have expired: see verify
     m.code = ''; m.codeTries = 0;
     return true;
   }
@@ -171,11 +172,19 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
       }
       m.name = name; m.salt = crypto.randomBytes(16).toString('hex'); m.hash = hash(password, m.salt);
       try { await sendCode(m, lang, origin); } catch { return send(res, 502, { error: 'mail failed' }); }
-      return send(res, 200, { ok: true });
+      return send(res, 200, { ok: true, wait: sign('pend', m.id, 20 * 60e3) });
+    }
+    if (what === 'ready') {                      // the page a person signed up from asks: has the link of the e-mail been opened? Then it signs in by itself
+      const id = verify(String(b.wait || ''), 'pend'), m = id && db.members.find((x) => x.id === id);
+      if (!m) return send(res, 400, { error: 'bad request' });
+      return m.verified ? send(res, 200, { token: tokenFor(m), name: m.name }) : send(res, 200, { wait: true });
     }
     if (what === 'verify') {                     // the code from the e-mail: the account opens
       const m = byEmail(email);
-      if (!codeOk(m, b.code)) { sec.audit('member.code.fail', ip, { email, where: 'verify' }); return send(res, 400, { error: 'bad code' }); }
+      // The link and the code of the e-mail are the same key. Who opened the link (often in the mail app's own browser)
+      // and then types the code on the page they signed up from is let in too, for as long as that code would have lasted.
+      const again = m && m.verified && m.used && m.usedExp > Date.now() && allowed('again:' + email, 6, 15 * 60e3) && safeEq(m.used, String(b.code || '').trim());
+      if (!again && !codeOk(m, b.code)) { sec.audit('member.code.fail', ip, { email, where: 'verify' }); return send(res, 400, { error: 'bad code' }); }
       m.verified = true; save();
       return send(res, 200, { token: tokenFor(m), name: m.name });
     }
@@ -186,7 +195,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
       if (!safeEq(hash(String(b.password || ''), m ? m.salt : 'no-such-member'), m ? m.hash : '') || !m) { failed(ip, email, 'login'); return send(res, 401, { error: 'bad login' }); }
       if (!m.verified) {                         // signed up but never typed the code: send a new one
         if (mailReady() && allowed('mail:' + email, 5, 3600e3)) { try { await sendCode(m, lang, origin); } catch { /* shown as unverified anyway */ } }
-        return send(res, 403, { error: 'unverified' });
+        return send(res, 403, { error: 'unverified', wait: sign('pend', m.id, 20 * 60e3) });
       }
       return send(res, 200, { token: tokenFor(m), name: m.name });
     }

@@ -371,6 +371,18 @@ async function until(fn, ms = 15000, step = 250) {
       check('nothing opens before the right code: sign-in refused, wrong code refused', early.status === 403 && (await until(() => a.locator('#accountDlg .err').isVisible())) !== null);
       await a.fill('#accountDlg .acc-code', codeIn(lastMail())); await a.click('#accountDlg button[type=submit]');
       check('the right code activates the account and signs the person in', (await until(() => a.locator('.acc-name', { hasText: 'Samira' }).isVisible(), 8000)) !== null && await a.locator('#heroHello').isVisible());
+      {   // the link of the e-mail and its code are each enough, in either order
+        const J3 = { 'Content-Type': 'application/json' }, P = (w, b2) => fetch(BASE + '/api/member/' + w, { method: 'POST', headers: J3, body: JSON.stringify(b2) });
+        const su = await (await P('signup', { name: 'Lina', email: 'lina.link@example.com', password: 'motdepasse1', lang: 'fr' })).json();
+        const mailed = fs.readFileSync(path.join(OUT, 'outbox.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((m) => m.to === 'lina.link@example.com').pop();
+        const lk = mailed && mailed.text.match(/\/rooms\?e=([^&\s]+)&v=(\d{6})/), codeL = lk && lk[2];
+        const before = await (await P('ready', { wait: su.wait })).json();
+        const byLink = await P('verify', { email: 'lina.link@example.com', code: codeL });            // what opening the link does
+        const after = await (await P('ready', { wait: su.wait })).json();
+        const typedAfter = await P('verify', { email: 'lina.link@example.com', code: codeL }), wrongAfter = await P('verify', { email: 'lina.link@example.com', code: codeL === '000000' ? '111111' : '000000' });
+        const forged = await P('ready', { wait: 'abc.def' });
+        check('the link of the e-mail is enough: the page the person signed up from signs in by itself, and the code typed afterwards still works', !!su.wait && !!codeL && before.wait === true && !before.token && byLink.status === 200 && !!after.token && typedAfter.status === 200 && wrongAfter.status === 400 && forged.status === 400, `${!!su.wait} ${codeL} ${JSON.stringify(before)} ${byLink.status} ${!!after.token} ${typedAfter.status} ${wrongAfter.status} ${forged.status}`);
+      }
     {   // Face ID / fingerprint: a device is added from the profile, then signs in without a password
       const J2 = { 'Content-Type': 'application/json' };
       let tok = '', mail = '';
@@ -491,7 +503,7 @@ async function until(fn, ms = 15000, step = 250) {
       // administration
       const adminData = await (await fetch(BASE + '/api/admin', { headers: { Authorization: 'Bearer ' + tok } })).json();
       const noMailLock = await (await fetch(BASE + '/api/member/me')).status;
-      check('the administrator sees the members, never their password', adminData.accounts.members.total === 2 && adminData.accounts.members.list.some((m) => m.email === 'samira@example.com') && !JSON.stringify(adminData).includes('hash') && adminData.accounts.mail.hasPass === true && !JSON.stringify(adminData).includes('secret-pass') && noMailLock === 401);
+      check('the administrator sees the members, never their password', adminData.accounts.members.total === 3 && adminData.accounts.members.list.some((m) => m.email === 'samira@example.com') && !JSON.stringify(adminData).includes('hash') && adminData.accounts.mail.hasPass === true && !JSON.stringify(adminData).includes('secret-pass') && noMailLock === 401);
       const yas = adminData.accounts.members.list.find((m) => m.email === 'yassine@example.com');
       const gone = await fetch(BASE + '/api/admin/member?id=' + yas.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
       const after = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'yassine@example.com', password: 'motdepasse1' }) });

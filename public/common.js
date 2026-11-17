@@ -234,7 +234,18 @@ function openAccount(view = 'login') {
   };
   const fail = (r) => { err.hidden = false; err.textContent = T(ACCOUNT_ERR[r.data.error] || 'ما قدرناش نديرو هاد العملية. عاود من بعد شوية.'); };
   const done = (r) => { account.set(r.data.token, r.data.name); location.reload(); };
-  let mode = view;
+  let mode = view, waitTok = '', waitTimer = 0;
+  // While the code is awaited, the page asks every few seconds whether the link of the e-mail was opened (on this
+  // phone or another, in the mail app's browser...): if so it signs in by itself, nothing to type.
+  const watchLink = () => {
+    clearInterval(waitTimer);
+    if (!waitTok) return;
+    const started = Date.now();
+    waitTimer = setInterval(async () => {
+      if (!dlg.open || mode !== 'code' || Date.now() - started > 20 * 60e3) return clearInterval(waitTimer);
+      try { const r = await post('ready', { wait: waitTok }); if (r.ok && r.data.token) { clearInterval(waitTimer); done(r); } } catch { /* asked again */ }
+    }, 4000);
+  };
   function show(v, text = '') {
     mode = v; err.hidden = true; note.textContent = text; note.hidden = !text;
     title.textContent = T({ login: 'الدخول', signup: 'إنشاء حساب', code: 'فعل الحساب ديالك', forgot: 'نسيتي كلمة السر؟', reset: 'كلمة سر جديدة' }[v]);
@@ -259,14 +270,14 @@ function openAccount(view = 'login') {
       const em = email.i.value.trim();
       if (mode === 'signup') {
         const r = await post('signup', { name: name.i.value, email: em, password: pass.i.value });
-        if (r.ok) show('code', T('صيفطنا كود ل {email}. شوف الإيميل ديالك (وحتى Spam) وكتب الكود هنا.', { email: em })); else fail(r);
+        if (r.ok) { waitTok = r.data.wait || ''; show('code', T('صيفطنا كود ل {email}. شوف الإيميل ديالك (وحتى Spam) وكتب الكود هنا.', { email: em })); watchLink(); } else fail(r);
       } else if (mode === 'code') {
         const r = await post('verify', { email: em, code: code.i.value });
         if (r.ok) done(r); else fail(r);
       } else if (mode === 'login') {
         const r = await post('login', { email: em, password: pass.i.value });
         if (r.ok) done(r);
-        else if (r.data.error === 'unverified') show('code', T('الحساب ديالك مازال ما تفعلش. صيفطنا ليك كود جديد فالإيميل.'));
+        else if (r.data.error === 'unverified') { waitTok = r.data.wait || ''; show('code', T('الحساب ديالك مازال ما تفعلش. صيفطنا ليك كود جديد فالإيميل.')); watchLink(); }
         else fail(r);
       } else if (mode === 'forgot') {
         await post('forgot', { email: em });
@@ -291,9 +302,26 @@ function openAccount(view = 'login') {
   history.replaceState(null, '', location.pathname);
   try {
     const r = await fetch('/api/member/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: e, code: v }) });
-    if (r.ok) { const d = await r.json(); account.set(d.token, d.name); location.reload(); return; }
+    if (r.ok) { const d = await r.json(); account.set(d.token, d.name); try { sessionStorage.setItem('regam.validated', '1'); } catch { /* private mode */ } location.reload(); return; }
   } catch { /* fall through to the notice */ }
   if (!account.token) alert(T('هاد الرابط ما بقاش صالح. دخل بالإيميل وكلمة السر ديالك، ولا طلب كود جديد.'));
+})();
+// Right after the link of the e-mail: say plainly that the account is open and that there is nothing more to type
+// (the box "invitation code" of the home page is for the code of a live, not for the code of the e-mail).
+(function welcomeValidated() {
+  let fresh = false;
+  try { fresh = sessionStorage.getItem('regam.validated') === '1'; sessionStorage.removeItem('regam.validated'); } catch { /* private mode */ }
+  if (!fresh || !account.token) return;
+  const show = () => {
+    const dlg = el('dialog', { class: 'dlg welcome-dlg' },
+      el('h2', {}, '✅ ' + T('الحساب ديالك تفعل')),
+      el('p', {}, T('مرحبا {name}. الحساب ديالك خدام: ما بقى عندك حتى كود تكتبو.', { name: account.name })),
+      el('p', {}, T('باش تحضر لايف ولا درس ولا محاضرة، تسنى الرابط اللي غادي يصيفطو ليك المنظم (واتساب، إيميل...) وكليكي عليه.')),
+      el('div', { class: 'dlg-actions' }, el('button', { class: 'btn primary', type: 'button', onclick: () => dlg.close() }, T('مفهوم'))));
+    dlg.addEventListener('close', () => dlg.remove());
+    document.body.append(dlg); dlg.showModal();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show();
 })();
 // The help assistant: a bubble in the corner; the visitor asks, the site's AI answers in private.
 function mountAssistant() {

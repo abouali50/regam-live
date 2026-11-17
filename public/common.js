@@ -89,6 +89,9 @@ function avatar(name, av, size = 32) {
   if (av) box.append(el('img', { src: '/media/avatar/' + av, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }));
   return box;
 }
+// One line for a subscription plan, the same on every page.
+const planText = (p) => (p.price === 0 ? T('{name}: حتى ل {n} متابع، فابور', { name: p.name, n: p.capacity }) : T('{name}: حتى ل {n} متابع، {price} دولار فالشهر', { name: p.name, n: p.capacity, price: p.price }))
+  + (p.minutes ? ' · ' + T('كل لايف حتى ل {m} دقيقة', { m: p.minutes }) : ' · ' + T('مدة اللايف بلا حد'));
 // Face ID / fingerprint (passkeys): the device keeps the key, the site checks a signature. No password is typed.
 const passkey = {
   can: () => !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create),

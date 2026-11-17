@@ -32,6 +32,8 @@
       el('span', { class: 'viewers' }, el('span', { class: 'dot' }), String(r.viewers)),
       el('span', { class: 'room-enter' }, (r.locked ? '🔒 ' : '') + T('دخل للقاعة')))));
     $('#roomsLabel').textContent = T('القاعات ({n})', { n: data.rooms.length });
+    // the list of all the rooms is for the people who run the site (address …/rooms?all): a visitor reaches a live by its link
+    $('#roomsToggle').hidden = !new URLSearchParams(location.search).has('all');
     const topics = [...new Set(data.rooms.map((r) => r.topic || ''))].sort((x, y) => (x === '' ? 1 : y === '' ? -1 : x.localeCompare(y)));
     if (topic !== null && !topics.includes(topic)) topic = null;
     $('#topicChips').hidden = topics.length < 2;
@@ -52,16 +54,12 @@
     $('#roomsToggle').setAttribute('aria-expanded', String(open));
     if (open) $('#roomsPanel').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
-  // "join with a code", like a meeting number: the code leads to its room
-  $('#joinForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const code = $('#joinCode').value.replace(/\D/g, ''), err = $('#joinErr');
-    err.hidden = true;
-    const r = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) }).catch(() => null);
-    if (r && r.ok) { location.href = '/r/' + (await r.json()).slug + '?code=' + code; return; }
-    err.hidden = false;
-    err.textContent = T(r && r.status === 429 ? 'محاولات بزاف. تسنى عشر دقايق وعاود.' : 'الكود غالط. شوف الدعوة وعاود.');
-  };
+  // professional accounts: what each plan gives
+  fetch('/api/plans').then((r) => r.json()).then((d) => {
+    if (!d.plans || !d.plans.length) return;
+    $('#proPlans').replaceChildren(...d.plans.map((p) => el('li', {}, planText(p))));
+    $('#proBox').hidden = false;
+  }).catch(() => {});
   // the account corner, and the invitation to sign up for people who have no account yet
   fetch('/api/site').then((r) => r.json()).then((site) => {
     mountAccount(document.querySelector('.top .meta'), site);

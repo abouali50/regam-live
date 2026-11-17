@@ -266,14 +266,14 @@
   function showSettings(data) {
     plans = data.plans;
     $('#planList').replaceChildren(...plans.map((p) => el('li', {},
-      el('span', { class: 'admin-main-cell' }, el('strong', {}, p.name), el('span', { class: 'muted' }, T('{name}: حتى ل {n} متابع، {price} دولار فالشهر', { name: p.name, n: p.capacity, price: p.price }))),
+      el('span', { class: 'admin-main-cell' }, el('strong', {}, p.name), el('span', { class: 'muted' }, planText(p))),
       el('span', { class: 'rec-actions' }, el('button', { class: 'btn', type: 'button', onclick: () => savePlans(plans.filter((x) => x !== p), T('تحذف العرض.')) }, T('حذف'))))));
     if (document.activeElement !== $('#payText')) $('#payText').value = data.payInfo;
   }
   $('#planForm').onsubmit = async (e) => {
     e.preventDefault();
     const f = e.target.elements;
-    if (await savePlans([...plans, { name: f.name.value, price: Number(f.price.value), capacity: Number(f.capacity.value) }], T('تزاد العرض.'))) e.target.reset();
+    if (await savePlans([...plans, { name: f.name.value, price: Number(f.price.value), capacity: Number(f.capacity.value), minutes: Number(f.minutes.value) || 0 }], T('تزاد العرض.'))) e.target.reset();
   };
   $('#payForm').onsubmit = (e) => { e.preventDefault(); api('/settings', { method: 'POST', body: JSON.stringify({ payInfo: $('#payText').value }) }).then((r) => done(r, T('تحفظات طريقة الخلاص.'))); };
 

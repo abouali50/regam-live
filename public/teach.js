@@ -2,7 +2,7 @@
 'use strict';
 (async function () {
   const data = await fetch('/api/plans').then((r) => r.json());
-  const planLine = (p) => T('{name}: حتى ل {n} متابع، {price} دولار فالشهر', { name: p.name, n: p.capacity, price: p.price });
+  const planLine = planText;
   $('#plans').append(...data.plans.map((p, i) => el('label', { class: 'plan' },
     el('input', { type: 'radio', name: 'planId', value: p.id, checked: i === 0, required: true }),
     el('span', {}, planLine(p)))));
@@ -66,7 +66,8 @@
     $('#payNow').onsubmit = (ev) => { ev.preventDefault(); payWith(applied.login, applied.password, ev.target.elements.months.value, ev.target.querySelector('button'), $('#paidMsg')); };
     $('#applyBox').hidden = true; $('#applyDone').hidden = false;
     $('#donePlan').textContent = planLine(out.plan);
-    $('#payInfo').textContent = out.payInfo || T('طريقة الخلاص غادي توصلك من عند الإدارة.');
+    $('#payInfo').textContent = out.free ? T('الحساب ديالك مفتوح دابا، فابور. دخل للاستوديو باسم الدخول وكلمة السر ديالك.') : out.payInfo || T('طريقة الخلاص غادي توصلك من عند الإدارة.');
+    if (out.free) $('#payInfo').append(' ', el('a', { href: '/studio' }, T('الاستوديو')));
     scrollTo(0, 0);
   };
 })();

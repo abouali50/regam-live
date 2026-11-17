@@ -155,7 +155,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -634,8 +634,10 @@ async function until(fn, ms = 15000, step = 250) {
       const hp = await (await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 700 } })).newPage();
       await hp.goto(BASE + '/rooms');
       const badJoin = await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code === '333333' ? '444444' : '333333' }) });
-      await hp.fill('#joinCode', code.slice(0, 3) + ' ' + code.slice(3)); await hp.click('#joinForm button[type=submit]');
-      check('on the home page, typing the invitation code leads straight into its room', badJoin.status === 404 && (await until(() => hp.locator('#liveBadge.on').isVisible(), 10000)) !== null && hp.url().endsWith('/r/main')
+      const okJoin = await (await fetch(BASE + '/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) })).json();
+      const noBox = (await hp.locator('#joinCode').count()) === 0 && await hp.locator('#heroInvite').isVisible();
+      await hp.goto(BASE + '/r/' + okJoin.slug + '?code=' + code);
+      check('the home page has no box to try codes: a live is reached by the link of its invitation', noBox && badJoin.status === 404 && (await until(() => hp.locator('#liveBadge.on').isVisible(), 10000)) !== null && hp.url().endsWith('/r/main')
         && (await hp.textContent('#handBtn')) === '🎤 Demander la parole');
       await hp.context().close();
       // the calendar: a second session, the agenda on the home page, the calendar file
@@ -703,7 +705,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('with the waiting room on, a newcomer is asked for a name and gets no stream', (await until(() => w1.locator('#nameDlg[open]').isVisible())) !== null
       && (await w1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && await w1.locator('#liveBadge.off').isVisible());
     await w1.fill('#nameInput', 'نادية'); await w1.click('#nameForm button[type=submit]');
-    check('the host sees who is waiting', (await until(() => studio.locator('#waiting li', { hasText: 'نادية' }).isVisible())) !== null && await w1.locator('#offlineText', { hasText: 'تسنى' }).isVisible());
+    check('the host sees who is waiting', (await until(() => studio.locator('#waiting li', { hasText: 'نادية' }).isVisible())) !== null && (await until(() => w1.locator('#offlineText', { hasText: 'تسنى' }).isVisible(), 6000)) !== null);
     check('people already inside keep watching', await viewer.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status) === 200);
     check('someone waiting to come in is announced at the top of the studio, and can be accepted from there', await studio.locator('#waitBar', { hasText: 'نادية' }).isVisible());
     await studio.locator('#waitBar button.primary').first().click();
@@ -932,7 +934,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('the old viewer page keeps working at its own address', (await fetch(BASE + '/r/main')).status === 200 && (await viewer.locator('#liveBadge.on').isVisible()));
 
     const home = await vctx.newPage();
-    await home.goto(BASE + '/');
+    await home.goto(BASE + '/?all');
     const liveShown = (await until(async () => (await home.locator('#liveRooms .room-card.is-live').count()) === 1)) !== null;
     const folded = await home.locator('#roomsPanel').isHidden() && (await home.locator('.room-row:visible').count()) === 0 && /\(2\)/.test(await home.textContent('#roomsLabel'));
     check('the front page shows what is on air, and keeps the rooms folded behind one button', liveShown && folded, await home.textContent('#roomsLabel'));
@@ -1003,7 +1005,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('plans with a wrong size or price are refused', (await post('/api/admin/settings', { plans: [{ name: 'x', price: -1, capacity: 10 }] })).status === 400 && (await post('/api/admin/settings', { plans: [{ name: 'x', price: 5, capacity: 0 }] })).status === 400);
     await apply.goto(BASE + '/teach');
     await apply.waitForSelector('#plans .plan');
-    check('the sign-up page shows the plans, in French for a French browser', (await apply.locator('#plans .plan').first().textContent()) === "Classe 2 : jusqu'à 2 spectateurs, 500 $ par mois" && (await apply.locator('#plans .plan').count()) === 2);
+    check('the sign-up page shows the plans, in French for a French browser', (await apply.locator('#plans .plan').first().textContent()) === "Classe 2 : jusqu'à 2 spectateurs, 500 $ par mois · durée du live illimitée" && (await apply.locator('#plans .plan').count()) === 2);
     await apply.fill('[name=name]', 'Karim Bennani'); await apply.fill('[name=contact]', '+212 600 000 000'); await apply.fill('[name=roomTitle]', 'Crypto Débutants'); await apply.fill('[name=topic]', 'Crypto');
     await apply.fill('[name=login]', 'karim'); await apply.fill('[name=password]', 'karim-pass-7');
     await apply.screenshot({ path: path.join(OUT, 'teach.png'), fullPage: true });
@@ -1301,6 +1303,24 @@ async function until(fn, ms = 15000, step = 250) {
       forcedAir.delete('air_' + slug);
       const sheet = await until(() => { const a = host.last('att'); return a && a.list.length ? a.list[0] : null; }, 20000);
       check('after a live, the teacher has the attendance sheet: who was there and for how long', sheet !== null && sheet.rows.length === 1 && sheet.rows[0].name === 'Lina Class' && sheet.rows[0].email === 'lina.class@example.com' && sheet.rows[0].secs >= 4 && sheet.end > sheet.at, JSON.stringify(sheet));
+      {   // a plan that limits how long one live lasts: a warning, then the live ends; a free plan opens at once
+        const tk2 = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
+        const H = { Authorization: 'Bearer ' + tk2, 'Content-Type': 'application/json' }, JH = { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.9.8' };
+        const post = (u, b2, h = JH) => fetch(BASE + u, { method: 'POST', headers: h, body: JSON.stringify(b2) });
+        const now = (await (await fetch(BASE + '/api/plans')).json()).plans;
+        await post('/api/admin/settings', { plans: [...now.map((x, i) => (i === 0 ? { ...x, minutes: 2 } : x)), { name: 'Essai', price: 0, capacity: 20, minutes: 15 }] }, H);
+        const listed = (await (await fetch(BASE + '/api/plans')).json()).plans, freePlan = listed.find((x) => x.name === 'Essai');
+        forcedAir.add('air_' + slug);
+        const over = await until(() => { const m = host.last('limit'); return m && m.over ? m : null; }, 20000);
+        const warned = host.got.some((d) => d.t === 'limit' && d.left >= 1);
+        const shownOff = await until(async () => ((await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === slug).live === false ? true : null), 8000);
+        forcedAir.delete('air_' + slug);
+        await sleep(2500);
+        const trial = await (await post('/api/apply', { planId: freePlan.id, name: 'Hind Essai', contact: 'hind@example.com', roomTitle: 'Coaching Hind', topic: 'Coaching', login: 'hindessai', password: 'hind-pass-12' })).json();
+        const trialIn = await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'hindessai', password: 'hind-pass-12' }) });
+        check('a plan can limit how long one live lasts (a warning, then the live ends), and a free plan opens at once without payment', listed[0].minutes === 2 && !!over && over.minutes === 2 && warned && shownOff === true && trial.free === true && trialIn.status === 200, `${JSON.stringify(over)} ${warned} ${shownOff} ${JSON.stringify(trial).slice(0, 120)} ${trialIn.status}`);
+        await post('/api/admin/settings', { plans: listed.map((x) => ({ ...x, minutes: 0 })) }, H);
+      }
       l4.close();
       const left = await fetch(leaveUrl), badLeave = await fetch(BASE + `/api/leave?room=${slug}&k=nope`);
       check('the link at the foot of a reminder takes the student off the list', left.status === 200 && badLeave.status === 400 && (await until(() => host.last('class').students.length === 0, 5000)) !== null);
@@ -1432,7 +1452,7 @@ async function until(fn, ms = 15000, step = 250) {
       await tp3.click('#pollEnd'); await tp3.click('#qList li button');
       check('in the studio, the teacher sees the questions, the poll results, the files and the published replay', studioSees !== null && (await until(async () => (await tp3.locator('#qList li').count()) === 0 && await tp3.locator('#pollLive').isHidden() && await vp3.locator('#pollBox').isHidden(), 5000)) !== null);
       const stats = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).stats.find((r) => r.title === 'Maths Bac');
-      check('the administrator sees how each room is doing', !!stats && stats.teacher === 'Youssef Alami' && stats.lives === 1 && stats.people === 1 && stats.peak === 1 && stats.last > 0, JSON.stringify(stats));
+      check('the administrator sees how each room is doing', !!stats && stats.teacher === 'Youssef Alami' && stats.lives === 2 && stats.people === 2 && stats.peak === 1 && stats.last > 0, JSON.stringify(stats));
       await fetch(BASE + `/api/recordings?room=${slug}&name=${recName}`, { method: 'PUT', headers: { ...TH, ...J }, body: JSON.stringify({ title: '' }) });
       check('a replay taken back is no longer shown', (await extras(lina)).replays.length === 0);
       host.close(); st.close(); await vctx3.close(); await tctx3.close();

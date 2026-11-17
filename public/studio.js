@@ -1024,6 +1024,10 @@
     };
     $('#relayOn').onchange = () => link.send({ t: 'relay', on: $('#relayOn').checked });
     $('#relayClear').onclick = () => link.send({ t: 'relay', fb: '', yt: '', other: '', on: false });
+    link.on('limit', (d) => {                    // the plan of this account limits how long one live lasts
+      if (d.over) { if (liveOn) stopLive(); alert(T('اللايف وصل للمدة ديال العرض ديالك ({m} دقيقة) وتوقف. تقدر تبدا لايف جديد، ولا تبدل العرض باش يبقى اللايف مفتوح.', { m: d.minutes })); }
+      else status(T('باقي {n} دقيقة: العرض ديالك كيعطي {m} دقيقة لكل لايف.', { n: d.left, m: d.minutes }));
+    });
     link.on('tz', (d) => { siteClock.tz = d.tz; showInvite(); });
     link.on('relay', (d) => { showRelay(d); if (!d.err) status(T('تحفظ.')); });
 

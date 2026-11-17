@@ -784,9 +784,9 @@ async function handleAdmin(req, res, url, what) {
     if (Array.isArray(b.plans)) {
       const plans = [];
       for (const x of b.plans.slice(0, 12)) {
-        const name = clean(x && x.name, 30), price = Number(x && x.price), capacity = Number(x && x.capacity);
-        if (!name || !(price >= 0) || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000) return send(res, 400, { error: 'bad plan' });
-        plans.push({ id: (x.id && /^[a-z0-9]{2,12}$/.test(x.id)) ? x.id : 'p' + crypto.randomBytes(4).toString('hex'), name, price: Math.round(price * 100) / 100, capacity });
+        const name = clean(x && x.name, 30), price = Number(x && x.price), capacity = Number(x && x.capacity), minutes = Math.round(Number(x && x.minutes) || 0);      // minutes: how long one live may last (0: no limit)
+        if (!name || !(price >= 0) || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000 || minutes < 0 || minutes > 1440) return send(res, 400, { error: 'bad plan' });
+        plans.push({ id: (x.id && /^[a-z0-9]{2,12}$/.test(x.id)) ? x.id : 'p' + crypto.randomBytes(4).toString('hex'), name, price: Math.round(price * 100) / 100, capacity, minutes: minutes || undefined });
       }
       db.plans = plans;
     }
@@ -966,8 +966,10 @@ const server = http.createServer(async (req, res) => {
       if (db.users.filter((x) => x.pending).length >= 300) return send(res, 429, { error: 'too many requests' });
       const salt = crypto.randomBytes(12).toString('hex');
       db.users.push({ id: 'u' + crypto.randomBytes(6).toString('hex'), name, login, active: false, pending: true, salt, hash: hashPass(password, salt), contact, wantRoom, wantTopic, planId: plan.id, askedAt: Date.now() });
+      const free = plan.price === 0;               // a free plan opens at once: nothing to pay, nothing to approve
+      if (free) { const u = db.users[db.users.length - 1]; u.active = true; openIfApproved(u); sec.audit('teacher.free.opened', ip, { login }); }
       save();
-      return send(res, 200, { ok: true, payInfo: db.payInfo, plan, pay: pay.ready() });
+      return send(res, 200, { ok: true, payInfo: db.payInfo, plan, pay: !free && pay.ready(), free });
     }
     if (p === '/api/login' && req.method === 'POST') {
       const ip = clientIp(req);
@@ -1621,6 +1623,11 @@ async function setRecording(room, on) {
 // One slow or failed answer must not end a live: a room goes off air only when the media server
 // has answered several times in a row without it, or has been unreachable for a while.
 let pollFails = 0;
+// How long one live of this room may last, in minutes (0: no limit): from the plan of the teacher who owns it.
+function limitOf(room) {
+  const u = room.cfg.ownerId && db.users.find((x) => x.id === room.cfg.ownerId), plan = u && db.plans.find((x) => x.id === u.planId);
+  return (plan && plan.minutes) || 0;
+}
 async function pollLive() {
   const onAir = new Set();
   let answered = false;
@@ -1633,9 +1640,16 @@ async function pollLive() {
   for (const room of rooms.values()) {
     const seen = onAir.has(`air_${room.cfg.slug}`);
     room.missed = seen ? 0 : (room.missed || 0) + 1;
-    const on = seen || (room.live && answered && room.missed < 3);
+    if (!seen) room.limitHit = false;                                              // the studio stopped sending: a new live may start
+    if (room.live && room.liveSince) {                                             // a plan with a time limit per live: a warning two minutes before, then the live ends
+      const lim = limitOf(room), left = lim * (Number(env.LIMIT_UNIT_MS) || 60e3) - (Date.now() - room.liveSince);
+      if (lim && left <= 0) { room.limitHit = true; toMods(room, { t: 'limit', over: true, minutes: lim }); }
+      else if (lim && left < 2 * 60e3 && !room.limitWarned) { room.limitWarned = true; toMods(room, { t: 'limit', left: Math.max(1, Math.ceil(left / 60e3)), minutes: lim }); }
+    }
+    const on = !room.limitHit && (seen || (room.live && answered && room.missed < 3));
     if (on === room.live) continue;
     room.live = on;
+    if (on) { room.liveSince = Date.now(); room.limitWarned = false; }
     if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }
     if (on) {                                                                       // going on air ahead of a planned live starts that live: its code, its link and its "open" setting count from now
       const picked = (room.cfg.sessions || []).find((x) => x.id === room.cfg.active), s = picked || plannedOf(room)[0];      // the one the host started from its card, else the next one

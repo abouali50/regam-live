@@ -824,3 +824,10 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .studio .side { position: static; flex-direction: row; flex-wrap: wrap; gap: 8px; margin: 10px 0; align-self: auto; }
 .studio .side button, .studio .side-link { width: auto; flex: 1 1 150px; justify-content: center; padding: 9px 12px; margin: 0; }
 @media (max-width: 900px) { .studio .side button, .studio .side-link { flex: 1 1 120px; } }
+
+/* home page: the invitation line and the professional accounts */
+.hero-invite { font-weight: 700; color: var(--gold); }
+.pro-box { margin: 26px 0; padding: 18px 20px; border-radius: 18px; background: linear-gradient(160deg, rgba(58,70,132,.90), rgba(38,48,100,.92)); border: 1px solid #8f9bd0; display: grid; gap: 10px; justify-items: start; }
+.pro-plans { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.pro-plans li { padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.12); font-weight: 600; }
+.rooms-toggle[hidden] { display: none; }

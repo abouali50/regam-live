@@ -1176,9 +1176,15 @@ wss.on('connection', (ws, req) => {
       if (!host && !helper && room.cfg.code && !cls.known(room, member)) {             // the room has an entry code (students of the class are not asked again)
         const st = codeState(room, d.code);
         if (!codeAllowed(ws.ip, !st.ok && !st.early && !st.other && d.code ? String(d.code).replace(/\D/g, '').slice(0, 12) : '')) return tx(ws, { t: 'code', wait: true });
-        if (!st.ok) return tx(ws, { t: 'code', bad: !!d.code && !st.early && !st.other, early: st.early, other: st.other });
+        if (st.early) return tx(ws, { t: 'notyet', at: st.early });                // the right link, before its time: told when to come back, and nobody is announced to the host
+        if (!st.ok) return tx(ws, { t: 'code', bad: !!d.code && !st.other, other: st.other });
         const used = String(d.code || '').replace(/\D/g, '');
         ws.sessCode = (room.cfg.sessions || []).some((x) => x.code && safeEq(x.code, used)) ? used : '';      // came in with the link of a planned live
+      }
+      if (!host && !helper) {                              // the link of a planned live that is not open yet, in a room without entry code or with a waiting room:
+        const c = String(d.code || '').replace(/\D/g, '');   // "not yet", whatever the room's other settings. The host is not asked to let in somebody who came days early.
+        const mine = c.length === 6 && (room.cfg.sessions || []).find((x) => x.code && !spent(x) && safeEq(x.code, c));
+        if (mine && !runningOf(room).includes(mine)) return tx(ws, { t: 'notyet', at: mine.at, other: mine.at - OPEN_EARLY <= Date.now() });
       }
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full

@@ -489,7 +489,21 @@ async function until(fn, ms = 15000, step = 250) {
           await hostSay({ t: 'session', open: B && B.id });
           const bIn = await passWith(B && B.code), aOut = await passWith(A && A.code);
           await hostSay({ t: 'session', del: A && A.id }); await hostSay({ t: 'session', del: B && B.id });
-          check('two groups with two links: while the live of one is on air, the link of the other group does not open it', !!A && !!B && A.code !== B.code && aIn === 200 && bOut === 403 && (bSays === 'other' || bSays === 'early') && bIn === 200 && aOut === 403, `${aIn} ${bOut} ${bSays} ${bIn} ${aOut}`);
+          check('two groups with two links: while the live of one is on air, the link of the other group does not open it', !!A && !!B && A.code !== B.code && aIn === 200 && bOut === 403 && (bSays === 'other' || bSays === 'notyet') && bIn === 200 && aOut === 403, `${aIn} ${bOut} ${bSays} ${bIn} ${aOut}`);
+        }
+        {   // somebody opens, days early, the link of a planned live in a room with a waiting room and no entry code: "not yet", and the host is not asked
+          await codeSay(false); await adminSet({ access: 'join' });
+          const gateSay = (on) => studio.evaluate((o) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'gatesettester0001', token: sessionStorage.getItem('regam.studio') })); w.send(JSON.stringify({ t: 'gate', on: o })); setTimeout(() => { res(true); w.close(); }, 600); }; setTimeout(() => res(null), 4000); }), on);
+          const t3 = Date.now() + 72 * 3600e3;
+          const planned3 = await hostSay({ t: 'session', at: t3, end: t3 + 3600e3, title: 'Dans trois jours' });
+          const far = (planned3 || []).find((x) => x.title === 'Dans trois jours');
+          await gateSay(true);
+          const came = await anon.evaluate((c2) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'earlybirdtester01', name: 'Trop Tot', code: c2 })); w.onmessage = (e) => { const d = JSON.parse(e.data); res({ t: d.t, at: d.at }); w.close(); }; setTimeout(() => res({ t: 'none' }), 4000); }), far && far.code);
+          const asked = await studio.locator('#waiting li', { hasText: 'Trop Tot' }).count();
+          const noLink = await anon.evaluate(() => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => w.send(JSON.stringify({ t: 'hello', uid: 'nolinktester00001', name: 'Sans Lien' })); w.onmessage = (e) => { res(JSON.parse(e.data).t); w.close(); }; setTimeout(() => res('none'), 4000); }));
+          await gateSay(false); await hostSay({ t: 'session', del: far && far.id });
+          check('a link opened days before its live says "not yet" with the date, and the host is not asked to let that person in', !!far && came.t === 'notyet' && came.at === t3 && asked === 0 && noLink === 'wait', `${JSON.stringify(came)} ${asked} ${noLink}`);
+          await adminSet({ access: 'watch' }); await codeSay(true);
         }
         await codeSay(false);
         check('on a site that asks for an account, a room with an entry code lets in whoever has the code, without an account', /^\d{6}$/.test(String(coded)) && noCode === 'code' && withCode === 'init' && passCode === 200 && passNone === 403 && (await passOf()) === 401, `${coded} ${noCode} ${withCode} ${passCode} ${passNone}`);
@@ -636,8 +650,8 @@ async function until(fn, ms = 15000, step = 250) {
       check('each planned live has its own code and its own link, different from the room\'s', !!invite && /^\d{6}$/.test(sCode) && sCode !== code && invite.includes(sCode.slice(0, 3) + ' ' + sCode.slice(3)) && !invite.includes(code.slice(0, 3) + ' ' + code.slice(3)) && invite.split('\n').length >= 4
         && !JSON.stringify(await (await fetch(BASE + '/api/config')).json()).includes(sCode) && !JSON.stringify(await (await fetch(BASE + '/api/rooms')).json()).includes(sCode), String(invite));
       const tooSoon = await open1('?code=' + sCode);
-      check('the code of a planned live does not open the room before its time, and says when it will', (await until(() => tooSoon.locator('#codeDlg[open]').isVisible(), 8000)) !== null
-        && (await until(async () => (await tooSoon.textContent('#codeErr')).length > 20, 6000)) !== null && await tooSoon.locator('#liveBadge.off').isVisible()
+      check('the code of a planned live does not open the room before its time, and says when it will', (await until(async () => /\d{2}:\d{2}/.test(await tooSoon.textContent('#offlineText')), 8000)) !== null
+        && !(await tooSoon.locator('#codeDlg[open]').count()) && await tooSoon.locator('#liveBadge.off').isVisible()
         && (await tooSoon.evaluate(async (c) => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa&code=' + c)).status, sCode)) === 403);
       await tooSoon.context().close();
       const c2 = await open1('?code=' + code);

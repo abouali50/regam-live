@@ -528,6 +528,15 @@
     .on('refused', () => { setLive(false); knockBtn.hidden = true; $('#offlineText').textContent = T('صاحب اللايف ما قبلش الدخول ديالك.'); })
     .on('gate', (d) => { if (d.on) pass(); })
     .on('next', (d) => showNext(d.next))
+    .on('notyet', (d) => {                    // the right link, before the time of its live: when to come back; the page asks again by itself
+      doorShut = true; setLive(false); knockBtn.hidden = true;
+      if ($('#codeDlg').open) $('#codeDlg').close();
+      const when = siteClock.at(d.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+      $('#offlineText').textContent = d.other ? T('دابا كاين لايف آخر فهاد القاعة. اللايف ديالك مبرمج ل {when}: خلي هاد الصفحة محلولة ولا رجع فالوقت ديالو بنفس الرابط.', { when })
+        : T('مازال ما جاش وقت اللقاء. مبرمج ل {when}. خلي هاد الصفحة محلولة ولا رجع فداك الوقت بنفس الرابط: غادي تدخل نيشان.', { when });
+      clearTimeout(earlyRetry);
+      earlyRetry = setTimeout(() => link.hello(), 20000);
+    })
     .on('code', (d) => {                      // the room asks for its entry code
       doorShut = true; setLive(false); knockBtn.hidden = true;
       $('#offlineText').textContent = T('هاد القاعة كيدخلو ليها بكود الدخول.');

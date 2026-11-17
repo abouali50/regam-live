@@ -1315,6 +1315,26 @@ async function until(fn, ms = 15000, step = 250) {
       forcedAir.delete('air_' + slug);
       const sheet = await until(() => { const a = host.last('att'); return a && a.list.length ? a.list[0] : null; }, 20000);
       check('after a live, the teacher has the attendance sheet: who was there and for how long', sheet !== null && sheet.rows.length === 1 && sheet.rows[0].name === 'Lina Class' && sheet.rows[0].email === 'lina.class@example.com' && sheet.rows[0].secs >= 4 && sheet.end > sheet.at, JSON.stringify(sheet));
+      {   // the public site: menu, sections, the support page and its messages
+        const sp = await (await browser.newContext({ locale: 'fr-FR', viewport: { width: 1200, height: 800 } })).newPage();
+        sp.on('pageerror', (e) => errors.push('site: ' + e.message));
+        await sp.goto(BASE + '/rooms');
+        const menu = await until(async () => ((await sp.locator('.site-nav > a').count()) === 5 ? sp.locator('.site-nav > a').allTextContents() : null), 6000);
+        const blocks = { features: await sp.locator('#features .site-card').count(), solutions: await sp.locator('#solutions .site-card').count(), install: await sp.locator('#install .site-card').count(), foot: await sp.locator('.site-foot .foot-col').count(), plans: await sp.locator('#proPlans .plan-card').count() };
+        await sp.goto(BASE + '/support');
+        await sp.waitForSelector('#supportForm');
+        await sp.selectOption('#supportForm select', 'complaint'); await sp.fill('#supportForm input[name=name]', 'Rachid Test'); await sp.fill('#supportForm input[name=email]', 'rachid@example.com');
+        await sp.fill('#supportForm textarea', 'Le son coupe pendant le live, merci de regarder.'); await sp.click('#supportForm button[type=submit]');
+        const said = await until(async () => { const t = await sp.locator('#contact [role=status]').textContent(); return /T[0-9A-Z]{8,}/.test(t) ? t : null; }, 6000);
+        const tk3 = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token, HA = { Authorization: 'Bearer ' + tk3, 'Content-Type': 'application/json' };
+        const inbox = (await (await fetch(BASE + '/api/admin', { headers: HA })).json()).tickets;
+        const short = await fetch(BASE + '/api/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'question', name: 'x', email: 'bad', text: 'court' }) });
+        await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: HA, body: JSON.stringify({ ticketDone: inbox[0] && inbox[0].id }) });
+        const after = (await (await fetch(BASE + '/api/admin', { headers: HA })).json()).tickets;
+        check('the public site has its menu, its sections and a support page whose messages reach the administrator', !!menu && menu.join('|') === 'Fonctionnalités|Solutions|Tarifs|Application|Support' && blocks.features === 12 && blocks.solutions === 6 && blocks.install === 4 && blocks.foot === 5 && blocks.plans >= 1
+          && !!said && inbox.length === 1 && inbox[0].kind === 'complaint' && inbox[0].email === 'rachid@example.com' && short.status === 400 && after.length === 0, `${menu} ${JSON.stringify(blocks)} ${said} ${JSON.stringify(inbox).slice(0, 200)} ${short.status}`);
+        await sp.context().close();
+      }
       {   // a plan that limits how long one live lasts: a warning, then the live ends; a free plan opens at once
         const tk2 = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
         const H = { Authorization: 'Bearer ' + tk2, 'Content-Type': 'application/json' }, JH = { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.9.8' };

@@ -21,6 +21,12 @@
     const res = await api('');
     if (res.status === 401 || res.status === 403) { location.replace('/studio'); return; }
     const data = await res.json();
+    const KIND = { question: 'سؤال', complaint: 'شكاية', request: 'طلب', pricing: 'الأثمنة والخلاص', technical: 'مشكل تقني' };
+    $('#ticketList').replaceChildren(...((data.tickets || []).length ? data.tickets.map((t) => el('li', {},
+      el('span', { class: 'admin-main-cell' }, el('strong', {}, `${T(KIND[t.kind] || 'سؤال')} · ${t.name}`), el('a', { href: 'mailto:' + t.email + '?subject=' + encodeURIComponent('REGAM Live ' + t.id), dir: 'ltr' }, t.email),
+        el('span', { class: 'muted', dir: 'ltr' }, t.id + ' · ' + new Date(t.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' })), el('span', { class: 'ticket-text', dir: 'auto' }, t.text)),
+      el('button', { class: 'btn', type: 'button', onclick: async () => { await api('/settings', { method: 'POST', body: JSON.stringify({ ticketDone: t.id }) }); load(); } }, T('تعالجات'))))
+      : [el('li', { class: 'muted' }, T('ما كاين حتى رسالة.'))]));
     const owners = [{ id: 'admin', name: T('المدير (أنا)') }, ...data.users.filter((u) => u.active)];
     const ownerSel = (current, onchange) => el('select', { 'aria-label': T('الأستاذ'), onchange },
       ...owners.concat(data.users.filter((u) => !u.active && u.id === current)).map((o) => el('option', { value: o.id, selected: o.id === current }, o.name)));

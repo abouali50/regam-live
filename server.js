@@ -706,6 +706,7 @@ async function handleAdmin(req, res, url, what) {
       users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
       plans: db.plans, payInfo: db.payInfo, legal: db.legal || { owner: '', contact: '' }, uplink: db.uplink || 400, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(), stats: cls.stats(), security: { ...sec.view(), warnings: ENV_WARNINGS },
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
+      tickets: (db.tickets || []).slice().reverse(),
     });
   }
   if (what === 'user' && req.method === 'POST') {            // create, or update when "id" is given
@@ -773,6 +774,7 @@ async function handleAdmin(req, res, url, what) {
   }
   if (what === 'settings' && req.method === 'POST') {       // payment instructions and the plans on offer
     const b = await readJson(req);
+    if (b.ticketDone) { db.tickets = (db.tickets || []).filter((t) => t.id !== String(b.ticketDone)); save(); }      // a support message that was dealt with
     pay.adminSet(b.pay);                                       // online payment: the PayPal keys
     ai.adminSet(b.ai);                                         // the AI assistant: key, model, what it should know
     if (b.ai) for (const r of rooms.values()) toMods(r, { t: 'aichat', ready: ai.inChat(), on: !r.cfg.aiOff });
@@ -944,6 +946,19 @@ const server = http.createServer(async (req, res) => {
       if (out.ok && out.slug) { const room = rooms.get(out.slug); if (room) toHost(room, { t: 'class', ...cls.view(room), payReady: pay.ready() }); }
       return send(res, 200, { ok: !!out.ok, pending: !!out.pending, error: out.error, slug: out.slug });
     }
+    if (p === '/api/support' && req.method === 'POST') {         // a question, a request or a complaint, for the people who run the site
+      const ip = clientIp(req);
+      if (!sec.allowed('support:' + ip, 5, 3600e3)) return send(res, 429, { error: 'too many requests' });
+      const b = await readJson(req), text = clean(b.text, 3000), email = clean(b.email, 120).toLowerCase(), name = clean(b.name, 60);
+      const kind = ['question', 'complaint', 'request', 'pricing', 'technical'].includes(b.kind) ? b.kind : 'question';
+      if (text.length < 10 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !name) return send(res, 400, { error: 'bad request' });
+      db.tickets = db.tickets || [];
+      const t = { id: 'T' + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString('hex').toUpperCase(), at: Date.now(), kind, name, email, text };
+      db.tickets.push(t); db.tickets = db.tickets.slice(-500); save();
+      const to = (db.backup || {}).email;
+      if (to && acct.mailReady()) acct.mail(to, `${SITE_TITLE} - support ${t.id} (${kind})`, `${name} <${email}>\n\n${text}`).catch(() => {});
+      return send(res, 200, { ok: true, id: t.id });
+    }
     if (p === '/api/leave') {                    // "no more reminders": the link at the foot of a reminder
       const room = roomOf(url), key = verify(String(url.searchParams.get('k') || ''), 'leave');
       const [slug, mid] = String(key || '').split(':');
@@ -1019,6 +1034,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/admin') return serveFile(res, path.join(PUBLIC_DIR, 'admin.html'));
     if (p === '/teach') return serveFile(res, path.join(PUBLIC_DIR, 'teach.html'));
     if (p === '/legal') return serveFile(res, path.join(PUBLIC_DIR, 'legal.html'));
+    if (p === '/support') return serveFile(res, path.join(PUBLIC_DIR, 'support.html'));
     if (p === '/vendor/hls.min.js') return serveFile(res, path.join(__dirname, 'node_modules/hls.js/dist/hls.min.js'), 'public, max-age=86400');
     const file = path.join(PUBLIC_DIR, path.normalize(p));
     if (!file.startsWith(PUBLIC_DIR + path.sep)) return send(res, 400, 'Bad path');

@@ -57,7 +57,12 @@
   // professional accounts: what each plan gives
   fetch('/api/plans').then((r) => r.json()).then((d) => {
     if (!d.plans || !d.plans.length) return;
-    $('#proPlans').replaceChildren(...d.plans.map((p) => el('li', {}, planText(p))));
+    $('#proPlans').replaceChildren(...d.plans.map((p) => el('li', { class: 'plan-card' },
+      el('h3', {}, p.name),
+      el('p', { class: 'plan-price' }, p.price === 0 ? T('فابور') : el('span', {}, p.price + ' $ ', el('small', {}, T(p.yearly ? 'فالعام' : 'فالشهر')))),
+      el('p', {}, '👥 ' + T('حتى ل {n} مشارك', { n: p.capacity })),
+      el('p', {}, '⏱ ' + (p.minutes ? T('كل لايف حتى ل {m} دقيقة', { m: p.minutes }) : T('مدة اللايف بلا حد'))),
+      el('a', { class: 'btn primary', href: '/teach' }, T(p.price === 0 ? 'ابدا فابور' : 'اختار هاد العرض')))));
     $('#proBox').hidden = false;
   }).catch(() => {});
   // the account corner, and the invitation to sign up for people who have no account yet

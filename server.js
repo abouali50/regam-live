@@ -786,7 +786,7 @@ async function handleAdmin(req, res, url, what) {
       for (const x of b.plans.slice(0, 12)) {
         const name = clean(x && x.name, 30), price = Number(x && x.price), capacity = Number(x && x.capacity), minutes = Math.round(Number(x && x.minutes) || 0);      // minutes: how long one live may last (0: no limit)
         if (!name || !(price >= 0) || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000 || minutes < 0 || minutes > 1440) return send(res, 400, { error: 'bad plan' });
-        plans.push({ id: (x.id && /^[a-z0-9]{2,12}$/.test(x.id)) ? x.id : 'p' + crypto.randomBytes(4).toString('hex'), name, price: Math.round(price * 100) / 100, capacity, minutes: minutes || undefined });
+        plans.push({ id: (x.id && /^[a-z0-9]{2,12}$/.test(x.id)) ? x.id : 'p' + crypto.randomBytes(4).toString('hex'), name, price: Math.round(price * 100) / 100, capacity, minutes: minutes || undefined, yearly: x.yearly ? true : undefined });      // yearly: the price is for one year, paid at once
       }
       db.plans = plans;
     }

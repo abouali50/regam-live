@@ -1308,7 +1308,7 @@ async function until(fn, ms = 15000, step = 250) {
         const H = { Authorization: 'Bearer ' + tk2, 'Content-Type': 'application/json' }, JH = { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.9.8' };
         const post = (u, b2, h = JH) => fetch(BASE + u, { method: 'POST', headers: h, body: JSON.stringify(b2) });
         const now = (await (await fetch(BASE + '/api/plans')).json()).plans;
-        await post('/api/admin/settings', { plans: [...now.map((x, i) => (i === 0 ? { ...x, minutes: 2 } : x)), { name: 'Essai', price: 0, capacity: 20, minutes: 15 }] }, H);
+        await post('/api/admin/settings', { plans: [...now.map((x, i) => (i === 0 ? { ...x, minutes: 2 } : x)), { name: 'Essai', price: 0, capacity: 20, minutes: 15 }, { name: 'Annuel', price: 500, capacity: 200, yearly: true }] }, H);
         const listed = (await (await fetch(BASE + '/api/plans')).json()).plans, freePlan = listed.find((x) => x.name === 'Essai');
         forcedAir.add('air_' + slug);
         const over = await until(() => { const m = host.last('limit'); return m && m.over ? m : null; }, 20000);
@@ -1318,7 +1318,12 @@ async function until(fn, ms = 15000, step = 250) {
         await sleep(2500);
         const trial = await (await post('/api/apply', { planId: freePlan.id, name: 'Hind Essai', contact: 'hind@example.com', roomTitle: 'Coaching Hind', topic: 'Coaching', login: 'hindessai', password: 'hind-pass-12' })).json();
         const trialIn = await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'hindessai', password: 'hind-pass-12' }) });
-        check('a plan can limit how long one live lasts (a warning, then the live ends), and a free plan opens at once without payment', listed[0].minutes === 2 && !!over && over.minutes === 2 && warned && shownOff === true && trial.free === true && trialIn.status === 200, `${JSON.stringify(over)} ${warned} ${shownOff} ${JSON.stringify(trial).slice(0, 120)} ${trialIn.status}`);
+        const yearPlan = listed.find((x) => x.name === 'Annuel');
+        await post('/api/apply', { planId: yearPlan.id, name: 'Sara Annuel', contact: 'sara@example.com', roomTitle: 'Salle Sara', topic: 'Coaching', login: 'saraannuel', password: 'sara-pass-123' });
+        const yStart = await (await post('/api/pay/start', { login: 'saraannuel', password: 'sara-pass-123', months: 1 })).json();
+        const yOrd = yStart.url ? pp.orders[new URL(yStart.url).searchParams.get('token')] : null;
+        check('a plan priced by the year is paid at once, at its own price, for twelve months', !!yOrd && yOrd.unit.amount.value === '500.00' && /:12$/.test(yOrd.unit.custom_id), JSON.stringify(yStart).slice(0, 200) + ' ' + JSON.stringify(yOrd && yOrd.unit));
+        check('a plan can limit how long one live lasts (a warning, then the live ends), and a free plan opens at once without payment', listed[0].minutes === 2 && !!over && over.minutes === 2 && warned && shownOff === true && trial.free === true && trialIn.status === 200 && listed.find((x) => x.name === 'Annuel').yearly === true, `${JSON.stringify(over)} ${warned} ${shownOff} ${JSON.stringify(trial).slice(0, 120)} ${trialIn.status}`);
         await post('/api/admin/settings', { plans: listed.map((x) => ({ ...x, minutes: 0 })) }, H);
       }
       l4.close();

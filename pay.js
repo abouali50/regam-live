@@ -42,7 +42,8 @@ module.exports = function payments({ db, save, env, grant, grantEntry }) {
     const plan = db.plans.find((p) => p.id === user.planId);
     if (!plan || !(plan.price > 0)) return { error: 'no plan' };
     if (!origin) return { error: 'bad address' };
-    const amount = money(plan.price * months);
+    if (plan.yearly) months = 12;                  // a plan priced by the year is paid for the year, at its price
+    const amount = money(plan.yearly ? plan.price : plan.price * months);
     const order = await call('/v2/checkout/orders', {
       intent: 'CAPTURE',
       purchase_units: [{ amount: { currency_code: 'USD', value: amount }, custom_id: `${user.id}:${months}`, description: `REGAM Live - ${plan.name} x ${months}`.slice(0, 120) }],

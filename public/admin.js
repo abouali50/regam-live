@@ -273,7 +273,7 @@
   $('#planForm').onsubmit = async (e) => {
     e.preventDefault();
     const f = e.target.elements;
-    if (await savePlans([...plans, { name: f.name.value, price: Number(f.price.value), capacity: Number(f.capacity.value), minutes: Number(f.minutes.value) || 0 }], T('تزاد العرض.'))) e.target.reset();
+    if (await savePlans([...plans, { name: f.name.value, price: Number(f.price.value), capacity: Number(f.capacity.value), minutes: Number(f.minutes.value) || 0, yearly: !!f.yearly.value }], T('تزاد العرض.'))) e.target.reset();
   };
   $('#payForm').onsubmit = (e) => { e.preventDefault(); api('/settings', { method: 'POST', body: JSON.stringify({ payInfo: $('#payText').value }) }).then((r) => done(r, T('تحفظات طريقة الخلاص.'))); };
 

@@ -63,6 +63,7 @@
     }
     applied = { login: body.login, password: body.password };
     $('#payNow').hidden = !out.pay; $('#renewBox').hidden = true;
+    if (out.plan.yearly) { const sel = $('#payNow').elements.months; sel.value = '12'; sel.closest('label').hidden = true; }      // a yearly plan is paid for the year
     $('#payNow').onsubmit = (ev) => { ev.preventDefault(); payWith(applied.login, applied.password, ev.target.elements.months.value, ev.target.querySelector('button'), $('#paidMsg')); };
     $('#applyBox').hidden = true; $('#applyDone').hidden = false;
     $('#donePlan').textContent = planLine(out.plan);

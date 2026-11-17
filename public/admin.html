@@ -178,7 +178,8 @@
     <ul id="planList" class="admin-list"></ul>
     <form id="planForm" class="admin-form">
       <label>اسم العرض<input name="name" type="text" maxlength="30" required></label>
-      <label>الثمن ($ فالشهر)<input name="price" type="number" min="0" step="1" required dir="ltr"></label>
+      <label>الثمن ($)<input name="price" type="number" min="0" step="1" required dir="ltr"></label>
+      <label>الثمن ديال<select name="yearly"><option value="">شهر</option><option value="1">عام</option></select></label>
       <label>عدد المتابعين<input name="capacity" type="number" min="1" step="1" required dir="ltr"></label>
       <label>مدة كل لايف بالدقايق (0 = بلا حد)<input name="minutes" type="number" min="0" max="1440" step="1" value="0" dir="ltr"></label>
       <button class="btn primary" type="submit">زيد عرض</button>

@@ -1333,6 +1333,15 @@ async function until(fn, ms = 15000, step = 250) {
         const after = (await (await fetch(BASE + '/api/admin', { headers: HA })).json()).tickets;
         check('the public site has its menu, its sections and a support page whose messages reach the administrator', !!menu && menu.join('|') === 'Fonctionnalités|Solutions|Tarifs|Application|Support' && blocks.features === 12 && blocks.solutions === 6 && blocks.install === 4 && blocks.foot === 5 && blocks.plans >= 1
           && !!said && inbox.length === 1 && inbox[0].kind === 'complaint' && inbox[0].email === 'rachid@example.com' && short.status === 400 && after.length === 0, `${menu} ${JSON.stringify(blocks)} ${said} ${JSON.stringify(inbox).slice(0, 200)} ${short.status}`);
+        // the desktop applications built by the installer are offered for download
+        fs.mkdirSync(path.join(OUT, 'data', 'apps'), { recursive: true });
+        fs.writeFileSync(path.join(OUT, 'data', 'apps', 'REGAM-Live-Windows.zip'), Buffer.alloc(1500000, 7));
+        const apps = (await (await fetch(BASE + '/api/apps')).json()).apps, dl = await fetch(BASE + '/download/REGAM-Live-Windows.zip'), got = (await dl.arrayBuffer()).byteLength;
+        const none = await fetch(BASE + '/download/REGAM-Live-Mac-x64.zip'), sneak = await fetch(BASE + '/download/..%2Fdb.json');
+        await sp.goto(BASE + '/rooms');
+        const button = await until(() => sp.locator('#downloads a[href="/download/REGAM-Live-Windows.zip"]').isVisible(), 6000);
+        check('the desktop applications built for the site are offered for download on the home page, and nothing else can be fetched that way', apps.length === 1 && apps[0].kind === 'windows' && dl.status === 200 && got === 1500000
+          && /attachment/.test(dl.headers.get('content-disposition')) && none.status === 404 && sneak.status === 404 && button !== null, `${JSON.stringify(apps)} ${dl.status} ${got} ${none.status} ${sneak.status}`);
         await sp.context().close();
       }
       {   // a plan that limits how long one live lasts: a warning, then the live ends; a free plan opens at once

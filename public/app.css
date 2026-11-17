@@ -873,3 +873,7 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .site-foot a { color: #e6e9ff; text-decoration: none; } .site-foot a:hover { text-decoration: underline; }
 .foot-brand p { margin: 0; max-width: 34ch; } .foot-copy { grid-column: 1 / -1; margin: 0; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.2); font-size: 13px; }
 @media (max-width: 800px) { .site-foot { grid-template-columns: 1fr 1fr; } .site-nav { order: 3; flex-basis: 100%; margin: 0; overflow-x: auto; flex-wrap: nowrap; } .site-nav > a, .nav-drop > summary { white-space: nowrap; } .nav-menu { position: fixed; inset-inline: 12px; top: auto; } }
+
+.site-dl { display: grid; gap: 10px; padding: 18px 20px; border-radius: 18px; background: rgba(20,28,74,.6); border: 1px solid #8f9bd0; }
+.site-dl h3 { margin: 0; color: var(--gold); font-size: 20px; } .site-dl p { margin: 0; line-height: 1.55; }
+.site-dl-row { display: flex; gap: 10px; flex-wrap: wrap; } .site-dl-row small { font-weight: 600; opacity: .75; }

@@ -85,6 +85,21 @@
         ['🤖', 'Android', L('ف Chrome: القائمة ⋮ ثم «تثبيت التطبيق».', 'Dans Chrome : menu ⋮, puis « Installer l’application ».', 'In Chrome: the ⋮ menu, then “Install app”.')],
       ]));
 
+    // the real applications for computers, when the installer has built them for this site
+    fetch('/api/apps').then((r) => r.json()).then((d) => {
+      if (!d.apps || !d.apps.length) return;
+      const NAME = { windows: 'Windows', 'mac-arm': L('Mac (معالج Apple M1 فما فوق)', 'Mac (puce Apple M1 et plus)', 'Mac (Apple chip, M1 and later)'), 'mac-intel': L('Mac (معالج Intel)', 'Mac (processeur Intel)', 'Mac (Intel processor)') };
+      const box = el('div', { class: 'site-dl', id: 'downloads' },
+        el('h3', {}, L('حمل التطبيق للحاسوب', 'Téléchargez l’application pour ordinateur', 'Download the app for your computer')),
+        el('div', { class: 'site-dl-row' }, ...d.apps.map((a) => el('a', { class: 'btn primary big', href: a.url, download: '' }, '⬇ ' + NAME[a.kind], el('small', {}, ' ' + Math.round(a.size / 1e6) + ' Mo')))),
+        el('p', { class: 'muted' }, L('Windows: فك الملف، حل الدوسي «REGAM Live» وكليكي جوج مرات على «REGAM Live.exe». إلا بان تنبيه أزرق، كليكي «معلومات إضافية» ثم «تشغيل على أي حال».',
+          'Windows : décompressez le fichier, ouvrez le dossier « REGAM Live » et double-cliquez sur « REGAM Live.exe ». Si un avertissement bleu apparaît, cliquez sur « Informations complémentaires » puis « Exécuter quand même ».',
+          'Windows: unzip the file, open the “REGAM Live” folder and double-click “REGAM Live.exe”. If a blue warning appears, click “More info” then “Run anyway”.')),
+        el('p', { class: 'muted' }, L('Mac: فك الملف وجر «REGAM Live» للتطبيقات. فأول مرة: كليكي باليمين على التطبيق ثم «فتح»؛ ولا من إعدادات النظام ← الخصوصية والأمان ← «فتح على أي حال».',
+          'Mac : décompressez le fichier et glissez « REGAM Live » dans Applications. La première fois : clic droit sur l’application puis « Ouvrir » ; ou Réglages Système → Confidentialité et sécurité → « Ouvrir quand même ».',
+          'Mac: unzip the file and drag “REGAM Live” to Applications. The first time: right-click the app then “Open”; or System Settings → Privacy & Security → “Open Anyway”.')));
+      install.querySelector('.site-lead').after(box);
+    }).catch(() => {});
     main.insertBefore(features, before);
     main.insertBefore(solutions, before);
     main.insertBefore(join, before);

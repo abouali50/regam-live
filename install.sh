@@ -207,6 +207,22 @@ for _ in $(seq 1 20); do
 done
 [ "$OK" = 1 ] || warn "The app does not answer yet. Check:  cd $BASE && docker compose logs app mediamtx"
 
+# The desktop applications (Windows, Mac), built for this site's own address and offered on its home page.
+# Built once, and again only when their source or the address changes. A failure here does not stop the site.
+APPS_KEY="$(cat "$BASE"/apps/desktop/* "$BASE/tools/build-apps.sh" 2>/dev/null | sha256sum | cut -c1-16)-$DOMAIN"
+if [ "$(cat "$BASE/data/apps/key" 2>/dev/null || true)" = "$APPS_KEY" ]; then
+  say "Desktop applications: already up to date"
+else
+  say "Building the desktop applications for Windows and Mac (a few minutes, the first time)"
+  mkdir -p "$BASE/data/apps"
+  if docker run --rm -v "$BASE:/src:ro" -v "$BASE/data/apps:/out" node:22-bookworm bash -c "apt-get update -qq >/dev/null 2>&1 && apt-get install -y -qq zip >/dev/null 2>&1 && bash /src/tools/build-apps.sh https://$DOMAIN /out"; then
+    echo "$APPS_KEY" > "$BASE/data/apps/key"
+    chown -R 1000:1000 "$BASE/data/apps"
+  else
+    warn "The desktop applications could not be built this time (the site itself is fine). Run this script again later."
+  fi
+fi
+
 say "Done."
 cat <<EOF
 

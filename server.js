@@ -193,6 +193,7 @@ function forgetMember(id) {
 const acct = require('./accounts')({ db, save, send, readJson, sign, verify, clean, clientIp, siteTitle: SITE_TITLE, env, onRemove: forgetMember, sec, siteOrigin: (req) => siteOrigin(req), hostOrigin: (req) => originOf(req) });
 const ai = require('./ai')({ db, save, clean, env });
 const bak = require('./backup')({ db, dataDir: DATA_DIR, dbFile: DB_FILE, freeze: () => { frozen = true; clearTimeout(saveTimer); }, mail: acct.mail, mailReady: acct.mailReady, siteTitle: SITE_TITLE });
+const APPS_DIR = path.join(DATA_DIR, 'apps'), APP_FILES = { 'REGAM-Live-Windows.zip': 'windows', 'REGAM-Live-Mac-arm64.zip': 'mac-arm', 'REGAM-Live-Mac-x64.zip': 'mac-intel' };
 const SITE_TZ = env.SITE_TZ || 'Africa/Casablanca';
 // The site's time: so many minutes ahead of UTC. Every page shows and plans lives in that time, whatever the
 // visitor's device believes (time-zone tables in phones and servers go out of date when a country changes its
@@ -1035,6 +1036,19 @@ const server = http.createServer(async (req, res) => {
     if (p === '/teach') return serveFile(res, path.join(PUBLIC_DIR, 'teach.html'));
     if (p === '/legal') return serveFile(res, path.join(PUBLIC_DIR, 'legal.html'));
     if (p === '/support') return serveFile(res, path.join(PUBLIC_DIR, 'support.html'));
+    // the desktop applications, built for this site by the installer (tools/build-apps.sh) into data/apps
+    if (p === '/api/apps') {
+      const list = [];
+      for (const [file, kind] of Object.entries(APP_FILES)) { try { const st = fs.statSync(path.join(APPS_DIR, file)); if (st.size > 1e6) list.push({ kind, url: '/download/' + file, size: st.size }); } catch { /* not built */ } }
+      return send(res, 200, { apps: list });
+    }
+    if (p.startsWith('/download/')) {
+      const file = p.slice(10);
+      if (!Object.prototype.hasOwnProperty.call(APP_FILES, file)) return send(res, 404, 'Not found');
+      let st; try { st = fs.statSync(path.join(APPS_DIR, file)); } catch { return send(res, 404, 'Not found'); }
+      res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Length': st.size, 'Content-Disposition': `attachment; filename="${file}"`, 'Cache-Control': 'no-cache' });
+      return void fs.createReadStream(path.join(APPS_DIR, file)).on('error', () => res.destroy()).pipe(res);
+    }
     if (p === '/vendor/hls.min.js') return serveFile(res, path.join(__dirname, 'node_modules/hls.js/dist/hls.min.js'), 'public, max-age=86400');
     const file = path.join(PUBLIC_DIR, path.normalize(p));
     if (!file.startsWith(PUBLIC_DIR + path.sep)) return send(res, 400, 'Bad path');

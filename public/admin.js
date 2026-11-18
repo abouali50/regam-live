@@ -126,14 +126,14 @@
   addPasswordEyes($('#aiForm'));
 
   // ---- viewer accounts: who needs one, the mailbox that sends the codes, the people signed up
-  const PRESET = { gmail: ['smtp.gmail.com', 465], hostinger: ['smtp.hostinger.com', 465] };
+  const PRESET = { gmail: ['smtp.gmail.com', 465], hostinger: ['smtp.hostinger.com', 465], brevo: ['smtp-relay.brevo.com', 587] };
   function showAccounts(a) {
     const f = $('#mailForm').elements;
     $('#accessSel').value = a.access;
     $('#mailState').textContent = T(a.mailReady ? 'الإيميل مركب: التسجيل خدام.' : 'مازال ما ركبتيش الإيميل: التسجيل ما خدامش حتى تركبو.');
     $('#mailState').className = a.mailReady ? 'ok-text' : 'err';
     if (!$('#mailForm').contains(document.activeElement)) {
-      f.host.value = a.mail.host || PRESET.gmail[0]; f.port.value = a.mail.port || 465; f.user.value = a.mail.user;
+      f.host.value = a.mail.host || PRESET.gmail[0]; f.port.value = a.mail.port || 465; f.user.value = a.mail.user; f.from.value = a.mail.from && a.mail.from !== a.mail.user ? a.mail.from : '';
       f.kind.value = Object.keys(PRESET).find((k) => PRESET[k][0] === f.host.value) || 'other';
       f.pass.placeholder = a.mail.hasPass ? '••••••••' : '';
     }
@@ -154,7 +154,7 @@
   $('#mailForm').onsubmit = (e) => {
     e.preventDefault();
     const f = e.target.elements;
-    api('/settings', { method: 'POST', body: JSON.stringify({ mail: { host: f.host.value, port: Number(f.port.value), user: f.user.value, from: f.user.value, pass: f.pass.value.replace(/\s+/g, '') } }) })
+    api('/settings', { method: 'POST', body: JSON.stringify({ mail: { host: f.host.value, port: Number(f.port.value), user: f.user.value, from: f.from.value.trim() || f.user.value, pass: f.pass.value.replace(/\s+/g, '') } }) })
       .then((r) => { f.pass.value = ''; return done(r, T('تحفظ الإيميل. جربو دابا برسالة تجريبية.')); });
   };
   $('#mailTest').onsubmit = async (e) => {

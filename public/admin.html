@@ -77,11 +77,12 @@
     <h3 class="sub">الإيميل اللي كيصيفط الكودات</h3>
     <p class="muted" id="mailState"></p>
     <form id="mailForm" class="admin-form">
-      <label>النوع<select name="kind"><option value="gmail">Gmail</option><option value="hostinger">Hostinger</option><option value="other">آخر</option></select></label>
+      <label>النوع<select name="kind"><option value="gmail">Gmail</option><option value="hostinger">Hostinger</option><option value="brevo">Brevo</option><option value="other">آخر</option></select></label>
       <label>السيرفر (SMTP)<input name="host" type="text" maxlength="100" dir="ltr" required></label>
       <label>البور<input name="port" type="number" min="1" max="65535" dir="ltr" required></label>
       <label>العنوان (الإيميل)<input name="user" type="email" maxlength="120" dir="ltr" autocomplete="off" required></label>
       <label>كلمة السر ديال هاد الإيميل<input name="pass" type="password" maxlength="200" dir="ltr" autocomplete="new-password"></label>
+      <label>الإيميل اللي كيبان للناس (اختياري)<input name="from" type="email" maxlength="120" dir="ltr" autocomplete="off"></label>
       <button class="btn primary" type="submit">حفظ الإيميل</button>
     </form>
     <form id="mailTest" class="admin-form">

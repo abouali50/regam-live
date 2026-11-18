@@ -642,6 +642,7 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  'الإيميل اللي كيبان للناس (اختياري)': ['Adresse d\'expéditeur affichée (facultatif)', 'Sender address shown (optional)'],
   'دابا كاين اجتماع خاص فهاد القاعة، وماشي ديالك. رجع فالوقت ديال الاجتماع ديالك بالرابط اللي وصلك.': ['Une réunion privée est en cours dans cette salle, et ce n’est pas la vôtre. Revenez à l’heure de votre réunion avec le lien que vous avez reçu.', 'A private meeting is going on in this room, and it is not yours. Come back at the time of your meeting with the link you received.'],
   'تقارير الاجتماعات (الذكاء الاصطناعي)': ['Rapports des réunions (IA)', 'Meeting reports (AI)'],
   'فاللايف، الموقع كيكتب الهضرة ديالك وديال الضيوف (فـ Chrome). فاللخر، الذكاء الاصطناعي كيكتب تقرير: الملخص، النقط، القرارات، المهام والأسئلة. كيوصلك بالإيميل وكيبقى هنا.': ['Pendant le live, le site écrit ce que vous dites, vous et vos invités sur scène (dans Chrome). À la fin, l’IA rédige un rapport : résumé, points discutés, décisions, tâches et questions. Vous le recevez par e-mail et il reste ici.', 'During the live, the site writes down what you and your guests on stage say (in Chrome). At the end, the AI writes a report: summary, points, decisions, tasks and questions. You get it by e-mail and it stays here.'],

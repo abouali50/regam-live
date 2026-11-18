@@ -775,10 +775,12 @@ function celebrate(n, big, { quiet = false } = {}) {
   const cv = el('canvas', { class: 'cheer-canvas', 'aria-hidden': 'true' });
   const text = el('div', { class: 'cheer-text' }, el('strong', {}, T('برافو!')), el('span', {}, T('{n} لايك', { n: n.toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG) })));
   layer.append(cv);
-  if (big) layer.append(el('div', { class: 'cheer-lion', 'aria-hidden': 'true' }, '🦁'));
+  let lion = null;
+  if (big) { lion = typeof makeLion === 'function' ? makeLion() : { node: el('div', { class: 'cheer-lion', 'aria-hidden': 'true' }, '🦁'), play() {} }; layer.append(lion.node); }
   layer.append(text);
   document.body.append(layer);
   cheerSounds(big, quiet ? 0.35 : 0.9);
+  if (lion && !calm) lion.play();
   const life = big ? 6500 : 4200;
   setTimeout(() => layer.classList.add('out'), life - 600);
   setTimeout(() => layer.remove(), life);

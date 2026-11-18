@@ -918,7 +918,7 @@ const server = http.createServer(async (req, res) => {
       db.push[room.cfg.slug] = list; save();
       return send(res, 200, { on: !b.off });
     }
-    if (p === '/api/rooms') return send(res, 200, { site: SITE_TITLE, now: Date.now(), tz: siteTz(), rooms: [...rooms.values()].map(publicRoom) });
+    if (p === '/api/rooms') { const mainRoom = rooms.get('main') || [...rooms.values()][0]; return send(res, 200, { site: SITE_TITLE, now: Date.now(), tz: siteTz(), rooms: [...rooms.values()].map(publicRoom), sounds: mainRoom ? soundList(mainRoom) : [] }); }      // sounds: what plays while a signed-in person waits for their link
     if (p === '/api/plans') return send(res, 200, { site: SITE_TITLE, plans: db.plans, pay: pay.ready(), paypal: pay.paypal(), wallet: pay.walletView(), months: pay.MONTHS });
     // Online payment of a subscription. The teacher proves who they are with their login and password
     // (their account may be waiting for approval or run out, so they have no studio session).

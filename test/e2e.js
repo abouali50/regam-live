@@ -411,6 +411,9 @@ async function until(fn, ms = 15000, step = 250) {
       await kp.goto(LB + '/rooms');
       await kp.evaluate(([t]) => { localStorage.setItem('regam.member', t); localStorage.setItem('regam.memberName', 'Test'); }, [tok]);
       await kp.reload();
+      const waiting = await until(async () => (await kp.locator('#waitBox').isVisible()) && /Test/.test(await kp.textContent('#waitHello')), 6000);
+      const noWaitSignedOut = await (async () => { const c = await browser.newContext({ locale: 'fr-FR' }), pg = await c.newPage(); await pg.goto(LB + '/rooms'); await sleep(1500); const h = await pg.locator('#waitBox').isHidden(); await c.close(); return h; })();
+      check('a signed-in person with no link sees a waiting space telling them the organiser will send their link; somebody signed out does not', !!waiting && noWaitSignedOut);
       const added = await kp.evaluate(() => passkey.add().catch((e) => 'err ' + e.name + ' ' + e.message));
       const meKeys = (await (await fetch(BASE + '/api/member/me', { headers: { Authorization: 'Bearer ' + tok } })).json()).keys;
       await kp.evaluate(() => account.clear());

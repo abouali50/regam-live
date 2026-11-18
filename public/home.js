@@ -65,11 +65,33 @@
       el('a', { class: 'btn primary', href: '/teach' }, T(p.price === 0 ? 'ابدا فابور' : 'اختار هاد العرض')))));
     $('#proBox').hidden = false;
   }).catch(() => {});
+  // A signed-in person with no link yet: a calm waiting space, with the recitation of the site (as in the rooms
+  // before a live), until the organiser sends them the link of their meeting.
+  async function showWaiting() {
+    $('#waitHello').textContent = T('مرحبا {name}', { name: account.name });
+    $('#waitBox').hidden = false;
+    let tracks = [];
+    try { tracks = (await (await fetch('/api/rooms')).json()).sounds || []; } catch { /* no sound */ }
+    if (!tracks.length) return;
+    const audio = new Audio(tracks[0]), btn = $('#waitPlay');
+    let at = 0, wanted = true;
+    audio.loop = tracks.length === 1; audio.preload = 'none';
+    const next = () => { at = (at + 1) % tracks.length; audio.src = tracks[at]; if (wanted) audio.play().catch(() => {}); };
+    audio.addEventListener('ended', () => { if (tracks.length > 1) next(); });
+    audio.addEventListener('error', () => { if (tracks.length > 1) next(); });
+    const paint = () => { btn.textContent = T(audio.paused ? '🔊 استمع' : '⏸ وقف الصوت'); $('#waitBox').classList.toggle('playing', !audio.paused); };
+    audio.onplay = audio.onpause = paint;
+    btn.hidden = false;
+    btn.onclick = () => { wanted = audio.paused; if (wanted) audio.play().catch(() => {}); else audio.pause(); };
+    audio.play().catch(() => {});                                 // most browsers wait for a first tap: then it starts
+    addEventListener('pointerdown', (e) => { if (e.target !== btn && wanted && audio.paused) audio.play().catch(() => {}); }, { once: true });
+    paint();
+  }
   // the account corner, and the invitation to sign up for people who have no account yet
   fetch('/api/site').then((r) => r.json()).then((site) => {
     mountAccount(document.querySelector('.top .meta'), site);
     if (site.assistant) mountAssistant();
-    if (account.token) { $('#heroHello').hidden = false; $('#heroHello').textContent = T('مرحبا {name}', { name: account.name }); }
+    if (account.token) { $('#heroHello').hidden = false; $('#heroHello').textContent = T('مرحبا {name}', { name: account.name }); showWaiting(); }
     else if (site.accounts) {
       $('#heroActions').hidden = false;
       $('#heroUp').onclick = () => openAccount('signup');

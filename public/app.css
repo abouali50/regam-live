@@ -903,3 +903,19 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .lion-svg .lion-mouth { transform-box: view-box; transform-origin: 250px 300px; }
 .lion-svg .lion-eyes { transform-box: view-box; transform-origin: 250px 230px; }
 .cheer-layer.big .cheer-text { animation-delay: 2.6s; }
+
+/* a signed-in person with no link yet: the waiting space */
+.wait-box { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; margin: 18px 0 26px; padding: 26px 28px; border-radius: 22px;
+  background: linear-gradient(160deg, rgba(20,60,70,.88), rgba(18,32,80,.92)); border: 1px solid rgba(242,196,82,.7); box-shadow: 0 16px 40px rgba(5,10,40,.45), inset 0 1px 0 rgba(255,255,255,.15); }
+.wait-box[hidden] { display: none; }
+.wait-moon { font-size: 74px; line-height: 1; color: var(--gold); text-shadow: 0 0 30px rgba(242,196,82,.55); animation: wait-glow 4s ease-in-out infinite; }
+.wait-body { display: grid; gap: 8px; } .wait-body p { margin: 0; font-size: 17px; line-height: 1.6; } .wait-body .btn { justify-self: start; margin-top: 6px; }
+.wait-hello { margin: 0; font-size: 26px; color: var(--gold); }
+.wait-state { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .02em; color: #bff3e4; }
+.wait-dots { display: inline-flex; gap: 5px; } .wait-dots i { width: 8px; height: 8px; border-radius: 50%; background: #7cf2c8; animation: wait-dot 1.4s ease-in-out infinite; }
+.wait-dots i:nth-child(2) { animation-delay: .2s; } .wait-dots i:nth-child(3) { animation-delay: .4s; }
+.wait-box.playing .wait-moon { animation-duration: 2s; }
+@keyframes wait-dot { 0%, 80%, 100% { transform: scale(.5); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+@keyframes wait-glow { 50% { text-shadow: 0 0 46px rgba(242,196,82,.9); transform: scale(1.04); } }
+@media (max-width: 600px) { .wait-box { grid-template-columns: 1fr; text-align: center; justify-items: center; } .wait-body .btn { justify-self: center; } }
+@media (prefers-reduced-motion: reduce) { .wait-moon, .wait-dots i { animation: none; } }

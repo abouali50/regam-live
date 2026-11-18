@@ -171,7 +171,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
         db.members.push(m);
       }
       m.name = name; m.salt = crypto.randomBytes(16).toString('hex'); m.hash = hash(password, m.salt);
-      try { await sendCode(m, lang, origin); } catch { return send(res, 502, { error: 'mail failed' }); }
+      try { await sendCode(m, lang, origin); } catch (e) { console.error('sign-up e-mail failed', email.replace(/^(.).*@/, '$1***@'), String((e && e.message) || e).slice(0, 200)); return send(res, 502, { error: 'mail failed' }); }
       return send(res, 200, { ok: true, wait: sign('pend', m.id, 20 * 60e3) });
     }
     if (what === 'ready') {                      // the page a person signed up from asks: has the link of the e-mail been opened? Then it signs in by itself

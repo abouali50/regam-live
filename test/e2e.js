@@ -468,7 +468,7 @@ async function until(fn, ms = 15000, step = 250) {
         const hostSay = (msg) => studio.evaluate((m) => new Promise((res) => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'freelivetester001', token: sessionStorage.getItem('regam.studio') })); w.send(JSON.stringify(m)); }; w.onmessage = (e) => { const d = JSON.parse(e.data); if (d.t === 'sessions') { res(d.list); w.close(); } }; setTimeout(() => res(null), 4000); }), msg);
         const passOf = () => anon.evaluate(async () => (await fetch('/api/pass?room=main&uid=aaaaaaaaaaaaaaaa')).status);
         const at = Date.now() + 26 * 3600e3;
-        const planned = await hostSay({ t: 'session', at, end: at + 3600e3, title: 'Ouvert', free: true });
+        const planned = await hostSay({ t: 'session', at, end: at + 3600e3, title: 'Ouvert', free: true, pub: true });
         const one = (planned || []).find((x) => x.title === 'Ouvert');
         const closedBefore = await passOf();
         await hostSay({ t: 'session', open: one && one.id });
@@ -1404,6 +1404,16 @@ async function until(fn, ms = 15000, step = 250) {
         const linkBefore = await joinWith(uniq && uniq.code);
         forcedAir.add('air_' + slug);
         const linkDuring = await until(async () => { const j = await joinWith(uniq && uniq.code); return j.status === 200 && !j.early ? j : null; }, 10000);
+        {   // during that planned live, in a room with a waiting room: somebody without its link is told it is not their meeting, and the host is not asked
+          const codeWas = !!(host.got.find((m) => m.t === 'init') || {}).code || !!(host.last('code') || {}).code;
+          host.say({ t: 'code', on: false }); host.say({ t: 'gate', on: true }); await sleep(500);
+          const stranger = await sock('strangersock0001', { name: 'Inconnu' }); const said = await stranger.first(); await sleep(600);
+          const invited = await sock('invitedsock00001', { name: 'Invite', code: uniq && uniq.code }); const saidInv = await invited.first(); await sleep(400);
+          const announced = host.got.some((m) => m.t === 'waiting' && JSON.stringify(m).includes('Inconnu'));
+          const invitedAsked = host.got.some((m) => m.t === 'waiting' && JSON.stringify(m).includes('Invite'));
+          stranger.close(); invited.close(); host.say({ t: 'gate', on: false }); if (codeWas) host.say({ t: 'code', on: true }); await sleep(400);
+          check('while a planned live is on air, somebody without its link is told it is not their meeting and is not announced; who has the link comes straight in, without being announced either', !!said && said.t === 'notyet' && said.busy === true && !announced && !!saidInv && saidInv.t !== 'wait' && saidInv.t !== 'notyet' && !invitedAsked, `${JSON.stringify(said)} ${announced} ${JSON.stringify(saidInv)} ${invitedAsked}`);
+        }
         const over = await until(() => { const m = host.last('limit'); return m && m.over ? m : null; }, 20000);
         const warned = host.got.some((d) => d.t === 'limit' && d.left >= 1);
         const shownOff = await until(async () => ((await (await fetch(BASE + '/api/rooms')).json()).rooms.find((r) => r.slug === slug).live === false ? true : null), 8000);

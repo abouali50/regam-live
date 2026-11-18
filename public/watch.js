@@ -545,10 +545,10 @@
     .on('gate', (d) => { if (d.on) pass(); })
     .on('next', (d) => showNext(d.next))
     .on('notyet', (d) => {                    // the right link, before the time of its live: when to come back; the page asks again by itself
-      doorShut = true; setLive(false); knockBtn.hidden = true;
+      doorShut = false; setLive(false); knockBtn.hidden = true; syncSound();      // the waiting recitation plays while they wait for their time
       if ($('#codeDlg').open) $('#codeDlg').close();
       const when = siteClock.at(d.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-      $('#offlineText').textContent = !d.at ? T('ما كاين حتى لقاء دابا. رجع فالوقت ديال اللقاء ديالك بالرابط اللي وصلك: غادي تدخل نيشان.') : d.other ? T('دابا كاين لايف آخر فهاد القاعة. اللايف ديالك مبرمج ل {when}: خلي هاد الصفحة محلولة ولا رجع فالوقت ديالو بنفس الرابط.', { when })
+      $('#offlineText').textContent = d.busy && !d.at ? T('دابا كاين اجتماع خاص فهاد القاعة، وماشي ديالك. رجع فالوقت ديال الاجتماع ديالك بالرابط اللي وصلك.') : !d.at ? T('ما كاين حتى لقاء دابا. رجع فالوقت ديال اللقاء ديالك بالرابط اللي وصلك: غادي تدخل نيشان.') : d.other ? T('دابا كاين لايف آخر فهاد القاعة. اللايف ديالك مبرمج ل {when}: خلي هاد الصفحة محلولة ولا رجع فالوقت ديالو بنفس الرابط.', { when })
         : T('مازال ما جاش وقت اللقاء. مبرمج ل {when}. خلي هاد الصفحة محلولة ولا رجع فداك الوقت بنفس الرابط: غادي تدخل نيشان.', { when });
       clearTimeout(earlyRetry);
       earlyRetry = setTimeout(() => link.hello(), 20000);

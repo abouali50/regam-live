@@ -1223,6 +1223,12 @@ wss.on('connection', (ws, req) => {
         const c = String(d.code || '').replace(/\D/g, '');   // "not yet", whatever the room's other settings. The host is not asked to let in somebody who came days early.
         const mine = c.length === 6 && (room.cfg.sessions || []).find((x) => x.code && !spent(x) && safeEq(x.code, c));
         if (mine && !runningOf(room).includes(mine)) return tx(ws, { t: 'notyet', at: mine.at, other: mine.at - OPEN_EARLY <= Date.now() });
+        // On air for a planned live: that meeting is for the people who hold its link. Anybody else (no link, the link
+        // of another meeting) is told it is not their meeting, and is not announced to the host.
+        const act = room.live && room.cfg.active && (room.cfg.sessions || []).find((x) => x.id === room.cfg.active);
+        const invited = act && (act.pub || (c.length === 6 && ((act.code && safeEq(act.code, c)) || (room.cfg.code && safeEq(room.cfg.code, c)))));      // a public live is for everyone
+        if (act && !invited && !slotOf(room, String(d.uid)) && !room.byUid.has(String(d.uid))) return tx(ws, { t: 'notyet', at: mine ? mine.at : 0, busy: true });
+        if (mine && room.cfg.gate) room.admitted.add(String(d.uid));      // the link of the meeting that is on now: in, without knocking at the waiting room
       }
       if (!host && room.cfg.capacity > 0 && viewersOf(room) >= room.cfg.capacity && !room.byUid.has(String(d.uid))) {
         tx(ws, { t: 'full', capacity: room.cfg.capacity });   // the room's plan is full

@@ -711,7 +711,102 @@ function mountReactions(row, floatBox, link, { canSend = false, totalEl = null }
       });
       (d.c || []).forEach((c, k) => { counts[k] = c; });
       paint();
-    });
+    })
+    .on('cheer', (d) => celebrate(d.n, d.big, { quiet: !canSend }));
+}
+
+// ------------------------------------------------------------- celebrations --
+// "Bravo! 100 likes": two confetti cannons fire stars from the bottom corners, with applause; at every
+// thousand a lion roars on screen, then the crowd cheers. The sounds are made here, by the browser.
+let cheerAudio = null;
+const cheerCtx = () => { try { cheerAudio = cheerAudio || new (window.AudioContext || window.webkitAudioContext)(); if (cheerAudio.state === 'suspended') cheerAudio.resume().catch(() => {}); return cheerAudio; } catch { return null; } };
+document.addEventListener('pointerdown', () => { if (cheerAudio) cheerAudio.resume().catch(() => {}); }, { capture: true });
+function cheerSounds(big, volume) {
+  const ac = cheerCtx();
+  if (!ac || ac.state !== 'running') return;
+  const out = ac.createGain(); out.gain.value = volume; out.connect(ac.destination);
+  const t0 = ac.currentTime + 0.05, rate = ac.sampleRate;
+  const noise = (secs) => { const b = ac.createBuffer(1, Math.ceil(rate * secs), rate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = ac.createBufferSource(); s.buffer = b; return s; };
+  const env = (node, at, peak, attack, hold, release) => { const g = ac.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(peak, at + attack); g.gain.setValueAtTime(peak, at + attack + hold); g.gain.exponentialRampToValueAtTime(0.0001, at + attack + hold + release); node.connect(g); return g; };
+  const pop = (at) => { const s = noise(0.25), f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 0.8; s.connect(f); env(f, at, 0.9, 0.003, 0.02, 0.2).connect(out); s.start(at); };
+  const claps = (at, secs, many) => {                           // applause: many short bright bursts at random moments
+    for (let i = 0; i < many; i++) {
+      const when = at + Math.random() * secs, s = noise(0.06), f = ac.createBiquadFilter();
+      f.type = 'bandpass'; f.frequency.value = 1200 + Math.random() * 1800; f.Q.value = 1.2; s.connect(f);
+      env(f, when, 0.12 + Math.random() * 0.12, 0.002, 0.005, 0.05).connect(out); s.start(when);
+    }
+  };
+  const crowd = (at, secs) => {                                 // a cheering crowd: a broad roar of voices that swells and fades
+    const s = noise(secs), f = ac.createBiquadFilter(), f2 = ac.createBiquadFilter();
+    f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 0.6; f2.type = 'peaking'; f2.frequency.value = 1800; f2.gain.value = 6;
+    s.connect(f); f.connect(f2);
+    const g = ac.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(0.5, at + 0.6); g.gain.linearRampToValueAtTime(0.35, at + secs * 0.6); g.gain.linearRampToValueAtTime(0, at + secs);
+    f2.connect(g); g.connect(out); s.start(at);
+    for (let i = 0; i < 7; i++) {                               // a few "woo!" voices on top
+      const when = at + 0.3 + Math.random() * (secs - 1), o = ac.createOscillator(), base = 380 + Math.random() * 300;
+      o.type = 'triangle'; o.frequency.setValueAtTime(base, when); o.frequency.linearRampToValueAtTime(base * 1.6, when + 0.35); o.frequency.linearRampToValueAtTime(base * 1.2, when + 0.7);
+      env(o, when, 0.05, 0.05, 0.35, 0.35).connect(out); o.start(when); o.stop(when + 0.8);
+    }
+  };
+  const roar = (at) => {                                        // a deep growl rising into a roar
+    const shape = ac.createWaveShaper(), curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(3 * x); }
+    shape.curve = curve;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(500, at); lp.frequency.linearRampToValueAtTime(1400, at + 0.6); lp.frequency.linearRampToValueAtTime(400, at + 1.8);
+    for (const [freq, type] of [[72, 'sawtooth'], [109, 'sawtooth'], [146, 'square']]) {
+      const o = ac.createOscillator(), wob = ac.createOscillator(), wg = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq * 0.8, at); o.frequency.linearRampToValueAtTime(freq * 1.15, at + 0.5); o.frequency.linearRampToValueAtTime(freq * 0.7, at + 1.9);
+      wob.frequency.value = 28; wg.gain.value = freq * 0.08; wob.connect(wg); wg.connect(o.frequency);
+      o.connect(shape); o.start(at); o.stop(at + 2.1); wob.start(at); wob.stop(at + 2.1);
+    }
+    const n = noise(2.1), nf = ac.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 900; n.connect(nf); nf.connect(shape); n.start(at);
+    shape.connect(lp);
+    const g = ac.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(0.55, at + 0.35); g.gain.setValueAtTime(0.55, at + 1.1); g.gain.exponentialRampToValueAtTime(0.0001, at + 2.1);
+    lp.connect(g); g.connect(out);
+  };
+  pop(t0); pop(t0 + 0.12);
+  if (big) { roar(t0 + 0.4); crowd(t0 + 2.2, 4); claps(t0 + 2.3, 3.5, 140); }
+  else { claps(t0 + 0.2, 2.6, 90); crowd(t0 + 0.3, 2.6); }
+}
+function celebrate(n, big, { quiet = false } = {}) {
+  if (document.querySelector('.cheer-layer')) document.querySelector('.cheer-layer').remove();
+  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const layer = el('div', { class: 'cheer-layer' + (big ? ' big' : ''), 'aria-live': 'polite' });
+  const cv = el('canvas', { class: 'cheer-canvas', 'aria-hidden': 'true' });
+  const text = el('div', { class: 'cheer-text' }, el('strong', {}, T('برافو!')), el('span', {}, T('{n} لايك', { n: n.toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG) })));
+  layer.append(cv);
+  if (big) layer.append(el('div', { class: 'cheer-lion', 'aria-hidden': 'true' }, '🦁'));
+  layer.append(text);
+  document.body.append(layer);
+  cheerSounds(big, quiet ? 0.35 : 0.9);
+  const life = big ? 6500 : 4200;
+  setTimeout(() => layer.classList.add('out'), life - 600);
+  setTimeout(() => layer.remove(), life);
+  if (calm) return;
+  // the confetti: stars and paper, fired from the two bottom corners towards the middle, then falling
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight, x = cv.getContext('2d');
+  cv.width = W * dpr; cv.height = H * dpr; x.scale(dpr, dpr);
+  const COLORS = ['#ffd24a', '#ff5d73', '#4fc3ff', '#7cf29a', '#ffffff', '#c58bff', '#ff9f40'], bits = [];
+  const fire = (fromX, dir, count, delay) => { for (let i = 0; i < count; i++) bits.push({ born: delay + Math.random() * 250, x: fromX, y: H + 10, vx: dir * (4 + Math.random() * 9), vy: -(11 + Math.random() * 10) * Math.min(1.25, H / 700), r: 5 + Math.random() * 7, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, c: COLORS[i % COLORS.length], star: Math.random() < 0.55 }); };
+  const shots = big ? 3 : 1;
+  for (let s = 0; s < shots; s++) { fire(10, 1, 90, s * 900); fire(W - 10, -1, 90, s * 900 + 120); }
+  const star = (r) => { x.beginPath(); for (let i = 0; i < 10; i++) { const a = (Math.PI / 5) * i - Math.PI / 2, rr = i % 2 ? r * 0.45 : r; x.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } x.closePath(); x.fill(); };
+  const start = performance.now();
+  const tick = (now) => {
+    if (!layer.isConnected) return;
+    const t = now - start;
+    x.clearRect(0, 0, W, H);
+    for (const b of bits) {
+      if (t < b.born) continue;
+      b.vy += 0.32; b.vx *= 0.99; b.x += b.vx; b.y += b.vy; b.rot += b.vr;
+      if (b.y > H + 40 && b.vy > 0) continue;
+      x.save(); x.translate(b.x, b.y); x.rotate(b.rot); x.fillStyle = b.c;
+      if (b.star) star(b.r); else x.fillRect(-b.r / 2, -b.r / 4, b.r, b.r / 2);
+      x.restore();
+    }
+    if (t < life) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 // ------------------------------------------------------- password fields --

@@ -1519,6 +1519,7 @@ setInterval(() => {
     ws.alive = false; ws.ping();
   }
 }, 30e3);
+const CHEER_STEP = Number(env.CHEER_STEP) || 100, CHEER_BIG = Number(env.CHEER_BIG) || 1000;
 // Reactions: r = sent since the last tick, c = totals per reaction
 setInterval(() => {
   for (const room of rooms.values()) {
@@ -1526,6 +1527,9 @@ setInterval(() => {
     room.likesDirty = false;
     broadcast(room, { t: 'likes', n: room.likes, r: room.reacts, c: room.totals });
     room.reacts = zeros();
+    // a celebration on every screen at each step: every 100 likes, then every 1000 with the big one
+    const n = room.likes, mark = n >= CHEER_BIG ? Math.floor(n / CHEER_BIG) * CHEER_BIG : Math.floor(n / CHEER_STEP) * CHEER_STEP;
+    if (mark > 0 && mark > (room.cheered || 0)) { room.cheered = mark; broadcast(room, { t: 'cheer', n: mark, big: mark % CHEER_BIG === 0 }); }
   }
 }, 700);
 setInterval(() => {
@@ -1702,7 +1706,7 @@ async function pollLive() {
     if (on === room.live) continue;
     room.live = on;
     if (on) { room.liveSince = Date.now(); room.limitWarned = false; }
-    if (on) { room.likes = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }
+    if (on) { room.likes = 0; room.cheered = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }
     if (on) {                                                                       // going on air ahead of a planned live starts that live: its code, its link and its "open" setting count from now
       const picked = (room.cfg.sessions || []).find((x) => x.id === room.cfg.active), s = picked || plannedOf(room)[0];      // the one the host started from its card, else the next one
       if (s && (picked || s.at - Date.now() < 3 * 3600e3)) {

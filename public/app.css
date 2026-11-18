@@ -882,3 +882,17 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .studio .layout:has(> .chat:not(.collapsed)) { grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; }
 .studio .layout { padding-inline: 12px; gap: 12px; }
 @media (min-width: 901px) { .studio .player { max-height: none; } }
+
+/* ---- celebrations: "Bravo! 100 likes", confetti cannons, the lion at every thousand ---- */
+.cheer-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; display: grid; place-items: center; transition: opacity .6s; }
+.cheer-layer.out { opacity: 0; }
+.cheer-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cheer-text { position: relative; display: grid; justify-items: center; gap: 4px; padding: 18px 34px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,240,176,.96), rgba(242,196,82,.96)); color: #000; box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 6px rgba(255,255,255,.35); animation: cheer-pop .7s cubic-bezier(.2,1.6,.4,1) both; }
+.cheer-text strong { font-size: clamp(40px, 9vw, 92px); line-height: 1; font-weight: 900; text-shadow: 0 2px 0 rgba(255,255,255,.7); }
+.cheer-text span { font-size: clamp(22px, 4.5vw, 42px); font-weight: 800; }
+.cheer-layer.big .cheer-text { animation-delay: 1.9s; align-self: end; margin-bottom: 9vh; }
+.cheer-lion { position: absolute; font-size: min(52vw, 60vh); line-height: 1; filter: drop-shadow(0 20px 40px rgba(0,0,0,.55)); animation: cheer-lion 2.3s ease-out both; }
+@keyframes cheer-pop { from { transform: scale(.2) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cheer-lion { 0% { transform: scale(.2) translateY(30vh); opacity: 0; } 18% { transform: scale(1.12); opacity: 1; } 24%, 40%, 56% { transform: scale(1.12) rotate(-3deg); } 32%, 48% { transform: scale(1.16) rotate(3deg); } 70% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(.55) translateY(-18vh); opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .cheer-text, .cheer-lion { animation: none; } }
+.cheer-text strong, .cheer-text span { color: #000 !important; text-shadow: 0 2px 0 rgba(255,255,255,.7) !important; }

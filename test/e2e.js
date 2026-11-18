@@ -167,7 +167,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', SPENT_AFTER_MS: '3000', CHAIN_RPC: 'http://127.0.0.1:15004', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', CHEER_STEP: '2', CHEER_BIG: '4', SPENT_AFTER_MS: '3000', CHAIN_RPC: 'http://127.0.0.1:15004', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -244,6 +244,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('the dictation button appears only where the browser can do speech to text', (await viewer.evaluate(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition))) === (await viewer.locator('.mic-btn').isVisible()));
 
     // ---- hearts ------------------------------------------------------------------
+    for (const pg of [viewer, studio]) await pg.evaluate(() => { window.__cheers = []; new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.classList && n.classList.contains('cheer-layer')) window.__cheers.push({ big: n.classList.contains('big'), lion: !!n.querySelector('.cheer-lion'), text: n.querySelector('.cheer-text').textContent }); }))).observe(document.body, { childList: true }); });
     for (const k of [0, 3, 6]) { await viewer.click('.react-open'); await viewer.locator('#reactions button').nth(k).click(); await sleep(260); }
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'spammerbbbbbbbbb', name: 'x' })); for (let i = 0; i < 200; i++) w.send(JSON.stringify({ t: 'like' })); }; });
     check('the reactions are folded into one button; the box closes once one is picked', await viewer.locator('#reactions').isHidden() && (await viewer.click('.react-open'), await viewer.locator('#reactions').isVisible()) && (await viewer.screenshot({ path: path.join(OUT, 'reactions-open.png') }), await viewer.keyboard.press('Escape'), await viewer.locator('#reactions').isHidden()));
@@ -251,6 +252,8 @@ async function until(fn, ms = 15000, step = 250) {
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'badreactccccccc1', name: 'x' })); for (const k of [7, -1, 'a', 2.5, null]) w.send(JSON.stringify({ t: 'react', k })); }; });
     const perKind = (page) => page.evaluate(() => [...document.querySelectorAll('#reactions .react-n')].map((n) => n.textContent).join(','));
     check('each reaction has its own counter, shown to viewers and in the studio', (await until(async () => (await perKind(studio)) === '1,0,1,1,0,0,1' && (await perKind(viewer)) === '1,0,1,1,0,0,1', 6000)) !== null, 'studio ' + await perKind(studio) + ' viewer ' + await perKind(viewer));
+    const cheerV = await until(() => viewer.evaluate(() => (window.__cheers.length ? window.__cheers : null)), 6000), cheerS = await studio.evaluate(() => window.__cheers);
+    check('a like milestone sets off a celebration on every screen: confetti and "Bravo", and the lion at the big one', !!cheerV && cheerV.some((c) => c.big && c.lion && /4/.test(c.text)) && cheerS.some((c) => c.big && c.lion), JSON.stringify({ cheerV, cheerS }));
     const floated = [];
     await studio.exposeFunction('sawFloat', (e) => floated.push(e));
     await studio.evaluate(() => new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => window.sawFloat(n.textContent)))).observe(document.querySelector('#hearts'), { childList: true }));

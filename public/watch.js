@@ -18,6 +18,22 @@
   $('#title').textContent = cfg.title;
 
   let live = false, hls = null, retry = null, onStage = false, handUp = false;
+  // A guest on stage during a live whose report is being written: their browser writes down what they say, for the report.
+  let reporting = false, minRec = null;
+  const MinRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function minuteSync() {
+    const want = reporting && onStage && !!MinRec;
+    if (want && !minRec) {
+      const start = () => {
+        minRec = new MinRec(); minRec.lang = { ar: 'ar-MA', fr: 'fr-FR', en: 'en-US' }[LANG] || 'ar-MA'; minRec.continuous = true; minRec.interimResults = false;
+        minRec.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const t = e.results[i][0].transcript.trim(); if (t) link.send({ t: 'minute', text: t }); } };
+        minRec.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { reporting = false; } };
+        minRec.onend = () => { minRec = null; if (reporting && onStage) setTimeout(() => { if (reporting && onStage && !minRec) { try { start(); } catch { /* next time */ } } }, 500); };
+        minRec.start();
+      };
+      try { start(); } catch { minRec = null; }
+    } else if (!want && minRec) { minRec.onend = null; try { minRec.stop(); } catch { /* already stopped */ } minRec = null; }
+  }
 
   // ---------------------------------------------------------------- name --
   const nameDlg = $('#nameDlg'), nameInput = $('#nameInput');
@@ -281,7 +297,7 @@
 
     } catch (e) { leaveStage(false); if (e) e.step = `${step}${slot} ${e.status || e.name || ''}`.trim(); throw e; }
 
-    onStage = true;
+    onStage = true; minuteSync();
     stopHls();
     // The guest is on stage as soon as their camera is sent. What they see and hear comes
     // right after and never holds them back. Picture: the mixed broadcast. Sound: a mix made
@@ -320,7 +336,7 @@
     if (s.watch) rtcClose(s.watch.pc, 'whep', 'studio', s.token);
     if (s.voice) rtcClose(s.voice.pc, 'whep', 'backstage' + s.slot, s.token);
     if (tellServer) link.send({ t: 'leave' });
-    onStage = false;
+    onStage = false; minuteSync();
     lockLang(false);
     video.srcObject = null;
     stageBar.hidden = true;
@@ -581,7 +597,9 @@
     .on('err', (d) => { if (d.code === 'signin') openAccount('login'); });
   $('#signIn').onclick = () => openAccount('login');
   $('#signUp').onclick = () => openAccount('signup');
+  link.on('reporting', (d) => { reporting = !!d.on; minuteSync(); });
   link.on('init', async (d) => {
+    reporting = !!d.reporting; minuteSync();
     doorShut = false; $('#signBtns').hidden = true;
     knockBtn.hidden = true; payBtn.hidden = true; walletEntry.hidden = true;
     $('#offlineText').textContent = T('اللايف مازال ما بداش. خلي الصفحة مفتوحة، غادي يبدا بوحدو.');

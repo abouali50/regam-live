@@ -136,7 +136,7 @@ async function until(fn, ms = 15000, step = 250) {
     const q = JSON.parse(body || '{}'), sys = String(q.system || ''), last = q.messages[q.messages.length - 1].content;
     seen.ai.push({ key: req.headers['x-api-key'], version: req.headers['anthropic-version'], model: q.model, system: sys, messages: q.messages });
     if (req.headers['x-api-key'] !== 'sk-test-key') { res.writeHead(401, { 'Content-Type': 'application/json' }); return res.end('{"error":{"message":"bad key"}}'); }
-    const text = /single word: OK/.test(sys) ? 'OK' : /public comments/.test(sys) ? (/salut/i.test(last.split('\n').pop()) ? 'SKIP' : 'MetaMask est un portefeuille.') : `AIDE ${q.messages.length} ${/LIVE NOW/.test(sys) ? 'direct' : 'hors ligne'}`;
+    const text = /minutes \(procès-verbal\)/.test(sys) ? '# Réunion des fondateurs\nLe 18 novembre, 1 h.\n## Résumé\nLe budget a été validé.\n## Décisions\n- Budget validé\n## Actions\n- Nadia : envoyer le compte rendu (vendredi)' : /single word: OK/.test(sys) ? 'OK' : /public comments/.test(sys) ? (/salut/i.test(last.split('\n').pop()) ? 'SKIP' : 'MetaMask est un portefeuille.') : `AIDE ${q.messages.length} ${/LIVE NOW/.test(sys) ? 'direct' : 'hors ligne'}`;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ content: [{ type: 'text', text }] }));
   }).listen(15001);
@@ -167,7 +167,7 @@ async function until(fn, ms = 15000, step = 250) {
     path.join(HLS_DIR, 'air_main', 'index.m3u8')], { stdio: ['ignore', 'inherit', 'inherit'] });
 
   const app = spawn('node', [path.join(__dirname, '..', 'server.js')], { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
-    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', CHEER_STEP: '2', CHEER_BIG: '4', SPENT_AFTER_MS: '3000', CHAIN_RPC: 'http://127.0.0.1:15004', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
+    PORT: '13000', REC_DIR: path.join(OUT, 'rec'), ADMIN_PASSWORD: 'studio-pass-1', MTX_RTC: 'http://127.0.0.1:18889', MTX_HLS: 'http://127.0.0.1:18888', MTX_API: 'http://127.0.0.1:19997', MAIL_OUTBOX: path.join(OUT, 'outbox.jsonl'), PUSH_TEST_HOST: '127.0.0.1:15003', REPORT_DELAY_MS: '1500', REPORT_MIN_CHARS: '20', CHEER_STEP: '2', CHEER_BIG: '4', SPENT_AFTER_MS: '3000', CHAIN_RPC: 'http://127.0.0.1:15004', LIMIT_UNIT_MS: '3000', LOGIN_MAX: '24', RELAY_EVERY_MS: '2000', WAIT_SOUND_URL: 'https://sound.test.invalid/rahman.mp3, https://sound.test.invalid/waqia.mp3 ,https://sound.test.invalid/hadid.mp3', TRANSLATE_URL: 'http://127.0.0.1:15000', AI_URL: 'http://127.0.0.1:15001', PAY_URL: 'http://127.0.0.1:15002', REMIND_EVERY_MS: '2000', ATT_STEP_MS: '2000',
     MTX_USER: 'regam', MTX_PASS: 'mtxpass', DATA_DIR: path.join(OUT, 'data'), HOST_NAME: 'Pro' } });
   const BASE = 'http://127.0.0.1:13000';
   fs.mkdirSync(path.join(OUT, 'rec', 'air_main'), { recursive: true });
@@ -1368,6 +1368,25 @@ async function until(fn, ms = 15000, step = 250) {
         const tk2 = (await (await fetch(BASE + '/api/login', { method: 'POST', body: '{"password":"studio-pass-1"}' })).json()).token;
         const H = { Authorization: 'Bearer ' + tk2, 'Content-Type': 'application/json' }, JH = { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.9.8' };
         const post = (u, b2, h = JH) => fetch(BASE + u, { method: 'POST', headers: h, body: JSON.stringify(b2) });
+        {   // the report of a meeting: what was said during the live, then the AI writes it up once the live is over
+          await post('/api/admin/settings', { ai: { key: 'sk-test-key' } }, H);
+          await fetch(BASE + '/api/admin/backup', { method: 'POST', headers: H, body: JSON.stringify({ email: 'pro@example.com', every: 'off' }) });
+          host.say({ t: 'report', on: true, lang: 'fr' });
+          const settings = await until(() => { const m = host.last('reports'); return m && m.on === true && m.lang === 'fr' ? m : null; }, 5000);
+          forcedAir.add('air_' + slug);
+          const listening = await until(() => { const m = host.last('reporting'); return m && m.on ? m : null; }, 10000);
+          for (const line of ['Bonjour à tous, nous parlons du budget.', 'Le budget de décembre est validé.', 'Nadia enverra le compte rendu vendredi.']) { host.say({ t: 'minute', text: line }); await sleep(400); }
+          const aiBefore = seen.ai.length;
+          forcedAir.delete('air_' + slug);
+          const rep = await until(() => { const m = host.last('reports'); return m && m.list.length && m.list[0].ai ? m.list[0] : null; }, 15000);
+          const asked = seen.ai.slice(aiBefore).find((x) => /minutes \(procès-verbal\)/.test(x.system));
+          const mailed = fs.readFileSync(path.join(OUT, 'outbox.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((m) => /Budget validé/.test(m.text || ''));
+          check('at the end of a live, the AI writes the report of the meeting from what was said, in the chosen language, and it is kept and sent by e-mail', !!settings && !!listening && !!rep && /Budget validé/.test(rep.text) && rep.lines === 3
+            && !!asked && /Write the whole report in French/.test(asked.system) && /Le budget de décembre est validé/.test(asked.messages[0].content) && mailed.length >= 1, `${JSON.stringify(rep && { ...rep, text: rep.text.slice(0, 60) })} ${!!asked} ${mailed.length}`);
+          host.say({ t: 'report', del: rep && rep.id });
+          await post('/api/admin/settings', { ai: { removeKey: true } }, H);
+          await sleep(2500);
+        }
         const now = (await (await fetch(BASE + '/api/plans')).json()).plans;
         await post('/api/admin/settings', { plans: [...now.map((x, i) => (i === 0 ? { ...x, minutes: 2 } : x)), { name: 'Essai', price: 0, capacity: 20, minutes: 15 }, { name: 'Annuel', price: 500, capacity: 200, yearly: true }] }, H);
         const listed = (await (await fetch(BASE + '/api/plans')).json()).plans, freePlan = listed.find((x) => x.name === 'Essai');

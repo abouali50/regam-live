@@ -536,6 +536,8 @@
     const CAP_LANGS = ['ar', 'fr', 'en'], SPEECH = { ar: 'ar-MA', fr: 'fr-FR', en: 'en-US' };
     const SRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     let capOn = false, capRec = null, capSrc = 'ar', translators = {}, capQueue = Promise.resolve();
+    let reportListen = false;                        // the live is on and its report is being written: listen even with the captions off
+    const recWanted = () => capOn || reportListen;
     $('#capLang').value = CAP_LANGS.includes(LANG) ? LANG : 'ar';
     const capNote = (t) => { $('#capNote').textContent = t; };
     if (!SRec) { $('#capBtn').disabled = true; capNote(T('هاد المتصفح ما كيعرفش يكتب الهضرة. استعمل Google Chrome فالحاسوب.')); }
@@ -564,17 +566,17 @@
         let hearing = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const t = e.results[i][0].transcript.trim();
-          if (e.results[i].isFinal) { if (t) capSay(t); } else hearing += t + ' ';
+          if (e.results[i].isFinal) { if (t) { if (capOn) capSay(t); else { link.send({ t: 'minute', text: t }); $('#reportHearing').textContent = '✍ ' + t; } } } else hearing += t + ' ';
         }
         if (hearing) $('#capLast').textContent = '… ' + hearing;      // what is being heard right now
       };
       capRec.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { capStop(); capNote(T('خاصك تسمح للمتصفح باستعمال الميكرو باش تخدم الترجمة.')); } };
-      capRec.onend = () => { if (capOn) setTimeout(() => { if (capOn) { try { capListen(); } catch { /* tried again at the next pause */ } } }, 400); };   // the browser stops after a silence
+      capRec.onend = () => { capRec = null; if (recWanted()) setTimeout(() => { if (recWanted() && !capRec) { try { capListen(); } catch { /* tried again at the next pause */ } } }, 400); };   // the browser stops after a silence
       capRec.start();
     }
     function capStop() {
       capOn = false; press($('#capBtn'), false); $('#capBtn').textContent = T('شغل الترجمة'); $('#capLang').disabled = false;
-      if (capRec) { try { capRec.stop(); } catch { /* already stopped */ } }
+      if (capRec && !reportListen) { try { capRec.stop(); } catch { /* already stopped */ } }
     }
     $('#capBtn').onclick = async () => {
       if (capOn) { capStop(); capNote(''); return; }
@@ -582,7 +584,7 @@
       capOn = true; press($('#capBtn'), true); $('#capBtn').textContent = T('وقف الترجمة'); $('#capLang').disabled = true;
       capNote(T('كنسمعك. هضر عادي، جملة بجملة، ووقف شوية بين الجمل.'));
       capTranslators(capSrc);                       // the browser's own translator helps when it has one; the server translates anyway
-      try { capListen(); } catch { capStop(); capNote(T('ما قدرناش نشغلو الترجمة. عاود جرب.')); }
+      try { if (capRec) { capRec.onend = null; capRec.stop(); capRec = null; } capListen(); } catch { capStop(); capNote(T('ما قدرناش نشغلو الترجمة. عاود جرب.')); }
     };
     // what went out, in the three languages, so the host sees that it works
     link.on('capinfo', (d) => {
@@ -590,6 +592,65 @@
       $('#capLast').textContent = got.map((l) => `${l.toUpperCase()}: ${d.tx[l]}`).join('   ·   ');
       if (capOn) capNote(T(got.length === 3 ? 'الترجمة خدامة: الناس كيقراو ويسمعو باللغة ديالهم.' : 'الهضرة ديالك كتكتب، ولكن الترجمة مازال ما واجداش فالسيرفر. إلا عاد دابا درتي التحديث، تسنى شي دقايق وعاود جرب.'));
     });
+    // ---- the reports of the meetings
+    function reportSync(on) {
+      reportListen = !!on && !!SRec;
+      $('#reportHearing').hidden = !reportListen;
+      if (reportListen) { $('#reportHearing').textContent = T('كنكتبو الهضرة ديال الاجتماع للتقرير…'); if (!capRec) { capSrc = capOn ? capSrc : $('#capLang').value; try { capListen(); } catch { /* the browser refused */ } } }
+      else if (capRec && !capOn) { capRec.onend = null; try { capRec.stop(); } catch { /* already stopped */ } capRec = null; }
+    }
+    link.on('reporting', (d) => reportSync(d.on));
+    const reportHtml = (text) => {                  // the report as the AI wrote it: "# title", "## part", "- point"; nothing else is taken as markup
+      const out = el('div', { class: 'report-doc', dir: 'auto' });
+      let list = null;
+      for (const raw of String(text).split('\n')) {
+        const line = raw.trim();
+        if (!line) { list = null; continue; }
+        if (line.startsWith('- ')) { if (!list) { list = el('ul'); out.append(list); } list.append(el('li', {}, line.slice(2))); continue; }
+        list = null;
+        if (line.startsWith('## ')) out.append(el('h3', {}, line.slice(3)));
+        else if (line.startsWith('# ')) out.append(el('h2', {}, line.slice(2)));
+        else out.append(el('p', {}, line));
+      }
+      return out;
+    };
+    function openReport(r) {
+      const dlg = el('dialog', { class: 'dlg report-dlg' }, reportHtml(r.text),
+        el('div', { class: 'dlg-actions' },
+          el('button', { class: 'btn primary', type: 'button', onclick: (e) => copyText(r.text, e.currentTarget) }, T('نسخ')),
+          el('button', { class: 'btn', type: 'button', onclick: () => printReport(r) }, T('طباعة / PDF')),
+          el('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, T('سد'))));
+      dlg.addEventListener('close', () => dlg.remove());
+      document.body.append(dlg); dlg.showModal();
+    }
+    function printReport(r) {                      // a clean page of its own, then the browser's print window (which can save as PDF)
+      const w = window.open('', '_blank');
+      if (!w) return;
+      w.document.title = r.title;
+      const st = w.document.createElement('style');
+      st.textContent = 'body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;color:#111}h2{font-size:26px;margin:0 0 6px}h3{font-size:19px;margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}ul{margin:4px 0;padding-inline-start:22px}p{margin:4px 0}';
+      w.document.head.append(st);
+      w.document.body.append(w.document.importNode(reportHtml(r.text), true));
+      w.document.body.dir = 'auto';
+      setTimeout(() => w.print(), 300);
+    }
+    function showReports(d) {
+      if (!d) return;
+      $('#reportOn').checked = d.on !== false; $('#reportLang').value = d.lang || 'auto'; $('#reportNoAi').hidden = !!d.ai;
+      const list = d.list || [];
+      $('#noReports').hidden = list.length > 0;
+      $('#reports').replaceChildren(...list.map((r) => el('li', {},
+        el('span', { class: 'admin-main-cell' }, el('strong', { dir: 'auto' }, r.title || T('اجتماع')),
+          el('span', { class: 'muted' }, siteClock.at(r.at).toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG, { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + Math.max(1, Math.round((r.end - r.at) / 60e3)) + ' min' + (r.ai ? '' : ' · ' + T('النص بلا تقرير')))),
+        el('button', { class: 'btn primary', type: 'button', onclick: () => openReport(r) }, T('شوف')),
+        el('button', { class: 'btn', type: 'button', onclick: (e) => copyText(r.text, e.currentTarget) }, T('نسخ')),
+        el('button', { class: 'btn', type: 'button', onclick: () => printReport(r) }, T('طباعة / PDF')),
+        el('button', { class: 'btn danger', type: 'button', onclick: () => { if (confirm(T('نمسحو هاد التقرير؟'))) link.send({ t: 'report', del: r.id }); } }, T('مسح')))));
+    }
+    link.on('reports', showReports);
+    $('#reportOn').onchange = () => link.send({ t: 'report', on: $('#reportOn').checked });
+    $('#reportLang').onchange = () => link.send({ t: 'report', lang: $('#reportLang').value });
+
     window.__cap = { say: (text, src) => { capSrc = src || capSrc; capSay(text); }, send: (src, tx) => link.send({ t: 'cap', src, tx }) };     // for diagnostics
 
     $('#aiChatChk').onchange = () => link.send({ t: 'aichat', on: $('#aiChatChk').checked });
@@ -598,7 +659,7 @@
     // ---- the studio is organised in sections, with a menu on the side: home, live, calendar, …
     const TABS = [['home', 'home', 'الرئيسية'], ['live', 'video', 'اللايف'], ['agenda', 'calendar', 'الأجندة'], ['rec', 'record', 'التسجيلات'], ['cap', 'globe', 'الترجمة'],
       ['class', 'users', 'القسم'], ['helpers', 'users', 'المساعدين'], ['gate', 'door', 'قاعة الانتظار'], ['settings', 'gear', 'الإعدادات']];
-    const TAB_OF = { homeDash: 'home', roomBar: 'home', invitePanel: 'agenda', recPanel: 'rec', capPanel: 'cap', classPanel: 'class', helperPanel: 'helpers', gatePanel: 'gate' };
+    const TAB_OF = { homeDash: 'home', roomBar: 'home', invitePanel: 'agenda', recPanel: 'rec', reportPanel: 'rec', capPanel: 'cap', classPanel: 'class', helperPanel: 'helpers', gatePanel: 'gate' };
     const stageBox = document.querySelector('#app > .stage');
     for (const node of stageBox.children) node.dataset.tab = TAB_OF[node.id] || (node.classList.contains('settings') ? 'settings' : 'live');
     if (new URLSearchParams(location.search).get('all')) document.body.classList.add('all-tabs');      // every section at once (for checks)
@@ -1045,6 +1106,7 @@
       $('#pinInput').value = d.pinned || '';
       $('#slowSel').value = String(d.slow);
       $('#wordsInput').value = (d.words || []).join('، '); if (d.relay) showRelay(d.relay);
+      showReports(d.reports); reportSync(d.reporting);
       maxGuests = d.maxGuests || 12;
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
       showWaiting(!!d.gate, d.waiting || []);

@@ -252,6 +252,19 @@
       <ul id="recs" class="hands recs"></ul>
     </div>
 
+    <div class="panel" id="reportPanel">
+      <h2>تقارير الاجتماعات (الذكاء الاصطناعي)</h2>
+      <p class="muted">فاللايف، الموقع كيكتب الهضرة ديالك وديال الضيوف (فـ Chrome). فاللخر، الذكاء الاصطناعي كيكتب تقرير: الملخص، النقط، القرارات، المهام والأسئلة. كيوصلك بالإيميل وكيبقى هنا.</p>
+      <label class="check"><input id="reportOn" type="checkbox"> <span>كتب تقرير ديال كل اجتماع</span></label>
+      <div class="row"><label for="reportLang">لغة التقرير</label>
+        <select id="reportLang"><option value="auto">نفس اللغة ديال الاجتماع</option><option value="ar">العربية</option><option value="fr">Français</option><option value="en">English</option></select></div>
+      <p class="muted">اللغة اللي كتهضر بيها: «أنا كنهضر ب» فقسم الترجمة.</p>
+      <p id="reportNoAi" class="muted" hidden>المساعد (الذكاء الاصطناعي) ماشي مفعل فالإدارة: غادي يتحفظ غير النص ديال الهضرة، بلا تقرير.</p>
+      <p id="reportHearing" class="muted" hidden></p>
+      <p id="noReports" class="muted">مازال ما كاين حتى تقرير.</p>
+      <ul id="reports" class="hands reports"></ul>
+    </div>
+
     <div class="panel settings">
       <h2>الإعدادات</h2>
       <form id="titleForm" class="row">

@@ -1079,6 +1079,44 @@ setInterval(() => {
 }, 200);
 const toMods = (room, obj) => { for (const ws of room.clients) if (ws.mod || ws.helper) tx(ws, obj); };
 const toHost = (room, obj) => { for (const ws of room.clients) if (ws.mod) tx(ws, obj); };      // the class list carries e-mails: for the host only
+
+// ---- the minutes of a meeting: what was said (written down by the browsers of the host and of the guests on
+// stage), the questions and the polls; once the live is over, the AI writes the report. Kept with the room.
+const REPORT_DELAY = Number(env.REPORT_DELAY_MS) || 2 * 60e3;   // a live that drops and comes back keeps one report
+const reportsOf = (room) => (room.cfg.reports || []).map((r) => ({ id: r.id, at: r.at, end: r.end, title: r.title, text: r.text, ai: r.ai, lines: r.lines }));
+function minute(room, who, text) {
+  if (!room.live || room.cfg.report === false) return;
+  const m = room.minutes || (room.minutes = { at: Date.now(), lines: [], people: new Set(), chars: 0, session: room.cfg.active });
+  const t = clean(text, 600);
+  if (!t || m.chars > 400000) return;
+  m.lines.push(`[${new Date(Date.now() + siteTz() * 60e3).toISOString().slice(11, 16)}] ${who}: ${t}`); m.people.add(who); m.chars += t.length;
+}
+function pollLine(room) {
+  const p = room.poll;
+  if (!p || !room.minutes) return;
+  const counts = p.opts.map(() => 0); for (const v of p.votes.values()) if (counts[v] !== undefined) counts[v]++;
+  (room.minutes.polls = room.minutes.polls || []).push(`${p.q} — ${p.opts.map((o, i) => `${o}: ${counts[i]}`).join(', ')}`);
+}
+async function writeReport(room) {
+  const m = room.minutes;
+  room.minutes = null; room.reportTimer = null;
+  if (!m || m.chars < Number(env.REPORT_MIN_CHARS || 200)) return;                 // a few words are not a meeting
+  const end = Date.now(), session = (room.cfg.sessions || []).find((x) => x.id === m.session);
+  const title = (session && session.title) || room.cfg.liveTitle || room.cfg.title;
+  const questions = (m.questions || []).slice(-80);
+  let text = '', byAi = false;
+  if (ai_ready()) {
+    try { text = await ai.report({ site: SITE_TITLE, room: room.cfg.title, title, host: ownerName(room), lang: room.cfg.reportLang || 'auto', at: m.at, end, people: [...m.people], lines: m.lines, questions, polls: m.polls || [] }); byAi = !!text; }
+    catch (e) { console.error('report failed', room.cfg.slug, e.status || e.message); }
+  }
+  if (!text) text = `# ${title}\n${new Date(m.at).toISOString().slice(0, 16).replace('T', ' ')} UTC\n\n## Transcript\n${m.lines.join('\n')}`.slice(0, 60000);      // no AI: the transcript itself
+  const r = { id: 'r' + crypto.randomBytes(5).toString('hex'), at: m.at, end, title, text, ai: byAi, lines: m.lines.length };
+  room.cfg.reports = [r, ...(room.cfg.reports || [])].slice(0, 40); save();
+  toHost(room, { t: 'reports', list: reportsOf(room) });
+  const to = [...new Set([(db.backup || {}).email, room.cfg.ownerId && (db.users.find((u) => u.id === room.cfg.ownerId) || {}).contact].filter((x) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(x || ''))))];
+  if (acct.mailReady()) for (const addr of to) acct.mail(addr, `${SITE_TITLE} - ${title}`, text).catch(() => {});
+}
+const ai_ready = () => ai.ready();
 // Assistants: members the host chose to help in a room. They can accept or refuse people, bring guests
 // up or down, close a microphone, delete comments and ban; nothing else (no broadcast, no settings).
 const HELPER_ACTS = new Set(['del', 'ban', 'admit', 'stage', 'unstage', 'mute', 'answered']);
@@ -1225,7 +1263,8 @@ wss.on('connection', (ws, req) => {
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {
         t: 'init', now: Date.now(), tz: siteTz(), live: room.live, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
-        slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, admin: ws.admin || undefined, words: ws.mod ? room.cfg.words || [] : undefined, relay: ws.mod ? relayView(room) : undefined,
+        slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, admin: ws.admin || undefined, words: ws.mod ? room.cfg.words || [] : undefined, reporting: room.live && room.cfg.report !== false,
+        reports: ws.mod ? { list: reportsOf(room), on: room.cfg.report !== false, lang: room.cfg.reportLang || 'auto', ai: ai.ready() } : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
         hands: ws.mod || ws.helper ? handsList(room) : undefined, hand: room.hands.has(ws.uid),
         code: ws.mod ? room.cfg.code || '' : undefined, next: nextOf(room, ws.mod ? '' : d.code), sessions: ws.mod ? plannedOf(room) : undefined,
@@ -1294,6 +1333,7 @@ wss.on('connection', (ws, req) => {
         if (now - (askedAt.get(who) || 0) < 20e3) return tx(ws, { t: 'asked', wait: true });
         askedAt.set(who, now); if (askedAt.size > 20000) askedAt.clear();
         room.questions.push({ id: 'q' + (++room.seq), name: ws.name, text, at: now });
+        if (room.minutes) (room.minutes.questions = room.minutes.questions || []).push(`${ws.name}: ${text}`);
         if (room.questions.length > 100) room.questions.shift();
         tx(ws, { t: 'asked' });
         return toMods(room, { t: 'questions', list: room.questions });
@@ -1337,6 +1377,12 @@ wss.on('connection', (ws, req) => {
     }
 
     // ---- moderator actions (the room's host, and for a few of them the assistants)
+    if (d.t === 'minute') {                // what the host (with the captions off) or a guest on stage just said: for the report only
+      const now = Date.now();
+      if (!(ws.mod || slotOf(room, ws.uid)) || now - (ws.lastMin || 0) < 300) return;
+      ws.lastMin = now;
+      return minute(room, ws.mod ? ownerName(room) : ws.name || 'Invité', d.text);
+    }
     if (!ws.mod && !(ws.helper && HELPER_ACTS.has(d.t))) return;
     if (ws.helper && d.t === 'stage' && !room.live) return tx(ws, { t: 'err', code: 'notlive' });
     switch (d.t) {
@@ -1412,10 +1458,20 @@ wss.on('connection', (ws, req) => {
           const missing = ['ar', 'fr', 'en'].filter((l) => !words[l]);
           if (TRANSLATE_URL) await Promise.all(missing.map(async (l) => { try { const v = await translate(words[src], src, l); if (v) words[l] = v; } catch { /* that language is left out */ } }));
           broadcast(room, { t: 'cap', src, tx: words });
+          minute(room, ownerName(room), words[src]);
           room.capLog = [...(room.capLog || []), words[src]].slice(-15);          // what the host said lately, for the assistant
           tx(ws, { t: 'capinfo', tx: words });
         });
         return;
+      }
+      case 'report': {                     // the host's settings for the reports, or a report removed
+        if (!ws.mod) return;
+        if (d.del) cfg.reports = (cfg.reports || []).filter((r) => r.id !== String(d.del));
+        if (typeof d.on === 'boolean') cfg.report = d.on;
+        if (['auto', 'ar', 'fr', 'en'].includes(d.lang)) cfg.reportLang = d.lang;
+        save();
+        broadcast(room, { t: 'reporting', on: room.live && cfg.report !== false });
+        return toHost(room, { t: 'reports', list: reportsOf(room), on: cfg.report !== false, lang: cfg.reportLang || 'auto', ai: ai.ready() });
       }
       case 'session': {                    // the room's calendar: plan a session, or remove one
         const list = plannedOf(room);
@@ -1467,11 +1523,12 @@ wss.on('connection', (ws, req) => {
         room.questions = d.all ? [] : room.questions.filter((q) => q.id !== d.id);
         return toMods(room, { t: 'questions', list: room.questions });
       case 'poll': {                       // the host starts a poll (or a quiz, when one answer is marked right), closes it, or takes it away
-        if (d.end) { room.poll = null; return broadcast(room, { t: 'poll', off: true }); }
+        if (d.end) { pollLine(room); room.poll = null; return broadcast(room, { t: 'poll', off: true }); }
         if (d.close) { if (room.poll) { room.poll.open = false; for (const c of room.clients) tx(c, pollFor(room, c)); } return; }
         const q = clean(d.q, 200), opts = (Array.isArray(d.opts) ? d.opts : []).map((o) => clean(o, 80)).filter(Boolean).slice(0, 6);
         if (!q || opts.length < 2) return tx(ws, { t: 'poll', off: !room.poll, err: 'bad' });
         const correct = Number.isInteger(d.correct) && d.correct >= 0 && d.correct < opts.length ? d.correct : -1;
+        pollLine(room);
         room.poll = { id: 'p' + (++room.seq), q, opts, correct, open: true, votes: new Map() };
         for (const c of room.clients) tx(c, pollFor(room, c));
         return;
@@ -1717,6 +1774,13 @@ async function pollLive() {
       } else if (room.cfg.active) { delete room.cfg.active; save(); }
     }      // a new live starts its reactions from zero
     broadcast(room, { t: 'live', on });
+    if (on) {                                                                       // the minutes: carried on if the live just dropped for a moment, else new
+      if (room.reportTimer) { clearTimeout(room.reportTimer); room.reportTimer = null; }
+      else room.minutes = null;
+      if (room.minutes) room.minutes.session = room.minutes.session || room.cfg.active;
+    }
+    if (!on && room.minutes) { pollLine(room); room.reportTimer = setTimeout(() => writeReport(room).catch(() => {}), REPORT_DELAY); }
+    broadcast(room, { t: 'reporting', on: on && room.cfg.report !== false });
     if (!on) endStage(room, 'ended');
     if (!on && room.cfg.active) {                                                   // the planned live is over: it goes back to its own hours
       const s = (room.cfg.sessions || []).find((x) => x.id === room.cfg.active);

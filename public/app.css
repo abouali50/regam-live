@@ -919,3 +919,11 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 @keyframes wait-glow { 50% { text-shadow: 0 0 46px rgba(242,196,82,.9); transform: scale(1.04); } }
 @media (max-width: 600px) { .wait-box { grid-template-columns: 1fr; text-align: center; justify-items: center; } .wait-body .btn { justify-self: center; } }
 @media (prefers-reduced-motion: reduce) { .wait-moon, .wait-dots i { animation: none; } }
+
+/* meeting reports */
+.reports li { flex-wrap: wrap; }
+.report-dlg { width: min(820px, 94vw); max-height: 86vh; overflow: auto; }
+.report-doc { display: grid; gap: 4px; line-height: 1.65; }
+.report-doc h2 { margin: 0 0 6px; font-size: 24px; color: var(--gold); }
+.report-doc h3 { margin: 16px 0 4px; font-size: 18px; color: var(--gold); border-bottom: 1px solid rgba(255,255,255,.25); padding-bottom: 4px; }
+.report-doc p { margin: 2px 0; } .report-doc ul { margin: 2px 0; padding-inline-start: 22px; }

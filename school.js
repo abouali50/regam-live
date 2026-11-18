@@ -5,6 +5,7 @@
 module.exports = function school({ db, save, rooms, acct, sign, env, toMods, ownerName, plannedOf, siteWhen }) {
   const TZ = env.SITE_TZ || 'Africa/Casablanca';
   const now = () => Date.now();
+  const REMIND_GAP = env.REMIND_GAP_MS === undefined ? 1500 : Number(env.REMIND_GAP_MS);      // a breath between two reminders, so the mailbox is not flooded
   const feeOf = (room) => (room.cfg.fee && room.cfg.fee.amount > 0 ? room.cfg.fee : null);
   const isStudent = (room, m) => !!m && (room.cfg.students || []).includes(m.id);
   const hasPaid = (room, m) => !!m && ((room.cfg.paid || {})[m.id] || 0) > now();
@@ -57,7 +58,12 @@ module.exports = function school({ db, save, rooms, acct, sign, env, toMods, own
         '', `تذكير: ${title}`, `الوقت: ${when(s.at, 'ar-MA')} (توقيت المغرب)`, `الرابط: ${url}`,
         '', `Pour ne plus recevoir les rappels de ce cours : ${leave}`,
       ].filter((l) => l !== null).join('\n');
-      try { await acct.mail(m.email, `${soon ? 'Dans une heure' : 'Rappel'} : ${title}`, text); } catch (e) { console.error('reminder failed', e.message); }
+      try { await acct.mail(m.email, `${soon ? 'Dans une heure' : 'Rappel'} : ${title}`, text); }
+      catch (e) {
+        console.error('reminder failed', e.message);
+        if (/ratelimit|rate limit|quota|too many|\b4[25]\d\b/i.test(String(e.message))) break;      // the mailbox refuses for now: keep what is left of it for the sign-up codes
+      }
+      await new Promise((r) => setTimeout(r, REMIND_GAP));
     }
   }
   let busy = false;

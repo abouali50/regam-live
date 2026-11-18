@@ -1519,7 +1519,7 @@ setInterval(() => {
     ws.alive = false; ws.ping();
   }
 }, 30e3);
-const CHEER_STEP = Number(env.CHEER_STEP) || 100, CHEER_BIG = Number(env.CHEER_BIG) || 1000;
+const CHEER_STEP = Number(env.CHEER_STEP) || 100, CHEER_BIG = Number(env.CHEER_BIG) || 500;
 // Reactions: r = sent since the last tick, c = totals per reaction
 setInterval(() => {
   for (const room of rooms.values()) {
@@ -1527,8 +1527,8 @@ setInterval(() => {
     room.likesDirty = false;
     broadcast(room, { t: 'likes', n: room.likes, r: room.reacts, c: room.totals });
     room.reacts = zeros();
-    // a celebration on every screen at each step: every 100 likes, then every 1000 with the big one
-    const n = room.likes, mark = n >= CHEER_BIG ? Math.floor(n / CHEER_BIG) * CHEER_BIG : Math.floor(n / CHEER_STEP) * CHEER_STEP;
+    // a celebration on every screen at each step: every 100 likes, with the lion at 500 and 1000; then the lion every 500
+    const n = room.likes, mark = n >= 2 * CHEER_BIG ? Math.floor(n / CHEER_BIG) * CHEER_BIG : Math.floor(n / CHEER_STEP) * CHEER_STEP;
     if (mark > 0 && mark > (room.cheered || 0)) { room.cheered = mark; broadcast(room, { t: 'cheer', n: mark, big: mark % CHEER_BIG === 0 }); }
   }
 }, 700);

@@ -248,9 +248,18 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
       return '';
     } catch (e) { return 'mail failed: ' + String((e && e.message) || e).slice(0, 160); }
   }
+  // The administrator opens an account whose e-mail never arrived (or whose owner kept typing a wrong code), and lifts its blocks:
+  // the person then signs in with the e-mail and the password they chose.
+  function adminActivate(id) {
+    const m = db.members.find((x) => x.id === id);
+    if (!m) return false;
+    m.verified = true; m.code = ''; m.codeTries = 0;
+    sec.forget('fail:m:' + m.email); sec.forget('mail:' + m.email); sec.forget('again:' + m.email);
+    save(); return true;
+  }
   function adminRemove(id) { const n = db.members.length; db.members = db.members.filter((m) => m.id !== id); if (db.members.length < n) onRemove(id); save(); return db.members.length < n; }
 
   const find = (email) => { const m = byEmail(emailOf(email)); return m && m.verified ? m : null; };
   const byId = (id) => db.members.find((m) => m.id === id) || null;
-  return { find, byId, handle, memberOf, mailReady, adminView, adminSet, adminTest, adminRemove, mail: deliver, access: () => db.access };
+  return { find, byId, handle, memberOf, mailReady, adminView, adminSet, adminTest, adminRemove, adminActivate, mail: deliver, access: () => db.access };
 };

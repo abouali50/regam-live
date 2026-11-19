@@ -142,7 +142,7 @@
     $('#memberFind').oninput = () => showAccounts(a);
     $('#members').replaceChildren(...a.members.list.filter((m) => !find || m.name.toLowerCase().includes(find) || m.email.includes(find)).slice(0, 100).map((m) => el('li', { class: m.verified ? '' : 'is-off' },
       el('span', { class: 'admin-main-cell' }, el('strong', {}, m.name), el('span', { class: 'muted', dir: 'ltr' }, m.email), m.verified ? null : el('span', { class: 'badge off' }, T('ما مفعلش'))),
-      el('span', { class: 'rec-actions' }, el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف الحساب ديال "{name}"؟', { name: m.name }))) api('/member?id=' + m.id, { method: 'DELETE' }).then((r) => done(r, T('تحذف الحساب.'))); } }, T('حذف'))))));
+      el('span', { class: 'rec-actions' }, m.verified ? null : el('button', { class: 'btn primary', type: 'button', onclick: () => api('/member?activate=1&id=' + m.id, { method: 'POST' }).then((r) => done(r, T('تفعل الحساب: يقدر يدخل دابا بالإيميل وكلمة السر ديالو.'))) }, T('فعل الحساب')), el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف الحساب ديال "{name}"؟', { name: m.name }))) api('/member?id=' + m.id, { method: 'DELETE' }).then((r) => done(r, T('تحذف الحساب.'))); } }, T('حذف'))))));
   }
   $('#mailForm').elements.kind.onchange = (e) => { const p = PRESET[e.target.value]; if (p) { $('#mailForm').elements.host.value = p[0]; $('#mailForm').elements.port.value = p[1]; } };
   $('#accessForm').onsubmit = async (e) => {

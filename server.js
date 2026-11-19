@@ -818,6 +818,7 @@ async function handleAdmin(req, res, url, what) {
     const bad = await acct.adminTest((await readJson(req)).to);
     return bad ? send(res, 400, { error: bad }) : send(res, 200, { ok: true });
   }
+  if (what === 'member' && req.method === 'POST' && url.searchParams.get('activate') === '1') return acct.adminActivate(url.searchParams.get('id')) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no such member' });
   if (what === 'member' && req.method === 'DELETE') return acct.adminRemove(url.searchParams.get('id')) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no such member' });
   if (what === 'room' && req.method === 'DELETE') {
     const room = rooms.get(url.searchParams.get('slug'));

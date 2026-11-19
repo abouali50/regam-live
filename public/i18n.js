@@ -642,6 +642,8 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  'فعل الحساب': ['Activer le compte', 'Activate the account'],
+  'تفعل الحساب: يقدر يدخل دابا بالإيميل وكلمة السر ديالو.': ['Compte activé : la personne peut maintenant se connecter avec son e-mail et son mot de passe.', 'Account activated: the person can now sign in with their e-mail and password.'],
   'حتى اللي ما عندوش رابط ديال موعد يقدر يطلب يدخل ولا يطلب الكلمة': ['Les personnes sans lien de rendez-vous peuvent aussi demander à entrer ou à prendre la parole', 'People without a meeting link may also ask to come in or to speak'],
   'الإيميل اللي كيبان للناس (اختياري)': ['Adresse d\'expéditeur affichée (facultatif)', 'Sender address shown (optional)'],
   'دابا كاين اجتماع خاص فهاد القاعة، وماشي ديالك. رجع فالوقت ديال الاجتماع ديالك بالرابط اللي وصلك.': ['Une réunion privée est en cours dans cette salle, et ce n’est pas la vôtre. Revenez à l’heure de votre réunion avec le lien que vous avez reçu.', 'A private meeting is going on in this room, and it is not yours. Come back at the time of your meeting with the link you received.'],

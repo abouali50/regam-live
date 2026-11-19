@@ -111,5 +111,6 @@ module.exports = function security({ env, dataDir, hlsPublicUrl = '', onBurst = 
     return out;
   }
 
-  return { headers, audit, view, allowed, count, apiAllowed, checkEnv, policy };
+  const forget = (key) => hits.delete(key);       // the administrator lifts a block
+  return { headers, audit, view, allowed, count, forget, apiAllowed, checkEnv, policy };
 };

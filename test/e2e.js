@@ -543,6 +543,17 @@ async function until(fn, ms = 15000, step = 250) {
       const gone = await fetch(BASE + '/api/admin/member?id=' + yas.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } });
       const after = await fetch(BASE + '/api/member/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'yassine@example.com', password: 'motdepasse1' }) });
       check('the administrator can delete an account, which then cannot sign in', gone.status === 200 && after.status === 401);
+      {
+        const JJ = { 'Content-Type': 'application/json' }, AT = { Authorization: 'Bearer ' + tok };
+        await fetch(BASE + '/api/member/signup', { method: 'POST', headers: JJ, body: JSON.stringify({ name: 'Sans Mail', email: 'nomail@example.com', password: 'motdepasse1' }) });
+        for (let i = 0; i < 7; i++) await fetch(BASE + '/api/member/verify', { method: 'POST', headers: JJ, body: JSON.stringify({ email: 'nomail@example.com', code: '000000' }) });
+        const before = await fetch(BASE + '/api/member/login', { method: 'POST', headers: JJ, body: JSON.stringify({ email: 'nomail@example.com', password: 'motdepasse1' }) });
+        const nm = (await (await fetch(BASE + '/api/admin', { headers: AT })).json()).accounts.members.list.find((m) => m.email === 'nomail@example.com');
+        const act = await fetch(BASE + '/api/admin/member?activate=1&id=' + (nm && nm.id), { method: 'POST', headers: AT });
+        const now = await fetch(BASE + '/api/member/login', { method: 'POST', headers: JJ, body: JSON.stringify({ email: 'nomail@example.com', password: 'motdepasse1' }) });
+        check('a person whose code never arrived (and who typed wrong codes) is activated by the administrator, then signs in with their password', before.status === 403 && !!nm && !nm.verified && act.status === 200 && now.status === 200 && !!(await now.json()).token);
+        await fetch(BASE + '/api/admin/member?id=' + (nm && nm.id), { method: 'DELETE', headers: AT });
+      }
       // an assistant: a member the host names to help run the room
       await adminSet({ access: 'open' });
       await studio.fill('#helperEmail', 'nobody@example.com'); await studio.click('#helperForm button[type=submit]');

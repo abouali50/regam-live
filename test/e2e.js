@@ -1669,7 +1669,7 @@ async function until(fn, ms = 15000, step = 250) {
       host2.close(); await pctx.close();
       await fetch(BASE + '/api/admin/settings', { method: 'POST', headers: { ...H, ...J }, body: JSON.stringify({ uplink: 445 }) });
       check('the picture is fitted to what the server can send and to the size of the audience', (await (await fetch(BASE + '/api/admin', { headers: H })).json()).uplink === 445
-        && await studio.evaluate(() => { const r = window.__studio.rateFor; return r(40, 445) === 4500000 && r(100, 445) === 3460000 && r(300, 445) === 1086667 && r(1000, 445) === 700000 && r(300, 445) * 300 < 445e6 * 0.8; }));
+        && await studio.evaluate(() => { const r = window.__studio.rateFor; return r(40, 445) === 2500000 && r(100, 445) === 2500000 && r(300, 445) === 1086667 && r(1000, 445) === 700000 && r(300, 445) * 300 < 445e6 * 0.8; }));
       // camera backgrounds the administrator adds for every teacher
       const vNo = await fetch(BASE + '/api/vbg?name=x.png', { method: 'POST', headers: { ...TH, 'Content-Type': 'image/png' }, body: Buffer.from('x') });
       const vBad = await fetch(BASE + '/api/vbg?name=x.gif', { method: 'POST', headers: { ...H, 'Content-Type': 'image/gif' }, body: Buffer.from('x') });

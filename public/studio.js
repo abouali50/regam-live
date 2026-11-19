@@ -119,7 +119,7 @@
     // audience: full quality for a small room, lighter as hundreds come in, to stay within what the server can send.
     // The server's sending speed (measured, set in the administration) is shared between the viewers, keeping a fifth in reserve.
     let uplink = 400;                          // Mbit/s
-    const rateFor = (n, up = uplink) => Math.round(Math.max(700_000, Math.min(4_500_000, (up * 1e6 * 0.8) / Math.max(1, n) - 100_000)));
+    const rateFor = (n, up = uplink) => Math.round(Math.max(700_000, Math.min(2_500_000, (up * 1e6 * 0.8) / Math.max(1, n) - 100_000)));
     let rateNow = 0;
     function fitBitrate(n) {
       const want = rateFor(Number(n) || 0);
@@ -385,7 +385,7 @@
         step = 'peer';
         pc = new RTCPeerConnection();
         pc.addTransceiver(mixOut.stream.getAudioTracks()[0], { direction: 'sendonly' });
-        preferH264(pc.addTransceiver(mixed, { direction: 'sendonly', sendEncodings: [{ maxBitrate: 4_500_000, maxFramerate: 25 }] }));
+        preferH264(pc.addTransceiver(mixed, { direction: 'sendonly', sendEncodings: [{ maxBitrate: 2_500_000, maxFramerate: 25 }] }));
         pc.onconnectionstatechange = () => {
           if (!pc) return;
           if (pc.connectionState === 'connected') status(T('نتا على الهواء. المتابعين كيشوفوك بتأخير ديال بضع ثواني.'));
@@ -393,7 +393,7 @@
         };
         step = 'server';
         await within(rtcNegotiate(pc, 'whip', 'studio', token), 20000, 'server');
-        liveOn = true; rateNow = 4_500_000;
+        liveOn = true; rateNow = 2_500_000;
         try { tune(); } catch { /* a hint the browser does not know: the live goes on without it */ }
         $('#goBtn').textContent = T('وقف اللايف');
         lockLang(true); $('#roomSel').disabled = true;

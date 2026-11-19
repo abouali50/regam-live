@@ -62,6 +62,7 @@ paths:
   "~^studio_([a-z0-9-]+)$":
     runOnAvailable: >-
       ffmpeg -hide_banner -loglevel warning -rtsp_transport tcp
+      -fflags +discardcorrupt+genpts -err_detect ignore_err
       -i rtsp://__MTX_USER__:__MTX_PASS__@127.0.0.1:8554/$MTX_PATH
       -vf scale=__W__:__H__:force_original_aspect_ratio=decrease,pad=__W__:__H__:-1:-1,fps=25,format=yuv420p
       -c:v libx264 -preset veryfast -tune zerolatency -g 50 -keyint_min 50 -sc_threshold 0

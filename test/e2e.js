@@ -213,6 +213,9 @@ async function until(fn, ms = 15000, step = 250) {
     check('studio connects and goes on air', (await until(() => studio.evaluate(() => window.__studio.pc && window.__studio.pc.connectionState === 'connected'))) !== null);
     check('viewer page switches to "live" by itself', (await until(() => viewer.locator('#liveBadge.on').isVisible())) !== null);
     check('audience player plays the HLS stream', (await until(() => viewer.evaluate(() => { const v = document.querySelector('#video'); return v.videoWidth > 0 && v.currentTime > 0.5; }), 25000)) !== null);
+    check('by default, a viewer without the link of a meeting cannot ask to come on stage', !(await studio.isChecked('#anyoneChk')) && await viewer.locator('#handBtn').isHidden());
+    await studio.check('#anyoneChk');
+    check('once the host lets everybody ask, the "ask to speak" button appears for them', (await until(() => viewer.locator('#handBtn').isVisible())) !== null);
     check('relay receives mixed video + audio from the studio', (await until(() => sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v && v.videoWidth === 1280 && window.paths.studio_main.getAudioTracks().length === 1; }))) !== null, await sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v ? v.videoWidth + 'x' + v.videoHeight + ' audio=' + window.paths.studio_main.getAudioTracks().length : 'none'; }));
 
     // ---- chat + moderation --------------------------------------------------
@@ -733,6 +736,14 @@ async function until(fn, ms = 15000, step = 250) {
     await studio.check('#gateChk');
     await sleep(500);
     const door = async () => { const c = await browser.newContext({ locale: 'ar-MA', viewport: { width: 700, height: 600 } }); const p = await c.newPage(); p.on('pageerror', (e) => errors.push('door: ' + e.message)); await p.goto(BASE + '/r/main'); return p; };
+    {
+      await studio.uncheck('#anyoneChk'); await sleep(400);
+      const w0 = await door();
+      check('with the waiting room on, somebody without the link of a meeting is not announced to the host and is not asked for a name', (await until(() => w0.locator('#offline').isVisible(), 6000)) !== null
+        && (await sleep(800), !(await w0.locator('#nameDlg[open]').isVisible())) && (await studio.locator('#waiting li').count()) === 0);
+      await w0.context().close();
+      await studio.check('#anyoneChk'); await sleep(400);
+    }
     const w1 = await door();
     check('with the waiting room on, a newcomer is asked for a name and gets no stream', (await until(() => w1.locator('#nameDlg[open]').isVisible())) !== null
       && (await w1.evaluate(async () => (await fetch('/hls/air_main/index.m3u8')).status)) === 403 && await w1.locator('#liveBadge.off').isVisible());
@@ -1609,8 +1620,10 @@ async function until(fn, ms = 15000, step = 250) {
       const badName = await fetch(BASE + '/api/member/rename', { method: 'POST', headers: { ...AH, ...J }, body: JSON.stringify({ name: 'L' }) });
       check('a member gives their profile a photo and changes their name', notJpeg.status === 415 && noOne.status === 401 && upAv.av > 0 && meNow.av === upAv.av && pic.status === 200 && pic.headers.get('content-type') === 'image/jpeg'
         && (await pic.arrayBuffer()).byteLength === 604 && renamed.ok && badName.status === 400 && (await (await fetch(BASE + '/api/member/me', { headers: AH })).json()).name === 'Lina B.');
-      const host2 = await sockOf('hostpeoplesock1', { token: teacher }), lina2 = await sockOf('linapeoplesock1', { mt: lina }), guest2 = await sockOf('omarpeoplesock1', { mt: omar });
-      await until(() => host2.last('init') && lina2.last('init') && guest2.last('init'), 6000);
+      const host2 = await sockOf('hostpeoplesock1', { token: teacher });
+      await until(() => host2.last('init'), 6000); host2.say({ t: 'anyone', on: true }); await until(() => host2.last('anyone'), 4000);
+      const lina2 = await sockOf('linapeoplesock1', { mt: lina }), guest2 = await sockOf('omarpeoplesock1', { mt: omar });
+      await until(() => lina2.last('init') && guest2.last('init'), 6000);
       guest2.say({ t: 'hand', on: true }); lina2.say({ t: 'hand', on: true, point: true });
       const hands = await until(() => { const h = host2.last('hands'); return h && h.list.length === 2 ? h.list : null; }, 5000);
       lina2.say({ t: 'people' });

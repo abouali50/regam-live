@@ -17,7 +17,7 @@
   document.title = cfg.title === cfg.site ? cfg.site : `${cfg.title} · ${cfg.site}`;
   $('#title').textContent = cfg.title;
 
-  let live = false, hls = null, retry = null, onStage = false, handUp = false;
+  let handOk = false, live = false, hls = null, retry = null, onStage = false, handUp = false;
   // A guest on stage during a live whose report is being written: their browser writes down what they say, for the report.
   let reporting = false, minRec = null;
   const MinRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -188,7 +188,7 @@
     badge.className = 'badge ' + (on ? 'on' : 'off');
     offline.hidden = on;
     if (!on) unmute.hidden = true;
-    handBtn.hidden = !on || onStage;
+    handBtn.hidden = !on || onStage || !handOk;
     $('#offlineHint').hidden = on || doorShut;      // how to come up on stage, told while people wait
     if (on) startHls(); else stopHls();
     if (on) sea.stop(); else sea.start();
@@ -340,7 +340,7 @@
     lockLang(false);
     video.srcObject = null;
     stageBar.hidden = true;
-    handBtn.hidden = !live;
+    handBtn.hidden = !live || !handOk;
     setHand(false);
     if (live) startHls();
   }
@@ -594,11 +594,13 @@
       clearTimeout(wallRetry);                 // asked again by itself: the host may start a live that is open to everyone
       wallRetry = setTimeout(() => { if (!account.token && !document.getElementById('accountDlg')?.open) link.hello(); }, 20000);
     })
-    .on('err', (d) => { if (d.code === 'signin') openAccount('login'); });
+    .on('err', (d) => { if (d.code === 'signin') openAccount('login'); if (d.code === 'nolink') { handOk = false; handBtn.hidden = true; } })
+    .on('handok', (d) => { handOk = !!d.on; handBtn.hidden = !live || onStage || !handOk; if (!handOk) setHand(false); });
   $('#signIn').onclick = () => openAccount('login');
   $('#signUp').onclick = () => openAccount('signup');
   link.on('reporting', (d) => { reporting = !!d.on; minuteSync(); });
   link.on('init', async (d) => {
+    handOk = !!d.handOk;
     reporting = !!d.reporting; minuteSync();
     doorShut = false; $('#signBtns').hidden = true;
     knockBtn.hidden = true; payBtn.hidden = true; walletEntry.hidden = true;

@@ -967,6 +967,7 @@
       waitingN = list.length;
     }
     $('#gateChk').onchange = () => link.send({ t: 'gate', on: $('#gateChk').checked });
+    $('#anyoneChk').onchange = () => link.send({ t: 'anyone', on: $('#anyoneChk').checked });
     $('#admitAll').onclick = () => link.send({ t: 'admit' });
 
     // ---- the sound people hear while the room is not live
@@ -1110,11 +1111,13 @@
       maxGuests = d.maxGuests || 12;
       setBadge(d.live); showHands(d.hands || []); showGuests(d.guests);
       showWaiting(!!d.gate, d.waiting || []);
+      $('#anyoneChk').checked = !!d.anyone;
       recOn = !!d.rec; showRec();
       $('#aiChatRow').hidden = !(d.aiChat && d.aiChat.ready); $('#aiChatChk').checked = !!(d.aiChat && d.aiChat.on);
       roomCode = d.code || ''; sessions = d.sessions || []; showInvite();
       showHelpers(d.helpers || []);
     })
+      .on('anyone', (d) => { $('#anyoneChk').checked = !!d.on; })
       .on('waiting', (d) => showWaiting(d.gate, d.list))
       .on('live', (d) => setBadge(d.on))
       .on('viewers', (d) => { $('#viewers').textContent = d.n; fitBitrate(d.n); })

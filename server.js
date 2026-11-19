@@ -1145,6 +1145,7 @@ function waitingList(room) {
   for (const ws of room.waiters) if (ws.wname && !seen.has(ws.uid)) seen.set(ws.uid, { uid: ws.uid, name: ws.wname });
   return [...seen.values()].slice(0, 100);
 }
+const handOk = (room, ws) => !!(ws.mod || ws.helper || ws.sessCode || room.cfg.anyone);      // may ask to come on stage
 const tellWaiting = (room) => toMods(room, { t: 'waiting', gate: !!room.cfg.gate, list: waitingList(room) });
 function answerDoor(room, uid, ok) {           // uid '' = everybody at the door
   for (const ws of [...room.waiters]) {
@@ -1223,6 +1224,7 @@ wss.on('connection', (ws, req) => {
         const c = String(d.code || '').replace(/\D/g, '');   // "not yet", whatever the room's other settings. The host is not asked to let in somebody who came days early.
         const mine = c.length === 6 && (room.cfg.sessions || []).find((x) => x.code && !spent(x) && safeEq(x.code, c));
         if (mine && !runningOf(room).includes(mine)) return tx(ws, { t: 'notyet', at: mine.at, other: mine.at - OPEN_EARLY <= Date.now() });
+        if (mine) ws.sessCode = c;                         // came with the link of the meeting that is open now
         // On air for a planned live: that meeting is for the people who hold its link. Anybody else (no link, the link
         // of another meeting) is told it is not their meeting, and is not announced to the host.
         const act = room.live && room.cfg.active && (room.cfg.sessions || []).find((x) => x.id === room.cfg.active);
@@ -1238,6 +1240,8 @@ wss.on('connection', (ws, req) => {
         // Nobody is announced to the host while no meeting is on: the room is off air and no planned live is open.
         // The visitor is told so (and when theirs is, if their link says); their page asks again by itself.
         if (!room.live && !runningOf(room).length) { const nx = nextOf(room, d.code); return tx(ws, { t: 'notyet', at: nx ? nx.at : 0 }); }
+        // Only who holds the link of a meeting may knock, unless the host opened the door to everybody: the others are not announced.
+        if (!room.cfg.anyone) { const nx = nextOf(room, d.code); return tx(ws, { t: 'notyet', at: nx ? nx.at : 0, busy: true }); }
         ws.uid = String(d.uid);
         if (room.refused.has(ws.uid)) return tx(ws, { t: 'refused' });
         if (room.waiters.size >= 2000) { tx(ws, { t: 'full', capacity: 0 }); return ws.close(); }
@@ -1268,7 +1272,7 @@ wss.on('connection', (ws, req) => {
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {
-        t: 'init', now: Date.now(), tz: siteTz(), live: room.live, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
+        t: 'init', now: Date.now(), tz: siteTz(), live: room.live, handOk: handOk(room, ws), anyone: ws.mod ? !!room.cfg.anyone : undefined, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, admin: ws.admin || undefined, words: ws.mod ? room.cfg.words || [] : undefined, reporting: room.live && room.cfg.report !== false,
         reports: ws.mod ? { list: reportsOf(room), on: room.cfg.report !== false, lang: room.cfg.reportLang || 'auto', ai: ai.ready() } : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
@@ -1353,6 +1357,7 @@ wss.on('connection', (ws, req) => {
         return tellPoll(room);
       }
       case 'hand':
+        if (!handOk(room, ws)) return tx(ws, { t: 'err', code: 'nolink' });      // only the people of the meeting ask to speak, unless the host opened it to all
         if (!ws.mod && !ws.member && acct.access() !== 'open') return tx(ws, { t: 'err', code: 'signin' });
         if (!ws.name || cfg.banned[ws.uid] || slotOf(room, ws.uid)) return;
         if (d.on === false) room.hands.delete(ws.uid);
@@ -1546,6 +1551,11 @@ wss.on('connection', (ws, req) => {
         if (d.on && !room.live) return tx(ws, { t: 'rec', on: false, err: 'offline' });
         setRecording(room, !!d.on).then((ok) => { if (!ok) tx(ws, { t: 'rec', on: !!room.rec, err: 'failed' }); });
         return;
+      case 'anyone':                       // people without the link of a meeting may also knock and ask to speak
+        cfg.anyone = !!d.on; save();
+        for (const c of room.clients) if (!c.mod) tx(c, { t: 'handok', on: handOk(room, c) });
+        if (!cfg.anyone) { for (const [uid] of room.hands) { const cs = room.byUid.get(uid); if (!cs || ![...cs].some((c) => handOk(room, c))) room.hands.delete(uid); } toMods(room, { t: 'hands', list: handsList(room) }); }
+        return tx(ws, { t: 'anyone', on: cfg.anyone });
       case 'gate':                         // waiting room on or off
         cfg.gate = !!d.on; save();
         if (cfg.gate) { for (const c of room.clients) room.admitted.add(c.uid); }   // people already inside stay

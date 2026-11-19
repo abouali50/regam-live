@@ -534,7 +534,7 @@ function mountChat(root, link, { askName } = {}) {
   }
   function add(m) {
     list.append(row(m));
-    while (list.childElementCount > 300) list.firstElementChild.remove();
+    while (list.childElementCount > (stick ? 300 : 1500)) list.firstElementChild.remove();      // never pull lines away from under someone reading back
     if (stick) scroll(); else more.hidden = false;
     if (root.classList.contains('collapsed')) { missed++; unread.textContent = missed > 99 ? '99+' : String(missed); unread.hidden = false; }
   }

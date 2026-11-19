@@ -943,6 +943,14 @@ async function until(fn, ms = 15000, step = 250) {
     await phone.goto(BASE + '/'); await until(() => phone.evaluate(() => document.querySelector('#video').videoWidth > 0), 20000);
     await phone.screenshot({ path: path.join(OUT, 'viewer-phone.png') });
     check('phone layout has no sideways scroll', await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    const ph = await phone.evaluate(() => {
+      const r = (q) => document.querySelector(q).getBoundingClientRect(), hb = document.querySelector('#handBtn');
+      return { hand: !hb.hidden, gap: r('#handBtn').top - r('#player').bottom, page: document.scrollingElement.scrollHeight - innerHeight, chat: r('#chat').height, chatBottom: r('#chat').bottom, comp: !!document.querySelector('#chat .composer').offsetParent, ih: innerHeight };
+    });
+    check('on a phone the meeting holds the screen: "ask to speak" right under the picture, the comments open below, no page scroll', ph.hand && ph.gap >= 0 && ph.gap < 24 && ph.page <= 1 && ph.chat > 150 && ph.comp && ph.chatBottom <= ph.ih + 1, JSON.stringify(ph));
+    await phone.tap('.chat-head'); await sleep(500);
+    const up = await phone.evaluate(() => ({ on: document.body.classList.contains('chat-up'), chat: document.querySelector('#chat').getBoundingClientRect().height, top: document.querySelector('#player').getBoundingClientRect().top }));
+    check('pulling the comments up gives them more room, while the picture stays where it is', up.on && up.chat > ph.chat && Math.abs(up.top - (await phone.evaluate(() => document.querySelector('#player').getBoundingClientRect().top))) < 1, JSON.stringify(up));
 
     // ---- languages ----------------------------------------------------------------------
     const frCtx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1280, height: 760 } });

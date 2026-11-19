@@ -927,3 +927,54 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .report-doc h2 { margin: 0 0 6px; font-size: 24px; color: var(--gold); }
 .report-doc h3 { margin: 16px 0 4px; font-size: 18px; color: var(--gold); border-bottom: 1px solid rgba(255,255,255,.25); padding-bottom: 4px; }
 .report-doc p { margin: 2px 0; } .report-doc ul { margin: 2px 0; padding-inline-start: 22px; }
+
+/* ---- viewer: "ask to speak" right under the picture ---- */
+.watch .hand-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.watch .hand-row:not(:has(> :not([hidden]))) { display: none; }
+.watch .hand-row .btn { min-height: 46px; justify-content: center; font-weight: 800; }
+
+/* ---- viewer on a phone: the meeting holds the whole screen ----
+   picture at the top, the buttons under it, the comments below. Pulling the comments up folds what lies between,
+   smoothly; the picture and the buttons never move. No pinch, no stretch, no page scroll. */
+@media (max-width: 600px) {
+  html:has(> body.watch) { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body.watch { position: fixed; inset: 0; height: 100dvh; overflow: hidden; overscroll-behavior: none; touch-action: pan-x pan-y; display: flex; flex-direction: column; -webkit-text-size-adjust: 100%; }
+  body.watch > .top { flex: none; }
+  .watch .layout, .watch .layout:has(> .chat.collapsed) { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; padding: 0 0 env(safe-area-inset-bottom); }
+  .watch .stage { flex: none; overflow: visible; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; padding-bottom: 8px; }
+  .watch .stage > .player { grid-column: 1 / -1; }
+  .watch .under { display: contents; }
+  .watch .hand-row { grid-column: 1 / -1; margin: 10px 12px 0; }
+  .watch .hand-row { flex-wrap: nowrap; }
+  .watch .hand-row .btn { flex: 1 1 0; min-width: 0; font-size: 16px; border-radius: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: min-height .3s ease, padding .3s ease; }
+  .watch .hand-row #handBtn { flex-grow: 2; }
+  body.watch > .top { flex-wrap: nowrap; padding: 6px 10px; gap: 6px; }
+  .watch .top .brand { font-size: 16px; }
+  .watch .top .meta { gap: 6px; flex-wrap: nowrap; }
+  .watch .top .badge, .watch .top .viewers { font-size: 12px; padding: 3px 8px; }
+  .watch .stage > .player { order: 0; } .watch .hand-row { order: 1; } .watch .actions, .watch .reactions { order: 2; }
+  .watch .under-text { order: 3; } .watch #pollBox { order: 4; } .watch #extras { order: 5; } .watch #stageBar { order: 6; }
+  .watch .top .lang { max-width: 92px; padding: 3px 6px; }
+  .watch .player:has(.offline:not([hidden])) { aspect-ratio: 4 / 3; }
+  .watch .offline { overflow-y: auto; }
+  body.watch.chat-up .hand-row .btn { min-height: 38px; padding-block: 6px; }
+  body.watch.chat-up .actions .btn { padding-block: 6px; }
+  .watch .actions { grid-column: 1; margin-top: 8px; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-inline-start: 12px; scrollbar-width: none; }
+  .watch .actions::-webkit-scrollbar { display: none; }
+  .watch .actions .btn { flex: none; white-space: nowrap; padding: 8px 12px; }
+  .watch .reactions { grid-column: 2; margin-top: 8px; padding: 0; padding-inline-end: 12px; align-self: center; }
+  .watch .under-text, .watch #pollBox, .watch #extras { grid-column: 1 / -1; margin: 8px 12px 0; max-height: 34dvh; overflow: hidden; transition: max-height .3s ease, opacity .22s ease, margin .3s ease; }
+  .watch .under h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .watch #extras { overflow-y: auto; max-height: 20dvh; }
+  body.watch.chat-up .under-text, body.watch.chat-up #pollBox, body.watch.chat-up #extras { max-height: 0; opacity: 0; margin-top: 0; pointer-events: none; }
+  .watch .chat, .watch .chat.collapsed { flex: 1; min-height: 0; align-self: stretch; border-radius: 16px 16px 0 0; border-inline: 0; border-bottom: 0; }
+  .watch .chat .chat-head { position: relative; padding-top: 16px; touch-action: none; }
+  .watch .chat .chat-head::before { content: ""; position: absolute; top: 6px; left: 50%; width: 42px; height: 4px; border-radius: 2px; background: currentColor; opacity: .45; transform: translateX(-50%); }
+  .watch .chat .chat-chevron { transform: rotate(-135deg); }
+  body.watch.chat-up .chat .chat-chevron { transform: rotate(45deg); }
+  .watch .composer input { font-size: 16px; }      /* smaller fields make the iPhone zoom in */
+  .watch .msgs { -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 600px) and (prefers-reduced-motion: reduce) {
+  .watch .under-text, .watch #pollBox, .watch #extras { transition: none; }
+}

@@ -86,6 +86,34 @@
   showNext(cfg.next);
   const chat = mountChat($('#chat'), link, { askName });
 
+  // ---- phone: the meeting holds the whole screen. The picture stays at the top, the buttons under it, the comments
+  // below; pulling the comments up (or scrolling back into them) folds the details in between, never the picture.
+  const phone = matchMedia('(max-width: 600px)'), chatBox = $('#chat');
+  const chatUp = (on) => document.body.classList.toggle('chat-up', !!on);
+  function phoneMode() { if (phone.matches) chat.open(); else chatUp(false); }
+  if (phone.addEventListener) phone.addEventListener('change', phoneMode);
+  phoneMode();
+  chatBox.addEventListener('click', (e) => {          // on a phone the head of the comments pulls them up or down
+    if (!phone.matches || !e.target.closest('.chat-head')) return;
+    e.preventDefault(); e.stopPropagation();
+    chatUp(!document.body.classList.contains('chat-up'));
+  }, true);
+  let swipeY = null;
+  chatBox.addEventListener('touchstart', (e) => { swipeY = e.target.closest('.chat-head') ? e.touches[0].clientY : null; }, { passive: true });
+  chatBox.addEventListener('touchend', (e) => {
+    if (swipeY === null || !phone.matches) return;
+    const dy = e.changedTouches[0].clientY - swipeY; swipeY = null;
+    if (dy < -24) chatUp(true); else if (dy > 24) chatUp(false);
+  }, { passive: true });
+  const msgList = chatBox.querySelector('.msgs');
+  let msgTop = 0;
+  if (msgList) msgList.addEventListener('scroll', () => {
+    const back = msgList.scrollTop < msgTop - 8 && msgList.scrollHeight - msgList.scrollTop - msgList.clientHeight > 80;
+    if (phone.matches && back) chatUp(true);
+    msgTop = msgList.scrollTop;
+  }, { passive: true });
+  ['gesturestart', 'gesturechange'].forEach((t) => document.addEventListener(t, (e) => { if (phone.matches) e.preventDefault(); }));     // no two-finger zoom on the meeting (Safari)
+
   // -------------------------------------------------------------- player --
   function stopHls() {
     clearTimeout(retry);
@@ -471,9 +499,11 @@
   link.on('asked', (d) => toast(T(d.wait ? 'تسنى شوية قبل ما تصيفط سؤال آخر.' : 'وصل السؤال ديالك للأستاذ.')));
 
   // ---- a poll or a quiz from the teacher: answer with one tap, see the result
+  let pollSeen = '';
   function showPoll(p) {
     $('#pollBox').hidden = !!p.off;
     if (p.off) return;
+    if (p.q !== pollSeen) { pollSeen = p.q; document.body.classList.remove('chat-up'); }     // a new poll: the comments step back so it is seen
     $('#pollQ').textContent = p.q;
     const total = Math.max(1, p.total);
     $('#pollOpts').replaceChildren(...p.opts.map((o, i) => {

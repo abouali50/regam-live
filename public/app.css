@@ -978,3 +978,44 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 @media (max-width: 600px) and (prefers-reduced-motion: reduce) {
   .watch .under-text, .watch #pollBox, .watch #extras { transition: none; }
 }
+
+/* ---- public pages on a phone: nothing may push the page wider than the screen ---- */
+.hero, .site-sec { grid-template-columns: minmax(0, 1fr); }
+.home-main, .admin-main { grid-template-columns: minmax(0, 1fr); }
+.home-main, .site-sec > *, .hero > * { min-width: 0; }
+.home-main h1, .home-main h2 { overflow-wrap: break-word; }
+.site-grid { grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); }
+.pro-plans { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); }
+.room-list { grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); }
+.dash-grid { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.poll-ins { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.admin-form { grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); }
+
+/* ---- rows of buttons that slide sideways on a phone (menu, header) ----
+   The row scrolls on its own, never the page; the side where more buttons wait fades out, so no button looks
+   cut by mistake. scrollHint() in common.js sets more-start / more-end as the row moves. */
+.strip { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+.strip::-webkit-scrollbar { display: none; }
+.strip > * { flex: none; }
+.strip.more-end { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+.strip.more-start { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent); }
+.strip.more-start.more-end { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+[dir="rtl"] .strip.more-end:not(.more-start) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent); }
+[dir="rtl"] .strip.more-start:not(.more-end) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+@media (max-width: 800px) {
+  .site-nav.strip { padding-block: 2px; }
+  .site-nav.strip > a, .site-nav.strip .nav-drop > summary { min-height: 44px; display: inline-flex; align-items: center; }
+  .nav-drop:not([open]) > .nav-menu { display: none; }
+}
+@media (max-width: 600px) {
+  .top { flex-wrap: wrap; }
+  .top .brand { flex: none; }
+  .top .meta.strip { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; gap: 8px; padding-block: 2px; }
+  .top .meta.strip::before { content: ""; margin-inline-start: auto; order: -2; }     /* sits at the end when everything fits, slides when it does not */
+  .top .meta.strip > .acc-box { order: -1; display: inline-flex; gap: 8px; flex: none; }
+  .top .meta.strip .btn, .top .meta.strip .lang { min-height: 40px; white-space: nowrap; }
+  .top .meta.strip .acc-box .btn { padding: 8px 12px; font-size: 14px; }
+  .site-nav.strip > select.lang { align-self: center; margin-inline-end: 4px; min-height: 40px; }
+}
+@media (max-width: 360px) { .top .brand { font-size: 15px; } .top .brand .badge, .top .brand b { font-size: 11px; } }
+.btn.big { max-width: 100%; white-space: normal; }      /* a long label wraps instead of pushing the page wider */

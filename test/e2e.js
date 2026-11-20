@@ -948,6 +948,23 @@ async function until(fn, ms = 15000, step = 250) {
       return { hand: !hb.hidden, gap: r('#handBtn').top - r('#player').bottom, page: document.scrollingElement.scrollHeight - innerHeight, chat: r('#chat').height, chatBottom: r('#chat').bottom, comp: !!document.querySelector('#chat .composer').offsetParent, ih: innerHeight };
     });
     check('on a phone the meeting holds the screen: "ask to speak" right under the picture, the comments open below, no page scroll', ph.hand && ph.gap >= 0 && ph.gap < 24 && ph.page <= 1 && ph.chat > 150 && ph.comp && ph.chatBottom <= ph.ih + 1, JSON.stringify(ph));
+    {
+      const hctx = await browser.newContext({ ...devices['iPhone 14'], locale: 'fr-FR' }), hp = await hctx.newPage();
+      await hp.goto(BASE + '/rooms'); await hp.waitForTimeout(1200);
+      await hp.evaluate(async () => { if (!document.querySelector('.top .acc-box')) await mountAccount(document.querySelector('.top .meta'), { accounts: true }); });
+      await hp.waitForTimeout(2500);      // the first-time nudge of the menu is over
+      const hr = await hp.evaluate(() => {
+        const W = document.documentElement.clientWidth, nav = document.querySelector('.site-nav');
+        const btns = [...document.querySelectorAll('.top .acc-box .btn')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right), Math.round(r.height)]; });
+        return { wide: document.documentElement.scrollWidth - W, W, btns, navSlides: nav.scrollWidth > nav.clientWidth && getComputedStyle(nav).overflowX === 'auto', hint: nav.classList.contains('more-end'), langInNav: !!nav.querySelector('select.lang') };
+      });
+      const before = await hp.evaluate(() => document.querySelector('.site-nav').scrollLeft);
+      await hp.evaluate(() => { const n = document.querySelector('.site-nav'); n.scrollBy({ left: getComputedStyle(n).direction === 'rtl' ? -9999 : 9999 }); });
+      await hp.waitForTimeout(300);
+      const after = await hp.evaluate(() => ({ x: document.querySelector('.site-nav').scrollLeft, page: scrollX, start: document.querySelector('.site-nav').classList.contains('more-start') }));
+      check('the public page fits a phone held upright: Sign in and Sign up in view, the menu slides sideways by itself with a fade showing there is more', hr.wide <= 0 && hr.btns.length === 2 && hr.btns.every(([l, r, h]) => l >= 0 && r <= hr.W && h >= 40) && hr.navSlides && hr.hint && hr.langInNav && Math.abs(after.x) > Math.abs(before) && after.start && after.page === 0, JSON.stringify([hr, before, after]));
+      await hctx.close();
+    }
     await phone.tap('.chat-head'); await sleep(500);
     const up = await phone.evaluate(() => ({ on: document.body.classList.contains('chat-up'), chat: document.querySelector('#chat').getBoundingClientRect().height, top: document.querySelector('#player').getBoundingClientRect().top }));
     check('pulling the comments up gives them more room, while the picture stays where it is', up.on && up.chat > ph.chat && Math.abs(up.top - (await phone.evaluate(() => document.querySelector('#player').getBoundingClientRect().top))) < 1, JSON.stringify(up));

@@ -23,6 +23,19 @@
     ]));
   const brand = document.querySelector('.top .brand');
   if (brand) brand.after(nav);
+  scrollHint(nav);
+  // On a phone the top line keeps the brand with "Sign in" and "Sign up"; the language menu goes to the head of the
+  // sliding menu below, so nobody has to turn the phone to reach any of them.
+  const phone = matchMedia('(max-width: 600px)'), meta = document.querySelector('.top .meta');
+  const placeLang = () => {
+    const lang = document.querySelector('.top select.lang');
+    if (!lang || !meta) return;
+    if (phone.matches) { if (lang.parentElement !== nav) nav.prepend(lang); }
+    else if (lang.parentElement !== meta) meta.prepend(lang);
+  };
+  placeLang();
+  if (phone.addEventListener) phone.addEventListener('change', placeLang);
+  if (meta && phone.matches) scrollHint(meta);
   document.addEventListener('click', (e) => { for (const d of document.querySelectorAll('.nav-drop[open]')) if (!d.contains(e.target)) d.open = false; });
 
   // ------------------------------------------------- the app, everywhere --

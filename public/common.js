@@ -414,6 +414,39 @@ function mountAssistant() {
   };
 }
 // The account corner of the page header: "sign in / sign up", or the person's name and "sign out".
+// ---- a row of buttons wider than the screen: it slides sideways under the finger, with a soft fade on the side
+// where more buttons wait, and a small nudge the first time so people see it moves. Works right-to-left too.
+function scrollHint(box) {
+  if (!box || box.dataset.strip) return;
+  box.dataset.strip = '1';
+  box.classList.add('strip');
+  const rtl = () => getComputedStyle(box).direction === 'rtl';
+  const sync = () => {
+    const max = box.scrollWidth - box.clientWidth, x = rtl() ? -box.scrollLeft : box.scrollLeft;
+    box.classList.toggle('more-start', max > 2 && x > 2);
+    box.classList.toggle('more-end', max > 2 && x < max - 2);
+  };
+  box.addEventListener('scroll', sync, { passive: true });
+  if (window.ResizeObserver) new ResizeObserver(sync).observe(box);
+  new MutationObserver(sync).observe(box, { childList: true, subtree: true });
+  addEventListener('resize', sync);
+  sync();
+  let nudged = false;
+  const nudge = () => {
+    if (nudged || !box.classList.contains('more-end') || !matchMedia('(pointer: coarse)').matches) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    nudged = true;
+    const d = rtl() ? -40 : 40;
+    box.scrollBy({ left: d, behavior: 'smooth' });
+    setTimeout(() => box.scrollBy({ left: -d, behavior: 'smooth' }), 650);
+  };
+  setTimeout(nudge, 900);
+  setTimeout(nudge, 2500);       // the sign-in buttons arrive a moment later
+}
+document.addEventListener('DOMContentLoaded', () => {
+  if (matchMedia('(max-width: 600px)').matches) scrollHint(document.querySelector('.top .meta'));
+});
+
 async function mountAccount(host, site) {
   if (account.token) {
     const r = await fetch('/api/member/me', { headers: { Authorization: 'Bearer ' + account.token } }).catch(() => null);

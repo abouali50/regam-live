@@ -1,11 +1,7 @@
 node_modules/
-data/
-.env
-.env.*
-!.env.example
+__pycache__/
+*.pyc
+video_build/
+publish_build/
+dist/
 .DS_Store
-.mode
-test/out/
-deploy/mediamtx.yml
-deploy/Caddyfile
-recordings/

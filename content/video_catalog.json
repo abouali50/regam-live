@@ -1,0 +1,102 @@
+{
+  "formes-indeterminees": [
+    {
+      "title": "0/0 : factoriser avant de conclure",
+      "src": "media/01_Zero_sur_Zero.mp4",
+      "duration": 82.916667,
+      "poster": "media/01_Zero_sur_Zero.jpg",
+      "description": "مثال قصير بشرح صوتي اصطناعي بالدارجة ومعادلات مكتوبة خطوة بخطوة.",
+      "tracks": [
+        {
+          "src": "media/01_Zero_sur_Zero.vtt",
+          "language": "ar",
+          "label": "الدارجة المغربية"
+        }
+      ]
+    },
+    {
+      "title": "∞/∞ : comparer les degrés",
+      "src": "media/02_Infini_sur_Infini.mp4",
+      "duration": 47.791667,
+      "poster": "media/02_Infini_sur_Infini.jpg",
+      "description": "مثال قصير بشرح صوتي اصطناعي بالدارجة ومعادلات مكتوبة خطوة بخطوة.",
+      "tracks": [
+        {
+          "src": "media/02_Infini_sur_Infini.vtt",
+          "language": "ar",
+          "label": "الدارجة المغربية"
+        }
+      ]
+    },
+    {
+      "title": "∞ − ∞ : utiliser le conjugué",
+      "src": "media/03_Infini_moins_Infini.mp4",
+      "duration": 47.25,
+      "poster": "media/03_Infini_moins_Infini.jpg",
+      "description": "مثال قصير بشرح صوتي اصطناعي بالدارجة ومعادلات مكتوبة خطوة بخطوة.",
+      "tracks": [
+        {
+          "src": "media/03_Infini_moins_Infini.vtt",
+          "language": "ar",
+          "label": "الدارجة المغربية"
+        }
+      ]
+    },
+    {
+      "title": "0 × ∞ : transformer le produit",
+      "src": "media/04_Zero_fois_Infini.mp4",
+      "duration": 51.0,
+      "poster": "media/04_Zero_fois_Infini.jpg",
+      "description": "مثال قصير بشرح صوتي اصطناعي بالدارجة ومعادلات مكتوبة خطوة بخطوة.",
+      "tracks": [
+        {
+          "src": "media/04_Zero_fois_Infini.vtt",
+          "language": "ar",
+          "label": "الدارجة المغربية"
+        }
+      ]
+    },
+    {
+      "title": "1^∞ : passer par le logarithme",
+      "src": "media/05_Un_puissance_Infini.mp4",
+      "duration": 50.125,
+      "poster": "media/05_Un_puissance_Infini.jpg",
+      "description": "مثال قصير بشرح صوتي اصطناعي بالدارجة ومعادلات مكتوبة خطوة بخطوة.",
+      "tracks": [
+        {
+          "src": "media/05_Un_puissance_Infini.vtt",
+          "language": "ar",
+          "label": "الدارجة المغربية"
+        }
+      ]
+    },
+    {
+      "title": "0^0 : étudier le logarithme",
+      "src": "media/06_Zero_puissance_Zero.mp4",
+      "duration": 37.583333,
+      "poster": "media/06_Zero_puissance_Zero.jpg",
+      "description": "مثال قصير بشرح صوتي اصطناعي بالدارجة ومعادلات مكتوبة خطوة بخطوة.",
+      "tracks": [
+        {
+          "src": "media/06_Zero_puissance_Zero.vtt",
+          "language": "ar",
+          "label": "الدارجة المغربية"
+        }
+      ]
+    },
+    {
+      "title": "∞^0 : comparer les croissances",
+      "src": "media/07_Infini_puissance_Zero.mp4",
+      "duration": 44.166667,
+      "poster": "media/07_Infini_puissance_Zero.jpg",
+      "description": "مثال قصير بشرح صوتي اصطناعي بالدارجة ومعادلات مكتوبة خطوة بخطوة.",
+      "tracks": [
+        {
+          "src": "media/07_Infini_puissance_Zero.vtt",
+          "language": "ar",
+          "label": "الدارجة المغربية"
+        }
+      ]
+    }
+  ]
+}

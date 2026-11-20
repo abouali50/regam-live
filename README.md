@@ -1,89 +1,81 @@
-# REGAM Live
+# REGAM Academy
 
-Studio de diffusion en direct en darija. L’animateur peut partager sa caméra et son écran, inviter un spectateur sur scène et modérer le chat.
+مكتبة رياضيات للثانية باكالوريا المغربية، بالدارجة والمصطلحات الفرنسية.
 
-| Espace | Adresse | Fonction |
-| --- | --- | --- |
-| Spectateurs | `/` | Regarder le direct, commenter et demander à monter sur scène |
-| Studio | `/studio` | Ouvrir une session, préparer le direct et modérer les commentaires |
-| État du serveur | `/healthz` | Vérifier que le serveur répond et connaître l’état du direct |
+الموقع فيه مسار **Sciences Physiques / SVT** ومسار **Sciences Mathématiques A/B**. كاتختار المسار، من بعد المحور، ومن بعد الدرس. كل درس كيجمع الشرح والأمثلة والخلاصة و3 تمارين محلولة، مع أسئلة قصيرة باش تتأكد من الفهم.
 
-## Essayer le chat sur Mac
+## التثبيت على VPS
 
-Prérequis recommandé pour cette procédure : Node.js 22.
-
-1. Dans Terminal, place-toi dans le dossier du projet.
-2. Installe les dépendances et prépare la configuration locale.
-
-   ```bash
-   npm ci
-   cp .env.example .env
-   ```
-
-3. Dans `.env`, renseigne `ADMIN_PASSWORD` avec un mot de passe local d’au moins huit caractères. Garde ce fichier sur ton appareil.
-4. Démarre le serveur.
-
-   ```bash
-   node --env-file=.env server.js
-   ```
-
-5. Ouvre [la page spectateurs](http://127.0.0.1:3000/) et [le studio](http://127.0.0.1:3000/studio) dans Chrome. Connecte-toi au studio, puis envoie un commentaire depuis la page spectateurs. Le statut du direct reste hors ligne pendant cet essai du chat.
-
-## Architecture
-
-```mermaid
-flowchart LR
-    S[Studio] -->|WebRTC| M[MediaMTX]
-    M -->|HLS| V[Spectateurs]
-    S <-->|WebSocket| N[Serveur Node.js]
-    N <-->|WebSocket| V
-```
-
-MediaMTX et FFmpeg assurent la diffusion vidéo et audio. Le serveur Node.js gère le chat, la modération et les invitations sur scène. Les commentaires récents sont conservés en mémoire, dans la limite de 150, puis perdus au redémarrage du serveur. Le studio est prévu pour Chrome ou Edge sur ordinateur.
-
-## Installer la diffusion sur un VPS
-
-Sur un VPS Ubuntu ou Debian, configure un domaine qui pointe vers le serveur. Depuis le dossier du projet, lance ensuite l’installateur avec ton domaine et ton adresse e-mail.
+فـ Terminal ديال VPS، وأنت داخل بحساب root، دير كوبي كولي لهاد الأمر كامل:
 
 ```bash
-sudo bash install.sh live.example.com admin@example.com
+REGAM_SRC="$(mktemp -d /tmp/regam-bac-source.XXXXXX)" && git clone --depth 1 --single-branch --branch academy-maths-v1 https://github.com/abouali50/regam-live.git "$REGAM_SRC" && bash "$REGAM_SRC/install.sh"
 ```
 
-L’installateur prépare Docker Compose, MediaMTX et le proxy. Les ports à ouvrir sur le VPS sont `80/tcp`, `443/tcp`, `8189/udp` et `8189/tcp`. Après installation, utilise le domaine en HTTPS et vérifie le direct depuis un deuxième appareil. Pour une audience importante, la diffusion HLS peut passer par un CDN configuré avec `HLS_PUBLIC_URL`.
+البرنامج غادي يطلب منك **الدومين الجديد ديال الموقع** و**الإيميل ديال شهادة HTTPS**. خاص DNS ديال الدومين يشير للـ VPS قبل التثبيت. `bos.hostingervps.com` هو العنوان اللي عطيتينا للدخول عند Hostinger، ماشي اسم الموقع التعليمي الجديد.
 
-## Sécurité
+المثبّت كيدعم Ubuntu وDebian مع systemd، مع Nginx أو Caddy بالإعداد المعتاد. كيدعم حتى وضع Docker المباشر ديال REGAM Live إلا تطابقت إعداداتو مع التثبيت المعروف: كيزيد خادماً صغيراً مستقلاً للموقع، وكيضيف الدومين فـ Caddy بلا إعادة إنشاء خدمات LIVE. إعدادات Apache أو proxy آخر داخل Docker أو panel بإعداد خاص كتحتاج دمج مناسب. كيتوقف برسالة واضحة إلا ما لقاوش الشروط، وما كيعلن `DONE` حتى يتحقق من HTTPS ومن الصفحة المنشورة.
 
-Les protections du site sont regroupées dans `security.js` et vérifiées par des tests d’attaque.
+إلا حدّثتي REGAM Live من بعد، المثبّت ديالو يقدر يعاود يكتب Caddyfile ويحيد بلوك Academy. فهاد الحالة عاود أمر Academy بنفس الدومين. تفاصيل الشروط والرجوع للنسخة السابقة فدليل التثبيت.
 
-| Protection | Où |
+هاد النسخة ففرع مستقل اسمه `academy-maths-v1` فـ `abouali50/regam-live`. التثبيت كيستعمل ملفات هاد الفرع. التفاصيل، التحديث والرجوع للنسخة السابقة فـ [دليل التثبيت](docs/INSTALL_FR.md).
+
+## المحتوى
+
+| المحور | بعض الدروس |
 | --- | --- |
-| En-têtes de sécurité (HSTS, CSP, anti-cadre, `nosniff`) sur chaque réponse | `security.js` |
-| Journal des événements suspects, visible dans Administration > Sécurité | `data/security.log` |
-| Limites par adresse réseau et par compte (mots de passe, codes, requêtes) | `security.js`, `accounts.js`, `server.js` |
-| Mots de passe hachés (scrypt, un sel par compte), sessions signées | `server.js`, `accounts.js` |
-| Changer un mot de passe ferme les sessions ouvertes avec l’ancien | `server.js`, `accounts.js` |
-| Réglages vérifiés au démarrage (`SECRET`, `ADMIN_PASSWORD`, `MTX_PASS`, `PUBLIC_ORIGIN`) | `security.js` |
+| Analyse | Limites، الحالات غير المحددة السبعة، Continuité، Dérivation، Fonctions réciproques، Étude de fonction، Suites، Logarithme، Exponentielle، Intégrales، Équations différentielles |
+| تعميق Analyse للعلوم الرياضية | Rolle وTAF وIAF، Arctan، Suites adjacentes، Changement de variable وSommes de Riemann |
+| Algèbre | Nombres complexes، تعميق الأعداد العقدية، Arithmétique، Structures algébriques، Espaces vectoriels |
+| Géométrie | الهندسة بالأعداد العقدية، الهندسة فالفضاء والكرات لمسار PC/SVT |
+| Probabilités | Dénombrement، Probabilités conditionnelles، Variables aléatoires، Loi binomiale |
 
-Réglages utiles dans `.env` : `PUBLIC_ORIGIN` (adresse du site écrite dans les e-mails), `CSP=report` (la politique de contenu signale sans bloquer) ou `CSP=off` en cas de page bloquée, `API_PER_MIN` (plafond de requêtes par adresse).
+مجموع المكتبة **25 درساً، 133 جزءاً للشرح، 75 تمريناً مصححاً و43 سؤالاً قصيراً**. منها 18 درساً فمسار PC/SVT و23 فمسار SM، حيث بعض الدروس مشتركة. هاد الأعداد تقسيم بيداغوجي ديال الموقع، ماشي عدد رسمي للوزارة.
+
+### نوع الفيديوهات
+
+- **7 فيديوهات بتعليق صوتي اصطناعي** كتشرح الحالات غير المحددة فالنهايات.
+- **24 شرحاً بصرياً مكتوباً بلا تعليق صوتي**، كل واحد كيشرح مثال درس آخر خطوة بخطوة. نوع الفيديو مبيّن فالمشغّل والوصف.
+
+الفيديوهات البصرية مفيدة للمراجعة مع التوقف على كل خطوة. ماشي تسجيلات بصوت أستاذة، وما كاينش فيها تقليد لشخص حقيقي. الخدمة الخارجية ما رجّعاتش التسجيلات الصوتية الجديدة أثناء تجهيز هاد النسخة. نصوص الشرح محفوظة فـ `content/` باش يمكن تسجيلها من بعد.
+
+## استعمال الموقع
+
+فتح `site/index.html` كيشغّل الموقع محلياً. أو شغّل خادم بسيط من جذر المشروع:
 
 ```bash
-npm run test:security
+python3 -m http.server 8080 --directory site
 ```
 
-## Lancer les tests
+من بعد افتح `http://localhost:8080`. فاستضافة عادية، ارفع محتويات `site/` للمجلد العمومي ديال الموقع. Node.js وقاعدة بيانات ومفاتيح API ما مطلوبينش فالسيرفر.
+
+كاين البحث بالعربية والفرنسية، الدروس المفضلة، تتبع التقدم، الوضع الليلي، وطباعة الخلاصة. المفضلة والتقدم كيتحفظو فالمتصفح اللي كتستعمل، وما كيتزامنوش بين الأجهزة. الفيديوهات والخطوط ومحرك المعادلات محليين، وما كايناش مكتبات CDN أو أدوات تتبع.
+
+## تعديل الدروس
+
+المحتوى الأصلي فـ `content/core_lessons.json` و`analysis_extra.json` و`other_lessons.json` و`sm_lessons.json`. عدّل JSON ثم شغّل:
 
 ```bash
-npm ci
-npm run test:chat
+python3 scripts/build_content.py
 ```
 
-Le test de chat démarre le vrai serveur sur un port local temporaire. Il vérifie l’envoi des commentaires, la réponse du studio, l’historique récent, la limitation de fréquence et la modération.
+`site/data/courses.js` ملف مولّد، ما تعدلوش مباشرة. `content/build_core.py` هو أصل بناء الدروس الأساسية. إلا عدلتي شي درس أساسي، حافظ على التعديل حتى فهاد المصدر قبل تشغيله من جديد.
 
-Pour les tests navigateur, installe FFmpeg sur la machine, puis lance :
+ربط الفيديوهات كاين فـ `content/video_catalog.json` و`content/video_catalog_extra.json`. كل ملف مذكور خاصو يكون موجود تحت `site/`. وصف `silent: true` كيميّز الشروح بلا صوت.
+
+## التحقق
 
 ```bash
-npx playwright install chromium
+bash install.sh --check
+python3 -m unittest discover -s tests -p 'installer_test.py' -v
+npm install --ignore-scripts
 npm test
 ```
 
-Cette suite utilise un relais de test pour les médias. La configuration MediaMTX du VPS se vérifie sur le déploiement.
+Node.js هنا غير لاختبارات التطوير. الاختبارات كتتحقق من مسارات الدروس، عرض المعادلات، التمارين، البحث والمفضلة، ومن ضوابط المثبّت باستعمال ملفات مؤقتة. ما كتعنيش أنه تجرّب تنصيب حقيقي على VPS ديالك. نتائج هاد النسخة فـ [VALIDATION.md](docs/VALIDATION.md).
+
+## مراجع المقرر
+
+الشرح والتمارين مكتوبين للموقع. فهرسة البرنامج مبنية على نسخ منشورة من التوجيهات التربوية، مع التمييز بين وثيقة الوزارة والموقع اللي كيستضيفها. هاد النسخة ما كتدّعيش أنها إصدار رسمي أو أنها تحققت من جميع تعديلات امتحان 2027. تفاصيل الوثائق وتواريخها فـ [CURRICULUM_SOURCES.md](docs/CURRICULUM_SOURCES.md) وصفحة المصادر داخل الموقع.
+
+KaTeX موزع مع ترخيصه الأصلي داخل `site/assets/vendor/KaTeX-LICENSE`. تراخيص خطوط الشروح البصرية مرفقة مع أصولها عند توزيع مصدرها.

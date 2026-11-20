@@ -1,28 +1,13 @@
 {
-  "name": "regam-live",
-  "version": "0.1.0",
-  "description": "REGAM Live - live broadcast with chat, screen share and guests",
-  "main": "server.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "start": "node server.js",
-    "test": "node test/e2e.js",
-    "test:chat": "node --test test/chat.test.js",
-    "test:security": "node --test test/security.test.js"
-  },
-  "license": "UNLICENSED",
-  "dependencies": {
-    "hls.js": "^1.7.4",
-    "nodemailer": "^10.5.0",
-    "ws": "^8.22.2"
-  },
+  "name": "regam-bac-maths",
+  "version": "1.0.0",
   "private": true,
-  "engines": {
-    "node": ">=20"
+  "description": "Static Moroccan bac mathematics library. Node is needed only for development checks.",
+  "scripts": {
+    "build": "python3 scripts/build_content.py",
+    "test": "node tests/site_test.cjs"
   },
   "devDependencies": {
-    "playwright": "1.62.1"
+    "jsdom": "26.1.0"
   }
 }

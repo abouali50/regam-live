@@ -1,0 +1,242 @@
+{
+  "limites": [
+    {
+      "title": "نهاية كسر عند اللانهاية · شرح بصري",
+      "src": "media/limites.mp4",
+      "duration": 50.833333,
+      "poster": "media/limites.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "continuite": [
+    {
+      "title": "نختارو قيمة باش الدالة تولّي مستمرة · شرح بصري",
+      "src": "media/continuite.mp4",
+      "duration": 50.833333,
+      "poster": "media/continuite.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "derivation": [
+    {
+      "title": "نحسبو المماس بلا ما ننسّاو القيمة · شرح بصري",
+      "src": "media/derivation.mp4",
+      "duration": 50.0,
+      "poster": "media/derivation.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "etude-fonction": [
+    {
+      "title": "دراسة التغيّرات ديال دالة مكعبة · شرح بصري",
+      "src": "media/etude-fonction.mp4",
+      "duration": 51.75,
+      "poster": "media/etude-fonction.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "suites": [
+    {
+      "title": "نحوّلو متتالية لمتتالية هندسية · شرح بصري",
+      "src": "media/suites.mp4",
+      "duration": 51.333333,
+      "poster": "media/suites.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "fonctions-reciproques": [
+    {
+      "title": "مشتقة العكس بلا ما نلقاو صيغتو · شرح بصري",
+      "src": "media/fonctions-reciproques.mp4",
+      "duration": 51.333333,
+      "poster": "media/fonctions-reciproques.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "logarithme": [
+    {
+      "title": "Résoudre une équation logarithmique · شرح بصري",
+      "src": "media/logarithme.mp4",
+      "duration": 63.75,
+      "poster": "media/logarithme.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "exponentielle": [
+    {
+      "title": "Résoudre une équation avec e puissance x · شرح بصري",
+      "src": "media/exponentielle.mp4",
+      "duration": 61.166667,
+      "poster": "media/exponentielle.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "primitives-integrales": [
+    {
+      "title": "Calculer une intégrale par parties · شرح بصري",
+      "src": "media/primitives-integrales.mp4",
+      "duration": 64.166667,
+      "poster": "media/primitives-integrales.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "equations-differentielles": [
+    {
+      "title": "Résoudre une équation avec condition initiale · شرح بصري",
+      "src": "media/equations-differentielles.mp4",
+      "duration": 65.5,
+      "poster": "media/equations-differentielles.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "complexes": [
+    {
+      "title": "حل معادلة من الدرجة الثانية فـ C · شرح بصري",
+      "src": "media/complexes.mp4",
+      "duration": 63.75,
+      "poster": "media/complexes.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "geometrie-complexe": [
+    {
+      "title": "مثلث قائم ومتساوي الساقين باللواحق · شرح بصري",
+      "src": "media/geometrie-complexe.mp4",
+      "duration": 60.666667,
+      "poster": "media/geometrie-complexe.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "geometrie-espace": [
+    {
+      "title": "المسافة بين نقطة ومستوى · شرح بصري",
+      "src": "media/geometrie-espace.mp4",
+      "duration": 62.833333,
+      "poster": "media/geometrie-espace.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "spheres": [
+    {
+      "title": "دائرة تقاطع كرة ومستوى · شرح بصري",
+      "src": "media/spheres.mp4",
+      "duration": 60.25,
+      "poster": "media/spheres.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "denombrement": [
+    {
+      "title": "اختيار لجنة من ثلاثة أشخاص · شرح بصري",
+      "src": "media/denombrement.mp4",
+      "duration": 60.25,
+      "poster": "media/denombrement.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "probabilites": [
+    {
+      "title": "جوج كويرات حمراء بلا إرجاع · شرح بصري",
+      "src": "media/probabilites.mp4",
+      "duration": 61.583333,
+      "poster": "media/probabilites.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "variables-aleatoires": [
+    {
+      "title": "احتمال جوج نجاحات فربعة رميات · شرح بصري",
+      "src": "media/variables-aleatoires.mp4",
+      "duration": 63.75,
+      "poster": "media/variables-aleatoires.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "arithmetique": [
+    {
+      "title": "Une équation diophantienne pas à pas · شرح بصري",
+      "src": "media/arithmetique.mp4",
+      "duration": 65.5,
+      "poster": "media/arithmetique.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "structures": [
+    {
+      "title": "Trouver le neutre et le symétrique · شرح بصري",
+      "src": "media/structures.mp4",
+      "duration": 63.75,
+      "poster": "media/structures.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "espaces-vectoriels": [
+    {
+      "title": "Trouver une base d’un plan vectoriel · شرح بصري",
+      "src": "media/espaces-vectoriels.mp4",
+      "duration": 63.333333,
+      "poster": "media/espaces-vectoriels.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "theoremes-analyse-sm": [
+    {
+      "title": "Encadrer un logarithme avec le TAF · شرح بصري",
+      "src": "media/theoremes-analyse-sm.mp4",
+      "duration": 63.333333,
+      "poster": "media/theoremes-analyse-sm.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "suites-adjacentes": [
+    {
+      "title": "Prouver une adjacence simplement · شرح بصري",
+      "src": "media/suites-adjacentes.mp4",
+      "duration": 63.333333,
+      "poster": "media/suites-adjacentes.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "integration-sm": [
+    {
+      "title": "Changer de variable et garder les bonnes bornes · شرح بصري",
+      "src": "media/integration-sm.mp4",
+      "duration": 63.75,
+      "poster": "media/integration-sm.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ],
+  "complexes-sm": [
+    {
+      "title": "Résoudre un trinôme à coefficients complexes · شرح بصري",
+      "src": "media/complexes-sm.mp4",
+      "duration": 64.583333,
+      "poster": "media/complexes-sm.jpg",
+      "silent": true,
+      "description": "شرح بصري مكتوب خطوة بخطوة، بلا تعليق صوتي. وقف الفيديو فكل مرحلة وقرا المعادلة مع الشرح بالدارجة."
+    }
+  ]
+}

@@ -1,0 +1,1311 @@
+[
+  {
+    "id": "arithmetique",
+    "title": "Arithmétique dans ℤ",
+    "titleAr": "الحسابيات فالأعداد الصحيحة",
+    "domain": "algebre",
+    "tracks": [
+      "sm"
+    ],
+    "level": "Approfondissement SM",
+    "duration": "80 min",
+    "prerequisites": [
+      "Division euclidienne",
+      "Calcul sur les entiers",
+      "Raisonnement par récurrence"
+    ],
+    "goals": [
+      "Calculer un PGCD et une identité de Bézout",
+      "Résoudre une équation diophantienne",
+      "Utiliser les congruences et changer de base"
+    ],
+    "intro": "فالحسابيات كنقلبو على علاقات دقيقة بين الأعداد الصحيحة. السؤال ماشي غير شحال النتيجة، ولكن علاش عدد كيقسم عدد آخر، وشنو الباقي ديال قوة كبيرة. غادي نبنيو الطريقة من division euclidienne حتى congruences، وكل مرة نحددو الفرضيات اللي كتخلي المبرهنة صالحة.",
+    "sections": [
+      {
+        "title": "1. Divisibilité et division euclidienne",
+        "body": "<p>كنكتبو \\(a\\mid b\\) إلا كان عدد صحيح \\(k\\) بحيث \\(b=ak\\). إلى كان \\(a\\) كيقسم \\(b\\) و\\(c\\)، راه كيقسم أي combinaison entière \\(ub+vc\\). هادي الفكرة اللي غادي نخدمو بها فـ Bézout.</p><p>لكل \\(a\\in\\mathbb Z\\) و\\(b\\in\\mathbb N^*\\)، كاينين quotient وreste وحيدين: \\(a=bq+r\\)، مع \\(0\\leq r&lt;b\\). حتى إلا كان \\(a\\) سالب، الباقي كيبقى موجب أو صفر. مثلا \\(-17=5(-4)+3\\)، ماشي quotient ناقص ثلاثة وباقي ناقص جوج.</p>"
+      },
+      {
+        "title": "2. Euclide, PGCD et PPCM",
+        "body": "<p>القواسم المشتركة ديال \\(a,b\\) هي نفسها ديال \\(b,r\\) إلا كان \\(a=bq+r\\). لذلك نعاودو division حتى نوصلو لباقي صفر، وآخر باقي غير منعدم هو PGCD. بالنسبة لعددين موجبين، \\(\\operatorname{PGCD}(a,b)\\operatorname{PPCM}(a,b)=ab\\). خاص نفرقو بين القاسم المشترك والمضاعف المشترك.</p>",
+        "example": {
+          "title": "PGCD ثم الرجوع للمساواة",
+          "statement": "احسب \\(\\operatorname{PGCD}(252,198)\\) وكتبُه combinaison entière ديال العددين.",
+          "steps": [
+            "\\(252=198+54\\)، ثم \\(198=3\\times54+36\\).",
+            "\\(54=36+18\\)، و\\(36=2\\times18\\)، إذن PGCD هو \\(18\\).",
+            "نرجعو: \\(18=54-36=54-(198-3\\times54)=4\\times54-198\\).",
+            "نعوضو \\(54=252-198\\): \\(18=4\\times252-5\\times198\\)."
+          ],
+          "answer": "\\(\\operatorname{PGCD}(252,198)=18\\)، ومعاملات Bézout هي \\(4,-5\\)."
+        }
+      },
+      {
+        "title": "3. Bézout, Gauss et équation diophantienne",
+        "body": "<p>Bézout كيقول إن \\(a,b\\) أوليان فيما بينهما إلا وفقط إلا قدرنا نلقاو \\(u,v\\in\\mathbb Z\\) مع \\(au+bv=1\\). وGauss كيقول: إلا كان \\(a\\mid bc\\) و\\(\\operatorname{PGCD}(a,b)=1\\)، إذن \\(a\\mid c\\). شرط coprimalité ضروري.</p><p>إلى كان \\((a,b)\\ne(0,0)\\)، فالمعادلة \\(ax+by=c\\) عندها حلول صحيحة إلا وفقط إلا كان \\(d=\\operatorname{PGCD}(a,b)\\) كيقسم \\(c\\). إلى لقينا حلا \\((x_0,y_0)\\)، جميع الحلول هي \\(x=x_0+(b/d)t\\)، \\(y=y_0-(a/d)t\\)، مع \\(t\\in\\mathbb Z\\).</p>",
+        "example": {
+          "title": "حل كامل، ماشي غير حل واحد",
+          "statement": "حل فـ \\(\\mathbb Z^2\\): \\(42x+30y=6\\).",
+          "steps": [
+            "\\(\\operatorname{PGCD}(42,30)=6\\)، و\\(6\\mid6\\)، إذن الحلول موجودة.",
+            "نقسمو على ستة: \\(7x+5y=1\\). كنلاحظو \\(7\\times3+5(-4)=1\\).",
+            "نطرحو الحل الخاص: \\(7(x-3)=-5(y+4)\\). بما أن \\(7,5\\) أوليان، Gauss كيعطينا \\(5\\mid(x-3)\\).",
+            "نكتبو \\(x=3+5t\\)، ثم التعويض كيعطي \\(y=-4-7t\\). وكنرجعو نتحققو فالمعادلة الأصلية."
+          ],
+          "answer": "\\((x,y)=(3+5t,-4-7t)\\)، \\(t\\in\\mathbb Z\\)."
+        }
+      },
+      {
+        "title": "4. Congruences et petit théorème de Fermat",
+        "body": "<p>\\(a\\equiv b\\pmod n\\) كتعني \\(n\\mid(a-b)\\). نقدر نجمع ونضرب ونرفع لقوة صحيحة موجبة. القسمة ماشي أوتوماتيكية: الاختزال بمعامل خاصو يكون inversible modulo \\(n\\).</p><p>إلى كان \\(p\\) أولي و\\(p\\nmid a\\)، Fermat كيعطينا \\(a^{p-1}\\equiv1\\pmod p\\). مثلا \\(3^{100}\\) modulo سبعة: \\(100=6\\times16+4\\)، إذن \\(3^{100}\\equiv3^4=81\\equiv4\\). كنراجعو الأولية وشرط عدم القسمة قبل استعمال المبرهنة.</p>"
+      },
+      {
+        "title": "5. Écriture dans une base",
+        "body": "<p>فـ base \\(b\\geq2\\)، الأرقام كتكون من صفر حتى \\(b-1\\). الكتابة \\((a_ka_{k-1}\\ldots a_0)_b\\) كتمثل \\(\\sum a_jb^j\\). مثلا \\((110101)_2=32+16+4+1=53\\).</p><p>باش نحولو من decimal لقاعدة أخرى، نقسمو بالتتابع على القاعدة ونسجلو البواقي، ومن بعد نقراوهم من الأخير للأول. ضروري نكتب القاعدة، لأن \\((10)_2\\) و\\((10)_5\\) ماشي نفس العدد. كنراقبو التحويل بإعادة حساب مجموع القوى.</p>"
+      }
+    ],
+    "summary": [
+      "Division euclidienne: \\(a=bq+r\\)، \\(0\\leq r<b\\).",
+      "Euclide كيحافظ على PGCD، و\\(\\mathrm{PGCD}\\times\\mathrm{PPCM}=ab\\) للأعداد الموجبة.",
+      "\\(ax+by=c\\) قابلة للحل فالأعداد الصحيحة بالضبط إلا كان \\(\\mathrm{PGCD}(a,b)\\mid c\\).",
+      "Gauss كيتطلب \\(\\mathrm{PGCD}(a,b)=1\\) باش نستنتجو من \\(a\\mid bc\\) أن \\(a\\mid c\\).",
+      "Fermat كيتستعمل modulo عدد أولي، والكتابة فقاعدة كتتحقق بمجموع قوى القاعدة."
+    ],
+    "pitfalls": [
+      "تقسم congruence على عدد بلا ما تتحقق واش عندو inverse modulo القاعدة.",
+      "تعطي حلا خاصا للمعادلة وتنسى عائلة جميع الحلول الصحيحة.",
+      "تقرا بواقي التحويل بين القواعد من الأول للأخير."
+    ],
+    "exercises": [
+      {
+        "id": "arith-e1",
+        "title": "Euclide et PPCM",
+        "level": "Application",
+        "statement": "احسب PGCD وPPCM ديال \\(360\\) و\\(252\\)، ثم أعط هوية Bézout.",
+        "hint": "بدا بالقسمة ديال 360 على 252، ومن بعد رجع المساويات بالعكس.",
+        "steps": [
+          "\\(360=252+108\\)، \\(252=2\\times108+36\\)، \\(108=3\\times36\\).",
+          "آخر باقي غير منعدم هو \\(36\\)، إذن \\(d=36\\).",
+          "\\(\\operatorname{PPCM}=360\\times252/36=2520\\).",
+          "\\(36=252-2\\times108=252-2(360-252)=3\\times252-2\\times360\\)."
+        ],
+        "answer": "PGCD \\(36\\)، PPCM \\(2520\\)، و\\(36=-2\\times360+3\\times252\\)."
+      },
+      {
+        "id": "arith-e2",
+        "title": "Tous les couples entiers",
+        "level": "Méthode",
+        "statement": "حل \\(18x+30y=12\\) فـ \\(\\mathbb Z^2\\).",
+        "hint": "قسم المعادلة على \\(6\\)، وجرب الحل \\((-1,1)\\).",
+        "steps": [
+          "\\(d=6\\) كيقسم \\(12\\)، إذن ممكن نلقاو حلول. المعادلة كتولي \\(3x+5y=2\\).",
+          "\\(3(-1)+5(1)=2\\)، إذن \\((-1,1)\\) حل خاص.",
+          "بطرح الحل الخاص: \\(3(x+1)=-5(y-1)\\). Gauss كيعطي \\(5\\mid(x+1)\\).",
+          "نحطو \\(x=-1+5t\\)، فنلقاو \\(y=1-3t\\). التعويض كيرجع \\(12\\) لكل \\(t\\in\\mathbb Z\\)."
+        ],
+        "answer": "\\(x=-1+5t\\)، \\(y=1-3t\\)، \\(t\\in\\mathbb Z\\)."
+      },
+      {
+        "id": "arith-e3",
+        "title": "Une puissance très grande",
+        "level": "Approfondissement",
+        "statement": "لقا باقي \\(2^{2026}\\) فالقسمة على \\(7\\)، باستعمال Fermat.",
+        "hint": "كتب \\(2026=6q+r\\)، ومن بعد اختزل القوة الصغيرة.",
+        "steps": [
+          "\\(7\\) أولي وما كيقسمش \\(2\\)، إذن \\(2^6\\equiv1\\pmod7\\).",
+          "\\(2026=6\\times337+4\\)، وبالتالي \\(2^{2026}\\equiv(2^6)^{337}2^4\\equiv16\\pmod7\\).",
+          "\\(16=2\\times7+2\\)، والباقي \\(2\\) كينتمي للمجال من صفر حتى ستة."
+        ],
+        "answer": "الباقي هو \\(2\\)."
+      }
+    ],
+    "videos": [],
+    "quiz": [
+      {
+        "question": "من \\(a\\mid bc\\)، شنو الشرط اللي كيخلينا نطبقو Gauss ونستنتجو \\(a\\mid c\\)؟",
+        "choices": [
+          "\\(\\operatorname{PGCD}(a,b)=1\\)",
+          "\\(a<b\\)",
+          "\\(b\\mid c\\)"
+        ],
+        "correct": 0,
+        "explanation": "كون a وb أوليين فيما بينهما هو اللي كيمنع عوامل a تبقى كاملة داخل b."
+      },
+      {
+        "question": "شنو القيمة العشرية ديال \\((132)_5\\)؟",
+        "choices": [
+          "32",
+          "42",
+          "132"
+        ],
+        "correct": 1,
+        "explanation": "\\(1\\times5^2+3\\times5+2=25+15+2=42\\)."
+      }
+    ],
+    "videoLesson": {
+      "title": "Une équation diophantienne pas à pas",
+      "segments": [
+        {
+          "text": "اليوم غادي نحل معادلة بجوج مجاهيل، ولكن الحلول اللي كنقلبو عليهم خاصهم يكونو أعداد صحيحة. هاد الشرط هو الأساس ديال التمرين.",
+          "equation": "18x+30y=12,\\quad(x,y)\\in\\mathbb Z^2",
+          "note": "Identifier le domaine"
+        },
+        {
+          "text": "كنحسب القاسم المشترك الأكبر ديال تمنتاش وتلاتين، كنلقاه ستة. بما أن ستة كيقسم طناش، راه المعادلة فعلا عندها حلول صحيحة.",
+          "equation": "\\gcd(18,30)=6\\mid12",
+          "note": "Vérifier l’existence"
+        },
+        {
+          "text": "دابا نقسم المعادلة كاملة على ستة باش نخفف الحساب. كنحصل على ثلاثة إكس زائد خمسة إيغريك كيساوي جوج، بلا تغيير الحلول.",
+          "equation": "3x+5y=2",
+          "note": "Simplifier"
+        },
+        {
+          "text": "نجرب إكس ناقص واحد وإيغريك واحد. ناقص ثلاثة زائد خمسة كتعطيني جوج، إذن عندي حل خاص نقدر ننطلق منو للحل العام.",
+          "equation": "(x_0,y_0)=(-1,1)",
+          "note": "Trouver un couple"
+        },
+        {
+          "text": "نطرح الحل الخاص من المعادلة، ونطبق مبرهنة غاوس. كنستنتج أن إكس زائد واحد مضاعف ديال خمسة، وكنسمي هاد المضاعف تي.",
+          "equation": "3(x+1)=-5(y-1),\\quad x=-1+5t",
+          "note": "Utiliser Gauss"
+        },
+        {
+          "text": "نعوض إكس فنلقى إيغريك واحد ناقص ثلاثة تي. تي كيقدر يكون أي عدد صحيح، والتحقق النهائي كيرجع لينا المعادلة الأصلية.",
+          "equation": "(x,y)=(-1+5t,1-3t),\\quad t\\in\\mathbb Z",
+          "note": "Écrire tous les couples"
+        }
+      ]
+    },
+    "tags": [
+      "PGCD",
+      "Bézout",
+      "Gauss",
+      "congruences",
+      "Fermat",
+      "bases"
+    ]
+  },
+  {
+    "id": "structures",
+    "title": "Structures algébriques",
+    "titleAr": "البنيات الجبرية خطوة بخطوة",
+    "domain": "algebre",
+    "tracks": [
+      "sm"
+    ],
+    "level": "Approfondissement SM",
+    "duration": "75 min",
+    "prerequisites": [
+      "Ensembles et applications",
+      "Calcul algébrique",
+      "Arithmétique dans ℤ"
+    ],
+    "goals": [
+      "Vérifier les propriétés d’une loi interne",
+      "Reconnaître un groupe et un sous-groupe",
+      "Distinguer anneau, corps et morphisme"
+    ],
+    "intro": "فـ structures algébriques ما كنكتافيوش باسم المجموعة. خاصنا نعرفو حتى العملية اللي خدامين بها. نفس المجموعة تقدر تعطي بنية مختلفة إلا بدلنا loi. الطريقة المضمونة هي نكتب التعريف، نتحقق من كل شرط، ونعطي contre-exemple واضح إلا كان شي شرط ناقص.",
+    "sections": [
+      {
+        "title": "1. Une loi interne et ses propriétés",
+        "body": "<p>loi interne فوق \\(E\\) هي تطبيق كيربط كل زوج من عناصر \\(E\\) بعنصر باقي فـ \\(E\\). قبل الحساب الطويل، كنختبرو stabilité. مثلا الجمع داخلي فـ \\(\\mathbb Z\\)، ولكن القسمة ماشي عملية داخلية معرفة على جميع الأزواج.</p><p>Associativité كتقارن \\((a*b)*c\\) مع \\(a*(b*c)\\)، وcommutativité كتقارن \\(a*b\\) مع \\(b*a\\). عنصر محايد \\(e\\) خاصو يحقق الجهتين \\(e*a=a*e=a\\). Symétrique ديال \\(a\\) هو عنصر \\(a^{-1}\\) كيحقق \\(a*a^{-1}=a^{-1}*a=e\\). ماشي دائما هو \\(-a\\) ولا \\(1/a\\)، العملية هي اللي كتحدد.</p>"
+      },
+      {
+        "title": "2. Construire une preuve de groupe",
+        "body": "<p>باش نقولو \\((G,*)\\) groupe، نتحققو من loi interne، associativité، élément neutre، ووجود symétrique لكل عنصر. إلا زدنا commutativité كيولي groupe abélien. تجربة جوج أعداد كتعاون نفهمو، ولكن ما كتثبتش خاصية على جميع العناصر.</p>",
+        "example": {
+          "title": "Une loi différente de l’addition",
+          "statement": "على \\(G=]-1,+\\infty[\\)، نعرفو \\(x*y=x+y+xy\\). بين أن \\((G,*)\\) groupe abélien.",
+          "steps": [
+            "\\(1+(x*y)=(1+x)(1+y)>0\\)، إذن \\(x*y>-1\\): العملية داخلية.",
+            "\\((x*y)*z=x+y+z+xy+xz+yz+xyz=x*(y*z)\\): associativité.",
+            "\\(x*0=0*x=x\\)، إذن المحايد هو \\(0\\).",
+            "حل \\(x*y=0\\) كيعطي \\(y=-x/(1+x)\\). وبما أن \\(1+y=1/(1+x)>0\\)، هاد العنصر داخل \\(G\\).",
+            "الصيغة متناظرة فـ \\(x,y\\)، إذن commutativité متحققة."
+          ],
+          "answer": "\\((]-1,+\\infty[,*)\\) groupe abélien، ومحايدو \\(0\\)، وsymétrique ديال \\(x\\) هو \\(-x/(1+x)\\)."
+        }
+      },
+      {
+        "title": "3. Vérifier un sous-groupe",
+        "body": "<p>إلى كان \\(G\\) groupe و\\(H\\subset G\\)، معيار مختصر هو: \\(H\\) ماشي خاوية، ولكل \\(x,y\\in H\\)، \\(x*y^{-1}\\in H\\). فمجموعة جمعية كنستعملو \\(x-y\\). هاد الشرط كيجمع الاستقرار والمحايد والمعكوس.</p><p>مثلا \\(3\\mathbb Z\\) sous-groupe ديال \\((\\mathbb Z,+)\\): الصفر داخلو، والفرق \\(3m-3n=3(m-n)\\) باقي مضاعف ديال ثلاثة. أما \\(\\mathbb N\\) ماشي sous-groupe جمعي ديال \\(\\mathbb Z\\)، حيث \\(1\\) داخلو ولكن \\(-1\\) ما داخلوش. الاستقرار بالنسبة للجمع بوحدو ما كافيش.</p>"
+      },
+      {
+        "title": "4. Morphisme et isomorphisme",
+        "body": "<p>Morphisme \\(\\varphi:(G,*)\\to(H,\\circ)\\) كيحافظ على العملية: \\(\\varphi(x*y)=\\varphi(x)\\circ\\varphi(y)\\). خاص نحدد المجال والمجال المستهدف قبل ما نختبر المساواة. Isomorphisme هو morphisme bijectif، وكيخلينا ننقل الحساب والبنية بين جوج مجموعات.</p><p>مثلا \\(\\exp:(\\mathbb R,+)\\to(\\mathbb R_+^*,\\times)\\) morphisme حيث \\(e^{x+y}=e^xe^y\\)، وbijectif حيث العكس ديالو \\(\\ln\\). بالمقابل، التطبيق \\(x\\mapsto x^2\\) من \\((\\mathbb R,+)\\) لنفس المجموعة ماشي morphisme جمعي، لأن \\((x+y)^2\\) ماشي دائما \\(x^2+y^2\\).</p>"
+      },
+      {
+        "title": "5. Anneau, corps et éléments inversibles",
+        "body": "<p>فـ anneau عندنا جمع كيعطي groupe abélien، وضرب associatif، وجوج distributivités. هنا كنستعملو convention ديال anneau unitaire، يعني كاين محايد ضربي \\(1\\). Corps هو anneau commutatif فيه \\(1\\ne0\\)، وكل عنصر غير منعدم عندو inverse ضربي.</p><p>\\(\\mathbb Z\\) anneau ولكن ماشي corps، لأن \\(2\\) ما عندوش inverse صحيح. \\(\\mathbb Q\\) corps. فـ \\(\\mathbb Z/n\\mathbb Z\\)، الصنف \\(\\overline a\\) inversible بالضبط إلا كان \\(\\operatorname{PGCD}(a,n)=1\\).</p>",
+        "example": {
+          "title": "Comparer deux quotients",
+          "statement": "علاش \\(\\mathbb Z/5\\mathbb Z\\) corps و\\(\\mathbb Z/6\\mathbb Z\\) ماشي corps؟",
+          "steps": [
+            "فـ modulo خمسة، inverses ديال \\(\\overline1,\\overline2,\\overline3,\\overline4\\) هما بالترتيب \\(\\overline1,\\overline3,\\overline2,\\overline4\\).",
+            "الجمع والضرب ديال الأصناف كيعطيو anneau commutatif، وكل صنف غير منعدم عندو inverse: إذن corps.",
+            "فـ modulo ستة، \\(\\overline2\\,\\overline3=\\overline0\\)، مع أن العاملين بجوج غير منعدمين.",
+            "إلى كان \\(\\overline2\\) عندو inverse، ضرب المساواة فيه غادي يعطي \\(\\overline3=\\overline0\\)، وهذا تناقض."
+          ],
+          "answer": "\\(\\mathbb Z/5\\mathbb Z\\) corps، أما \\(\\mathbb Z/6\\mathbb Z\\) فيه diviseurs de zéro وماشي corps."
+        }
+      }
+    ],
+    "summary": [
+      "حدد المجموعة والعملية قبل اسم البنية.",
+      "Groupe: loi interne، associativité، محايد، ومعكوس لكل عنصر.",
+      "Sous-groupe: جزء غير خاوي ومستقر بالنسبة للعملية مع inverse.",
+      "Morphisme كيحافظ على العملية، وisomorphisme خاصو يكون bijectif.",
+      "Corps: anneau commutatif unitaire، وكل عنصر غير منعدم inversible."
+    ],
+    "pitfalls": [
+      "تخلط بين commutativité وassociativité، وهما شرطين مختلفين.",
+      "تلقا صيغة للمعكوس وتنسى تتحقق واش باقي فالمجموعة.",
+      "تعتبر كل عدد غير منعدم modulo n قابل للقسمة، حتى إلا كانت n مركبة."
+    ],
+    "exercises": [
+      {
+        "id": "struct-e1",
+        "title": "Un groupe avec un neutre inhabituel",
+        "level": "Application",
+        "statement": "على \\(\\mathbb R\\)، نضع \\(x*y=x+y-2\\). أثبت أن هادي بنية groupe abélien.",
+        "hint": "المحايد خاصو يحقق x * e = x. حل هاد المعادلة قبل ما تقلب على المعكوس.",
+        "steps": [
+          "\\(x+y-2\\in\\mathbb R\\)، إذن loi interne.",
+          "\\((x*y)*z=x+y+z-4=x*(y*z)\\). العملية كذلك commutative.",
+          "\\(x*e=x\\) كيعطي \\(e=2\\)، وفعلا \\(2*x=x*2=x\\).",
+          "\\(x*y=2\\) كيعطي \\(y=4-x\\in\\mathbb R\\)، وهو symétrique بالنسبة لهاد العملية."
+        ],
+        "answer": "Groupe abélien، محايد \\(2\\)، وsymétrique ديال \\(x\\) هو \\(4-x\\)."
+      },
+      {
+        "id": "struct-e2",
+        "title": "Le morphisme des restes",
+        "level": "Méthode",
+        "statement": "ليكن \\(\\varphi:\\mathbb Z\\to\\mathbb Z/5\\mathbb Z\\)، \\(k\\mapsto\\overline k\\). أثبت أنه morphisme جمعي surjectif، وحدد noyau ديالو.",
+        "hint": "النواة هي الأعداد اللي الصورة ديالها الصنف صفر.",
+        "steps": [
+          "\\(\\varphi(a+b)=\\overline{a+b}=\\overline a+\\overline b=\\varphi(a)+\\varphi(b)\\)، إذن morphisme.",
+          "كل صنف \\(\\overline r\\) عندو antécédent \\(r\\)، إذن التطبيق surjectif.",
+          "\\(\\varphi(k)=\\overline0\\iff5\\mid k\\iff k\\in5\\mathbb Z\\).",
+          "ماشي injectif لأن \\(\\varphi(0)=\\varphi(5)\\) مع \\(0\\ne5\\)."
+        ],
+        "answer": "\\(\\ker\\varphi=5\\mathbb Z\\)، والتطبيق surjectif وغير injectif."
+      },
+      {
+        "id": "struct-e3",
+        "title": "Inversibles modulo huit",
+        "level": "Approfondissement",
+        "statement": "حدد العناصر inversibles فـ \\(\\mathbb Z/8\\mathbb Z\\)، وفسر علاش هاد anneau ماشي corps.",
+        "hint": "استعمل PGCD مع ثمانية، ثم تحقق من مربع كل عنصر فردي.",
+        "steps": [
+          "الأعداد اللي PGCD ديالها مع \\(8\\) هو \\(1\\) هي الأصناف \\(1,3,5,7\\).",
+          "\\(1^2\\equiv3^2\\equiv5^2\\equiv7^2\\equiv1\\pmod8\\)، إذن كل واحد فيهم هو inverse ديال راسو.",
+          "\\(\\overline2\\ne\\overline0\\) ولكن ماشي inversible، وزيادة على ذلك \\(\\overline2\\,\\overline4=\\overline0\\)."
+        ],
+        "answer": "العناصر inversibles هي \\(\\overline1,\\overline3,\\overline5,\\overline7\\)، و\\(\\mathbb Z/8\\mathbb Z\\) ماشي corps."
+      }
+    ],
+    "videos": [],
+    "quiz": [
+      {
+        "question": "فالقانون x * y = x + y − 2، شكون هو العنصر المحايد؟",
+        "choices": [
+          "0",
+          "1",
+          "2"
+        ],
+        "correct": 2,
+        "explanation": "كنحل x + e − 2 = x، كنلقى e = 2، وكيحقق حتى الجهة الأخرى."
+      },
+      {
+        "question": "شنو المجموعة اللي هي sous-groupe ديال (ℤ,+)؟",
+        "choices": [
+          "الأعداد الطبيعية",
+          "الأعداد الزوجية",
+          "الأعداد الصحيحة الموجبة فقط"
+        ],
+        "correct": 1,
+        "explanation": "الأعداد الزوجية فيها الصفر، والفرق بين جوج أعداد زوجية باقي زوجي. المجموعتان الأخريان ما فيهمش جميع المعكوسات."
+      }
+    ],
+    "videoLesson": {
+      "title": "Trouver le neutre et le symétrique",
+      "segments": [
+        {
+          "text": "عندنا عملية جديدة على الأعداد الحقيقية، كنجمعو العددين ومن بعد كننقصو جوج. باش نفهموها مزيان غادي نحدد المحايد والمعكوس ديالها.",
+          "equation": "x*y=x+y-2",
+          "note": "Lire la loi"
+        },
+        {
+          "text": "أولا النتيجة ديال العملية كتبقى عدد حقيقي لأي جوج أعداد حقيقية. هاد التحقق بسيط ولكن ضروري، وكنسميوه استقرار المجموعة.",
+          "equation": "x,y\\in\\mathbb R\\Longrightarrow x*y\\in\\mathbb R",
+          "note": "Vérifier la stabilité"
+        },
+        {
+          "text": "المحايد خاصو يخلي إكس كيف ما هو. كنكتب المعادلة، كنختزل إكس من الجهتين، وكنلقى أن المحايد هو جوج، ماشي صفر.",
+          "equation": "x*e=x\\iff x+e-2=x\\iff e=2",
+          "note": "Calculer le neutre"
+        },
+        {
+          "text": "باش نلقى المعكوس ديال إكس، كنطلب النتيجة تكون المحايد، يعني جوج. حل المعادلة كيعطيني أربعة ناقص إكس، وهو عدد حقيقي.",
+          "equation": "x*y=2\\iff y=4-x",
+          "note": "Calculer le symétrique"
+        },
+        {
+          "text": "باقي خاصنا التجميعية. كنحسب الجهتين بالأقواس، وكنلقى نفس التعبير، إكس زائد إيغريك زائد زيد ناقص أربعة، لأي ثلاثة أعداد حقيقية.",
+          "equation": "(x*y)*z=x+y+z-4=x*(y*z)",
+          "note": "Vérifier l’associativité"
+        },
+        {
+          "text": "العملية حتى هي تبادلية لأن ترتيب إكس وإيغريك ما كيبدل والو. إذن عندنا مجموعة تبادلية، وكل الشروط تحققنا منها بالحساب.",
+          "equation": "x*y=y*x,\\qquad(\\mathbb R,*)\\text{ groupe abélien}",
+          "note": "Conclure"
+        }
+      ]
+    },
+    "tags": [
+      "groupe",
+      "sous-groupe",
+      "morphisme",
+      "anneau",
+      "corps"
+    ]
+  },
+  {
+    "id": "espaces-vectoriels",
+    "title": "Espaces vectoriels réels",
+    "titleAr": "الفضاءات المتجهية الحقيقية",
+    "domain": "algebre",
+    "tracks": [
+      "sm"
+    ],
+    "level": "Approfondissement SM",
+    "duration": "75 min",
+    "prerequisites": [
+      "Vecteurs et coordonnées",
+      "Systèmes linéaires",
+      "Structures algébriques"
+    ],
+    "goals": [
+      "Reconnaître un sous-espace vectoriel",
+      "Étudier liberté et génération",
+      "Construire une base et déterminer une dimension"
+    ],
+    "intro": "الفضاء المتجهي كيعمم الحساب اللي عرفنا مع المتجهات. العناصر يقدرو يكونو triplets، polynômes، ولا حتى fonctions. اللي مهم هو نقدر نجمع العناصر ونضربهم فعدد حقيقي مع احترام القواعد. غادي نتعلمو كيفاش نبرهنو أن عائلة كتولد فضاء، وعلاش الكتابة فـ base كتكون وحيدة.",
+    "sections": [
+      {
+        "title": "1. Les objets et les deux opérations",
+        "body": "<p>فـ espace vectoriel réel \\(E\\)، عندنا جمع جوج عناصر، وضرب عنصر فـ scalaire \\(\\lambda\\in\\mathbb R\\). الجمع كيعطي groupe abélien، والضرب الخارجي كيحقق \\(\\lambda(u+v)=\\lambda u+\\lambda v\\)، \\((\\lambda+\\mu)u=\\lambda u+\\mu u\\)، \\(\\lambda(\\mu u)=(\\lambda\\mu)u\\)، و\\(1u=u\\).</p><p>\\(\\mathbb R^2\\)، \\(\\mathbb R^3\\)، وفضاء polynômes ديال الدرجة أصغر أو تساوي جوج أمثلة معتادة. المتجه الصفري كيتبدل شكله حسب الفضاء: triplet صفري، polynôme nul، أو fonction nulle. ما نخلطوش بين عدد حقيقي وعنصر من الفضاء.</p>"
+      },
+      {
+        "title": "2. Le critère de sous-espace",
+        "body": "<p>باش \\(F\\subset E\\) يكون sous-espace، كافي نثبتو أنه غير خاوي ومستقر بالنسبة لـ combinaisons linéaires: لكل \\(u,v\\in F\\) وكل \\(\\lambda,\\mu\\in\\mathbb R\\)، \\(\\lambda u+\\mu v\\in F\\). عمليا كنبدأو بالمتجه الصفري، ومن بعد كنستعملو الشرط اللي كيعرف المجموعة.</p><p>معادلة خطية homogène غالبا كتسهل هاد التحقق. أما المستوى \\(x+y+z=1\\) ماشي sous-espace ديال \\(\\mathbb R^3\\)، لأن الصفر ما كيحققش المعادلة. هاد الملاحظة وحدها كافية لنفي الخاصية.</p>",
+        "example": {
+          "title": "Un plan vectoriel et sa base",
+          "statement": "ندرس \\(F=\\{(x,y,z)\\in\\mathbb R^3:x-2y+z=0\\}\\).",
+          "steps": [
+            "\\((0,0,0)\\in F\\). إلى حقق \\(u,v\\) المعادلة، الخطية كتعطي أن \\(\\lambda u+\\mu v\\) كيحققها كذلك. إذن \\(F\\) sous-espace.",
+            "من المعادلة \\(x=2y-z\\)، إذن \\((x,y,z)=y(2,1,0)+z(-1,0,1)\\).",
+            "كل عنصر من \\(F\\) combinaison ديال \\(u=(2,1,0)\\) و\\(v=(-1,0,1)\\)، وهما داخل \\(F\\): إذن كيولدو الفضاء.",
+            "إلى كان \\(\\alpha u+\\beta v=0\\)، الإحداثية الثانية كتعطي \\(\\alpha=0\\)، والثالثة كتعطي \\(\\beta=0\\). العائلة حرة."
+          ],
+          "answer": "\\((u,v)\\) base ديال \\(F\\)، و\\(\\dim F=2\\)."
+        }
+      },
+      {
+        "title": "3. Combinaison, famille génératrice et famille libre",
+        "body": "<p>Combinaison linéaire ديال \\(u_1,\\ldots,u_p\\) هي \\(\\lambda_1u_1+\\cdots+\\lambda_pu_p\\). المجموعة ديال هاد التركيبات كنسميوها \\(\\operatorname{Vect}(u_1,\\ldots,u_p)\\). العائلة génératrice إلا كل عنصر فالفضاء يمكن نكتبوه بها.</p><p>باش نختبرو liberté، كنفرضو \\(\\lambda_1u_1+\\cdots+\\lambda_pu_p=0\\). إذا كان الحل الوحيد هو جميع المعاملات صفر، العائلة libre. إلا لقينا علاقة بمعامل واحد على الأقل غير صفري، راه liée. وجود المتجه الصفري وسط عائلة كيخليها مباشرة liée.</p>"
+      },
+      {
+        "title": "4. Base, dimension et coordonnées",
+        "body": "<p>Base هي عائلة libre وgénératrice فآن واحد. Génération كتضمن وجود الكتابة، وliberté كتضمن وحدانيتها. Dimension هي عدد عناصر أي base، وماشي بالضرورة عدد الإحداثيات ففضاء الاحتواء.</p><p>ففضاء ذي dimension \\(n\\)، عائلة حرة من \\(n\\) عناصر هي base، وكذلك عائلة مولدة من \\(n\\) عناصر. عائلة فيها أكثر من \\(n\\) عناصر كتكون liée.</p>",
+        "example": {
+          "title": "Coordonnées dans une autre base",
+          "statement": "خد \\(u=(1,1)\\)، \\(v=(1,-1)\\). أثبت أنهما base ديال \\(\\mathbb R^2\\)، ولقا coordonnées ديال \\(w=(3,1)\\).",
+          "steps": [
+            "\\(\\alpha u+\\beta v=0\\) كتعطي \\(\\alpha+\\beta=0\\)، \\(\\alpha-\\beta=0\\)، ومنهما \\(\\alpha=\\beta=0\\).",
+            "جوج متجهات حرة فـ \\(\\mathbb R^2\\) كيعطيو base.",
+            "نحل \\(w=au+bv\\): \\(a+b=3\\)، \\(a-b=1\\)، إذن \\(a=2\\)، \\(b=1\\)."
+          ],
+          "answer": "الكتابة هي \\(w=2u+v\\)، وcoordonnées فهاد base هما \\((2,1)\\)، مختلفين على coordonnées المعتادة \\((3,1)\\)."
+        }
+      },
+      {
+        "title": "5. Une méthode de rédaction fiable",
+        "body": "<p>إلى عطاوك فضاء بمعادلات، حل النظام بالبارامترات، ومن بعد جمع معامل كل بارامتر باش تخرج متجهات مولدة. ما تسميهمش base حتى تختبر liberté. إلى عطاوك عائلة، حول combinaison nulle لنظام على المعاملات، ماشي على إحداثيات متجه مجهول.</p><p>نفس المنهج خدام مع polynômes: مساواة polynômes كتفرض مساواة المعاملات ديال كل قوة. مثلا \\(a+bX+cX^2=0\\) كتعني \\(a=b=c=0\\)، إذن \\((1,X,X^2)\\) base ديال \\(\\mathbb R_2[X]\\).</p>"
+      }
+    ],
+    "summary": [
+      "Sous-espace خاصو يحتوي الصفر ويكون مستقر بالنسبة للتركيبات الخطية.",
+      "Famille libre: combinaison nulle كتفرض جميع المعاملات صفر.",
+      "Famille génératrice: كل عنصر من الفضاء عندو كتابة باستعمالها.",
+      "Base كتجمع liberté وgénération، وكتضمن إحداثيات وحيدة.",
+      "Dimension كتساوي عدد عناصر base، ماشي عدد المتغيرات المكتوبة فالوصف."
+    ],
+    "pitfalls": [
+      "تسمي عائلة مولدة base بلا ما تتحقق من liberté.",
+      "تعتبر مجموعة بمعادلة غير متجانسة sous-espace رغم أنها ما فيهاش الصفر.",
+      "تخلط coordonnées ديال متجه فـ base معتادة مع coordonnées فـ base جديدة."
+    ],
+    "exercises": [
+      {
+        "id": "ev-e1",
+        "title": "Paramétrer un sous-espace",
+        "level": "Application",
+        "statement": "أثبت أن \\(F=\\{(x,y,z):2x+y-z=0\\}\\) sous-espace ديال \\(\\mathbb R^3\\)، وحدد base وdimension.",
+        "hint": "عبر على \\(z\\) باستعمال \\(x,y\\).",
+        "steps": [
+          "الصفر كيحقق المعادلة، وأي combinaison linéaire ديال جوج حلول كتظل حلا لأن المعادلة خطية homogène.",
+          "\\(z=2x+y\\)، إذن \\((x,y,z)=x(1,0,2)+y(0,1,1)\\).",
+          "العائلة \\(u=(1,0,2),v=(0,1,1)\\) كتولد \\(F\\).",
+          "\\(au+bv=0\\) كيعطي من أول جوج إحداثيات \\(a=b=0\\)، إذن العائلة حرة."
+        ],
+        "answer": "\\((u,v)\\) base ديال \\(F\\)، و\\(\\dim F=2\\)."
+      },
+      {
+        "id": "ev-e2",
+        "title": "Une famille liée mais utile",
+        "level": "Méthode",
+        "statement": "فـ \\(\\mathbb R^3\\)، خذ \\(u=(1,0,1)\\)، \\(v=(0,1,1)\\)، \\(w=(1,1,2)\\). واش العائلة حرة؟ حدد الفضاء اللي كتولدو وdimension ديالو.",
+        "hint": "قارن w مع u + v.",
+        "steps": [
+          "\\(w=u+v\\)، إذن \\(u+v-w=0\\) علاقة غير تافهة. العائلة liée.",
+          "حذف \\(w\\) ما كيبدلش الفضاء المولد: \\(\\operatorname{Vect}(u,v,w)=\\operatorname{Vect}(u,v)\\).",
+          "\\(au+bv=(a,b,a+b)\\)، إذن الفضاء هو \\(z=x+y\\).",
+          "\\(au+bv=0\\) كيعطي \\(a=b=0\\)، وبالتالي \\((u,v)\\) base."
+        ],
+        "answer": "العائلة الثلاثية liée، والفضاء المولد هو \\(\\{(x,y,z):z=x+y\\}\\)، dimension ديالو \\(2\\)."
+      },
+      {
+        "id": "ev-e3",
+        "title": "Des vecteurs qui sont des polynômes",
+        "level": "Approfondissement",
+        "statement": "فـ \\(\\mathbb R_2[X]\\)، نضع \\(H=\\{P:P(1)=0\\}\\). أثبت أن \\(H\\) sous-espace ولقا base.",
+        "hint": "كتب \\(P=a+bX+cX^2\\) واستعمل \\(a+b+c=0\\).",
+        "steps": [
+          "Polynôme nul كينتمي لـ \\(H\\). و\\((\\lambda P+\\mu Q)(1)=\\lambda P(1)+\\mu Q(1)=0\\)، إذن sous-espace.",
+          "\\(P(1)=0\\iff a=-b-c\\). نعوضو: \\(P=b(X-1)+c(X^2-1)\\).",
+          "العائلة \\((X-1,X^2-1)\\) مولدة. إذا \\(\\alpha(X-1)+\\beta(X^2-1)=0\\)، معامل \\(X^2\\) كيعطي \\(\\beta=0\\)، ومعامل \\(X\\) كيعطي \\(\\alpha=0\\)."
+        ],
+        "answer": "Base هي \\((X-1,X^2-1)\\)، و\\(\\dim H=2\\)."
+      }
+    ],
+    "videos": [],
+    "quiz": [
+      {
+        "question": "باش ننفي أن مجموعة هي sous-espace، شنو الاختبار اللي يقدر يكفي بوحدو؟",
+        "choices": [
+          "ما فيهاش المتجه الصفري",
+          "فيها جوج متجهات مختلفين",
+          "معرفة بمعادلة"
+        ],
+        "correct": 0,
+        "explanation": "كل sous-espace خاصو يحتوي الصفر. غياب الصفر كيعطي نفي مباشر."
+      },
+      {
+        "question": "ففضاء dimension ديالو ثلاثة، عائلة حرة فيها ثلاثة عناصر كتكون شنو؟",
+        "choices": [
+          "بالضرورة liée",
+          "Base",
+          "غير كافية باش نحكمو"
+        ],
+        "correct": 1,
+        "explanation": "فالبعد المنتهي، عائلة حرة عدد عناصرها يساوي dimension كتكون كذلك génératrice، وبالتالي base."
+      }
+    ],
+    "videoLesson": {
+      "title": "Trouver une base d’un plan vectoriel",
+      "segments": [
+        {
+          "text": "عندنا مجموعة ديال triplets اللي مجموع الإحداثيات ديالهم صفر. غادي نثبتو أنها فضاء جزئي، ومن بعد نخرجو ليها أساس واضح.",
+          "equation": "F=\\{(x,y,z)\\in\\mathbb R^3:x+y+z=0\\}",
+          "note": "Lire la condition"
+        },
+        {
+          "text": "المتجه الصفري كينتمي للمجموعة. وإلى جمعنا جوج حلول مع معاملات حقيقية، مجموع الإحداثيات كيبقى صفر، إذن شرط الاستقرار متحقق.",
+          "equation": "0\\in F,\\quad u,v\\in F\\Rightarrow\\lambda u+\\mu v\\in F",
+          "note": "Prouver le sous-espace"
+        },
+        {
+          "text": "دابا نختارو إيغريك وزيد كمعاملين أحرار. المعادلة كتفرض أن إكس هو ناقص إيغريك ناقص زيد، وهادشي كيعطينا كتابة بارامترية.",
+          "equation": "(x,y,z)=(-s-t,s,t)",
+          "note": "Paramétrer"
+        },
+        {
+          "text": "نجمع الحدود ديال كل معامل بوحدو. كل عنصر كيولي إس مضروب فمتجه، زائد تي مضروب فمتجه آخر، إذن هادو كيولدو الفضاء.",
+          "equation": "(-s-t,s,t)=s(-1,1,0)+t(-1,0,1)",
+          "note": "Trouver des générateurs"
+        },
+        {
+          "text": "باش نتحقق من الحرية، نفترض التركيبة كتساوي المتجه الصفري. الإحداثية الثانية كتفرض إس صفر، والثالثة كتفرض تي صفر كذلك.",
+          "equation": "s(-1,1,0)+t(-1,0,1)=0\\Rightarrow s=t=0",
+          "note": "Vérifier la liberté"
+        },
+        {
+          "text": "لقينا عائلة مولدة وحرة، إذن هي أساس. فيها جوج متجهات، وبالتالي البعد هو جوج، رغم أن العناصر مكتوبة بثلاثة إحداثيات.",
+          "equation": "\\mathcal B=((-1,1,0),(-1,0,1)),\\quad\\dim F=2",
+          "note": "Conclure"
+        }
+      ]
+    },
+    "tags": [
+      "sous-espace",
+      "famille libre",
+      "base",
+      "dimension",
+      "polynômes"
+    ]
+  },
+  {
+    "id": "theoremes-analyse-sm",
+    "title": "Rolle, TAF, IAF et arctangente",
+    "titleAr": "مبرهنات التحليل و arctan",
+    "domain": "analyse",
+    "tracks": [
+      "sm"
+    ],
+    "level": "Approfondissement SM",
+    "duration": "70 min",
+    "prerequisites": [
+      "Continuité sur un segment",
+      "Dérivation",
+      "Fonction réciproque"
+    ],
+    "goals": [
+      "Vérifier les hypothèses de Rolle et du TAF",
+      "Encadrer une différence avec une dérivée",
+      "Étudier arctan et ses composées"
+    ],
+    "intro": "هاد المبرهنات كيربطو بين سلوك الدالة فمجال كامل وبين المشتقة فنقطة. الاستعمال الصحيح كيبدا بالفرضيات، ماشي بالصيغة. غادي نشوفو كيفاش Rolle كيلقى مشتقة منعدمة، وكيفاش TAF وIAF كيعطيو حدود على التغير، ثم نطبقو هاد الأفكار على arctan.",
+    "sections": [
+      {
+        "title": "1. Les hypothèses avant la conclusion",
+        "body": "<p>فهاد الدرس \\(a&lt;b\\). خاص الدالة تكون continue على القطعة المغلقة \\([a,b]\\)، وdérivable داخل المجال المفتوح \\(]a,b[\\). نهايتا المجال داخل شرط الاستمرارية، وماشي ضروري تكون مشتقة فيهما.</p><p>ما نكتفيوش بكتابة اسم المبرهنة. كنحدد المجال، كنفسر علاش الاستمرارية والاشتقاق متوفرين، ومن بعد كنكتب النتيجة. مثلا \\(|x|\\) مستمرة على \\([-1,1]\\)، ولكن ماشي مشتقة فالصفر. هاد النقطة كافية باش تمنع تطبيق Rolle على هاد القطعة.</p>"
+      },
+      {
+        "title": "2. Théorème de Rolle",
+        "body": "<p>إلى كانت الفرضيات السابقة متحققة وزدنا \\(f(a)=f(b)\\)، كاين \\(c\\in]a,b[\\) بحيث \\(f^{\\prime}(c)=0\\). هندسيا كنلقاو على الأقل مماس أفقي. المبرهنة ما كتقولش أن \\(c\\) وحيد.</p><p>مثلا \\(f(x)=x^2-3x+2\\) فوق \\([1,2]\\) كثيرة حدود، إذن مستمرة ومشتقة. عندنا \\(f(1)=f(2)=0\\)، و\\(f^{\\prime}(x)=2x-3\\). كنلقى \\(c=3/2\\)، وهي فعلا داخل \\(]1,2[\\). نفس المنهج كيستعمل حتى لإثبات وجود جذر للمشتقة بين جوج جذور للدالة.</p>"
+      },
+      {
+        "title": "3. Théorème des accroissements finis",
+        "body": "<p>TAF كيبدل شرط تساوي القيم بنتيجة أعم: كاين \\(c\\in]a,b[\\) مع \\(f(b)-f(a)=f^{\\prime}(c)(b-a)\\). ميل المماس فـ \\(c\\) كيساوي ميل الوتر بين النقطتين. المبرهنة كتضمن الوجود حتى إلا ما قدرناش نحسبو \\(c\\) بالضبط.</p>",
+        "example": {
+          "title": "Le point donné par le TAF",
+          "statement": "طبق TAF على \\(f(x)=\\sqrt x\\) فوق \\([4,9]\\)، وحدد \\(c\\).",
+          "steps": [
+            "الجذر مستمر على \\([4,9]\\) ومشتق داخلها، لأن جميع القيم موجبة.",
+            "\\(\\dfrac{f(9)-f(4)}{9-4}=\\dfrac{3-2}{5}=\\dfrac15\\).",
+            "\\(f^{\\prime}(c)=\\dfrac1{2\\sqrt c}=\\dfrac15\\)، إذن \\(\\sqrt c=5/2\\).",
+            "\\(c=25/4\\)، و\\(4<25/4<9\\)."
+          ],
+          "answer": "النقطة المطلوبة هي \\(c=25/4\\)."
+        }
+      },
+      {
+        "title": "4. Inégalité des accroissements finis",
+        "body": "<p>إلى كانت \\(|f^{\\prime}(t)|\\leq M\\) على intervalle، فكل \\(x,y\\) منه كنلقاو \\(|f(x)-f(y)|\\leq M|x-y|\\). هادي IAF. كتقول أن تغير الدالة ما يقدرش يكون أسرع من الحد \\(M\\) مضروب فالمسافة بين المدخلات.</p><p>وبشكل أدق، إذا \\(m\\leq f^{\\prime}(t)\\leq M\\) و\\(x&lt;y\\)، إذن \\(m(y-x)\\leq f(y)-f(x)\\leq M(y-x)\\). مثلا للدالة ln فوق \\([1,1+h]\\)، حيث \\(h&gt;0\\)، المشتقة بين \\(1/(1+h)\\) و\\(1\\)، ومنه \\(h/(1+h)\\leq\\ln(1+h)\\leq h\\).</p>"
+      },
+      {
+        "title": "5. Arctan, fonction réciproque de tan",
+        "body": "<p>الدالة tan كتكون bijective من \\(]-\\pi/2,\\pi/2[\\) نحو \\(\\mathbb R\\). العكس ديالها هو arctan، معرف على \\(\\mathbb R\\)، قيمه داخل هاد المجال، و\\((\\arctan x)^{\\prime}=1/(1+x^2)&gt;0\\). عندنا \\(\\arctan0=0\\)، \\(\\arctan1=\\pi/4\\)، والنهايات هي \\(\\pm\\pi/2\\) فـ \\(\\pm\\infty\\).</p><p>للدالة المركبة، \\((\\arctan u)^{\\prime}=u^{\\prime}/(1+u^2)\\). خاصنا نحترمو المجال الأصلي ديال \\(u\\)، حتى إلا كانت arctan نفسها معرفة على جميع الأعداد الحقيقية.</p>",
+        "example": {
+          "title": "Une identité démontrée par la dérivée",
+          "statement": "بين أنه لكل \\(x>0\\): \\(\\arctan x+\\arctan(1/x)=\\pi/2\\).",
+          "steps": [
+            "نضع \\(g(x)=\\arctan x+\\arctan(1/x)\\)، معرفة ومشتقة على \\(]0,+\\infty[\\).",
+            "\\(g^{\\prime}(x)=1/(1+x^2)+(-1/x^2)/(1+1/x^2)=0\\).",
+            "إذن \\(g\\) ثابتة على هاد intervalle. نحسب \\(g(1)=2\\arctan1=\\pi/2\\)."
+          ],
+          "answer": "\\(g(x)=\\pi/2\\) لكل \\(x>0\\). الإشارة الإيجابية ديال \\(x\\) مهمة باش نختارو الثابت الصحيح."
+        }
+      }
+    ],
+    "summary": [
+      "Rolle: continuité على \\([a,b]\\)، dérivabilité على \\(]a,b[\\)، و\\(f(a)=f(b)\\).",
+      "TAF: \\(f(b)-f(a)=f^{\\prime}(c)(b-a)\\) لنقطة داخلية \\(c\\).",
+      "IAF: من \\(|f^{\\prime}|\\leq M\\) كنستنتجو \\(|f(x)-f(y)|\\leq M|x-y|\\).",
+      "\\(\\arctan:\\mathbb R\\to]-\\pi/2,\\pi/2[\\) متزايدة، ومشتقتها \\(1/(1+x^2)\\).",
+      "المشتقة المنعدمة فوق intervalle كتدل على أن الدالة ثابتة فوق نفس intervalle."
+    ],
+    "pitfalls": [
+      "تطبق Rolle اعتمادا على تساوي قيم النهايتين فقط، وتنسى الاشتقاق داخل المجال.",
+      "تعتبر أن TAF كيضمن نقطة c وحيدة.",
+      "تكتب مشتقة arctan(u) بلا معامل u′ أو تنسى مجال u."
+    ],
+    "exercises": [
+      {
+        "id": "taf-e1",
+        "title": "Rolle avec deux points possibles",
+        "level": "Application",
+        "statement": "طبق Rolle على \\(f(x)=x^3-3x\\) فوق \\([-\\sqrt3,\\sqrt3]\\)، وحدد جميع قيم \\(c\\) المناسبة.",
+        "hint": "تحقق من قيم الدالة فالنهايتين ثم حل f′(c) = 0.",
+        "steps": [
+          "\\(f\\) كثيرة حدود، إذن شروط الاستمرارية والاشتقاق متحققة.",
+          "\\(f(\\sqrt3)=3\\sqrt3-3\\sqrt3=0\\)، وكذلك \\(f(-\\sqrt3)=0\\).",
+          "\\(f^{\\prime}(c)=3c^2-3=0\\iff c=1\\) أو \\(c=-1\\).",
+          "الجوج كينتميو للمجال المفتوح \\(]-\\sqrt3,\\sqrt3[\\)."
+        ],
+        "answer": "\\(c=-1\\) و\\(c=1\\). المبرهنة ما كتضمنش الوحدانية."
+      },
+      {
+        "id": "taf-e2",
+        "title": "Contrôler une approximation",
+        "level": "Méthode",
+        "statement": "باستعمال IAF، بين أن \\(0\\leq\\sqrt{4{,}04}-2\\leq0{,}01\\).",
+        "hint": "خد \\(f(x)=\\sqrt x\\) على \\([4,4{,}04]\\)، وابحث عن majorant للمشتقة.",
+        "steps": [
+          "على هاد القطعة، \\(f^{\\prime}(x)=1/(2\\sqrt x)\\)، إذن \\(0<f^{\\prime}(x)\\leq1/4\\).",
+          "IAF كتعطي \\(|f(4{,}04)-f(4)|\\leq(1/4)\\times0{,}04=0{,}01\\).",
+          "الجذر متزايد، إذن \\(\\sqrt{4{,}04}\\geq2\\)، وبالتالي الفرق غير سالب."
+        ],
+        "answer": "\\(2\\leq\\sqrt{4{,}04}\\leq2{,}01\\)."
+      },
+      {
+        "id": "taf-e3",
+        "title": "Étudier une composée avec arctan",
+        "level": "Approfondissement",
+        "statement": "لتكن \\(h(x)=\\arctan(2x)\\). حدد المجال، المشتقة، التغيرات، النهايات، ومعادلة المماس فالصفر.",
+        "hint": "استعمل مشتقة المركبة، ومن بعد قيم h وh′ فالصفر.",
+        "steps": [
+          "\\(2x\\) معرف لكل \\(x\\in\\mathbb R\\)، وarctan كذلك، إذن \\(D_h=\\mathbb R\\).",
+          "\\(h^{\\prime}(x)=2/(1+4x^2)>0\\)، إذن \\(h\\) متزايدة تماما.",
+          "عند \\(+\\infty\\)، \\(2x\\to+\\infty\\)، فالنهاية \\(\\pi/2\\). عند \\(-\\infty\\)، النهاية \\(-\\pi/2\\).",
+          "\\(h(0)=0\\)، \\(h^{\\prime}(0)=2\\)، فالمماس هو \\(y=2x\\)."
+        ],
+        "answer": "المجال \\(\\mathbb R\\)، الدالة متزايدة من \\(-\\pi/2\\) نحو \\(\\pi/2\\)، والمماس فالصفر \\(y=2x\\)."
+      }
+    ],
+    "videos": [],
+    "quiz": [
+      {
+        "question": "علاش ما نطبقوش Rolle على \\(|x|\\) فوق \\([-1,1]\\)؟",
+        "choices": [
+          "الدالة ماشي مستمرة",
+          "القيم فالنهايتين مختلفة",
+          "الدالة ماشي مشتقة فالصفر"
+        ],
+        "correct": 2,
+        "explanation": "القيم متساوية والاستمرارية موجودة، ولكن شرط الاشتقاق داخل المجال فاشل عند الصفر."
+      },
+      {
+        "question": "شنو مشتقة \\(\\arctan(3x)\\)؟",
+        "choices": [
+          "\\(1/(1+9x^2)\\)",
+          "\\(3/(1+9x^2)\\)",
+          "\\(3/(1+3x^2)\\)"
+        ],
+        "correct": 1,
+        "explanation": "مشتقة الداخل هي ثلاثة، ومربع الداخل هو تسعة إكس مربع."
+      }
+    ],
+    "videoLesson": {
+      "title": "Encadrer un logarithme avec le TAF",
+      "segments": [
+        {
+          "text": "بغينا نحاصرو لوغاريتم واحد فاصلة واحد بلا آلة حاسبة. غادي نخدمو بدالة اللوغاريتم على القطعة من واحد حتى واحد فاصلة واحد.",
+          "equation": "f(t)=\\ln t,\\quad t\\in[1,11/10]",
+          "note": "Choisir la fonction"
+        },
+        {
+          "text": "الدالة مستمرة على هاد القطعة ومشتقة داخلها، لأن جميع القيم موجبة. إذن شروط مبرهنة التزايدات المنتهية كاملة وممكن نطبقوها.",
+          "equation": "f^{\\prime}(t)=1/t",
+          "note": "Vérifier les hypothèses"
+        },
+        {
+          "text": "فهاد القطعة، المشتقة بين عشرة على حداش وواحد. الحد الصغير كيجي من أكبر مقام، والحد الكبير كيجي من أصغر مقام.",
+          "equation": "\\frac{10}{11}\\leq\\frac1t\\leq1",
+          "note": "Encadrer la dérivée"
+        },
+        {
+          "text": "المبرهنة كتربط فرق اللوغاريتمات بالمشتقة فنقطة داخلية، مضروبة فعرض القطعة. عرض القطعة هنا هو واحد على عشرة، وهو موجب.",
+          "equation": "\\ln(11/10)-\\ln1=f^{\\prime}(c)\\,\\frac1{10}",
+          "note": "Appliquer le TAF"
+        },
+        {
+          "text": "نضرب حدود المشتقة فواحد على عشرة بلا ما نبدل اتجاه المتراجحات. ومن بعد نستعمل أن لوغاريتم واحد كيساوي صفر.",
+          "equation": "\\frac1{11}\\leq\\ln(11/10)\\leq\\frac1{10}",
+          "note": "Obtenir l’encadrement"
+        },
+        {
+          "text": "وصلنا لحصر مضبوط مبني على المبرهنة. ما احتجناش نعرفو النقطة الداخلية بالضبط، حيث الحدود على المشتقة كانت كافية باش نكملو.",
+          "equation": "\\ln(1{,}1)\\in[1/11,1/10]",
+          "note": "Interpréter le résultat"
+        }
+      ]
+    },
+    "tags": [
+      "Rolle",
+      "TAF",
+      "IAF",
+      "arctan",
+      "encadrement"
+    ]
+  },
+  {
+    "id": "suites-adjacentes",
+    "title": "Suites adjacentes et encadrements",
+    "titleAr": "المتتاليات المتجاورة والحصر",
+    "domain": "analyse",
+    "tracks": [
+      "sm"
+    ],
+    "level": "Approfondissement SM",
+    "duration": "60 min",
+    "prerequisites": [
+      "Suites monotones",
+      "Convergence des suites",
+      "Raisonnement par récurrence"
+    ],
+    "goals": [
+      "Prouver que deux suites sont adjacentes",
+      "Identifier une limite commune",
+      "Transformer un encadrement en précision numérique"
+    ],
+    "intro": "فبعض المسائل ما كنقدروش نحسبو الحد العام ديال متتالية بسهولة. كنستعملو جوج متتاليات، وحدة كتطلع ووحدة كتهبط، وكيحاصرو نفس العدد. إلى كان البعد بيناتهم كيمشي للصفر، كنحصلو على نهاية مشتركة وحصر مفيد، وحتى على عدد الخطوات اللي خاصنا باش نوصلو لدقة معينة.",
+    "sections": [
+      {
+        "title": "1. Les trois conditions à vérifier",
+        "body": "<p>كنقولو \\((u_n)\\) و\\((v_n)\\) adjacentes إذا \\((u_n)\\) croissante، \\((v_n)\\) décroissante، و\\(v_n-u_n\\to0\\). ممكن المتتاليتان تكونان ثابتتين فبعض المراحل، إذن ماشي ضروري التزايد يكون صارم.</p><p>كل شرط عندو دور. فرق كيمشي للصفر بوحدو ما كيضمنش التقارب: لـ \\(n\\geq1\\)، \\(u_n=n\\) و\\(v_n=n+1/n\\) عندهم نفس الفرق الصغير ولكن بجوج كيمشيو للمالانهاية. والتزايد والتناقص بلا شرط الفرق يقدرو يعطيو جوج نهايات مختلفين.</p>"
+      },
+      {
+        "title": "2. Pourquoi elles convergent vers le même nombre",
+        "body": "<p>أولا كنستنتجو \\(u_n\\leq v_n\\). بالفعل، لأي \\(m\\geq n\\)، \\(u_n-v_n\\leq u_m-v_m\\)، والطرف الأيمن كيمشي للصفر. إذن \\(u_0\\leq u_n\\leq v_n\\leq v_0\\).</p><p>المتتالية \\(u_n\\) متزايدة ومحدودة من الفوق، و\\(v_n\\) متناقصة ومحدودة من التحت، لذلك بجوج متقاربتين. نفرض نهايتيهما \\(\\ell_1,\\ell_2\\). بما أن الفرق كيمشي للصفر، \\(\\ell_2-\\ell_1=0\\). النتيجة هي حصر مهم لكل \\(n\\): \\(u_n\\leq\\ell\\leq v_n\\).</p>"
+      },
+      {
+        "title": "3. Une récurrence qui rapproche les bornes",
+        "body": "<p>فالمتتاليات المتداخلة، حسب الفرق الجديد \\(d_{n+1}=v_{n+1}-u_{n+1}\\) قبل أي حاجة. إلا لقيتي \\(d_{n+1}=q d_n\\) مع \\(0&lt;q&lt;1\\)، راه كتلقى مباشرة \\(d_n=d_0q^n\\to0\\). من بعد خاصك تثبت monotonicité ديال كل متتالية، وتقلب على كمية ثابتة باش تحدد النهاية.</p>",
+        "example": {
+          "title": "Une différence géométrique et une somme constante",
+          "statement": "\\(u_0=1\\)، \\(v_0=3\\)، \\(u_{n+1}=(2u_n+v_n)/3\\)، \\(v_{n+1}=(u_n+2v_n)/3\\). درس التقارب.",
+          "steps": [
+            "نضع \\(d_n=v_n-u_n\\). كنحسبو \\(d_{n+1}=d_n/3\\)، إذن \\(d_n=2/3^n>0\\).",
+            "\\(u_{n+1}-u_n=d_n/3>0\\)، و\\(v_{n+1}-v_n=-d_n/3<0\\).",
+            "الفرق كيمشي للصفر، إذن المتتاليتان adjacentes وعندهما نهاية مشتركة \\(\\ell\\).",
+            "\\(u_{n+1}+v_{n+1}=u_n+v_n=4\\)، وبالمرور للنهاية \\(2\\ell=4\\)، إذن \\(\\ell=2\\).",
+            "من المجموع والفرق كنستنتجو \\(u_n=2-3^{-n}\\)، \\(v_n=2+3^{-n}\\)."
+          ],
+          "answer": "\\(u_n\\uparrow2\\)، \\(v_n\\downarrow2\\)، والحصر \\(2-3^{-n}\\leq2\\leq2+3^{-n}\\)."
+        }
+      },
+      {
+        "title": "4. La dichotomie comme suites adjacentes",
+        "body": "<p>باش نقربو حلا وحيدا لمعادلة \\(f(x)=0\\) فوق قطعة، كنستعملو الاستمرارية وتغير الإشارة. كل خطوة كتحتافظ بالحل داخل نصف القطعة. الحدود اليسرى كتطلع واليمنى كتهبط، والطول كيتقسم على جوج. خاص التبرير ديال وجود الحل يبقى واضح.</p>",
+        "example": {
+          "title": "Encadrer une racine carrée",
+          "statement": "بني جوج متتاليات كيتقاربو نحو \\(\\sqrt2\\)، انطلاقا من \\([1,2]\\).",
+          "steps": [
+            "نضع \\(u_0=1\\)، \\(v_0=2\\). المربع متزايد على الأعداد الموجبة، و\\(1^2<2<2^2\\).",
+            "كنحسبو \\(m_n=(u_n+v_n)/2\\). إذا \\(m_n^2<2\\)، نضع \\(u_{n+1}=m_n\\)، \\(v_{n+1}=v_n\\).",
+            "إذا \\(m_n^2>2\\)، نضع \\(u_{n+1}=u_n\\)، \\(v_{n+1}=m_n\\). وإذا وقعت المساواة كنوقفو، أو نجعلو الحدين مساويين للحل.",
+            "ديما \\(u_n\\leq\\sqrt2\\leq v_n\\)، و\\(u_n\\) كتطلع و\\(v_n\\) كتهبط.",
+            "قبل التوقف، \\(v_n-u_n=2^{-n}\\to0\\)، وبالتالي النهاية المشتركة هي \\(\\sqrt2\\)."
+          ],
+          "answer": "أول حصرين بعد البداية هما \\([1,3/2]\\)، ثم \\([5/4,3/2]\\)."
+        }
+      },
+      {
+        "title": "5. Passer du résultat théorique à une précision",
+        "body": "<p>من \\(u_n\\leq\\ell\\leq v_n\\) كنضمنو \\(|\\ell-u_n|\\leq v_n-u_n\\). وإذا خدينا الوسط \\(m_n=(u_n+v_n)/2\\)، الخطأ ما كيتجاوزش نصف الطول: \\(|m_n-\\ell|\\leq(v_n-u_n)/2\\).</p><p>باش نطلبو دقة \\(\\varepsilon&gt;0\\)، كنحل متراجحة على \\(n\\). فـ dichotomie فوق قطعة طولها واحد، تقريب الوسط عندو خطأ أصغر أو يساوي \\(2^{-n-1}\\). ما نكتبوش دقة عشرية غير من عدد الأرقام المعروضة، خاصها تخرج من حصر مبرهن.</p>"
+      }
+    ],
+    "summary": [
+      "Adjacence كتحتاج تزايد الأولى، تناقص الثانية، والفرق كيمشي للصفر.",
+      "المتتاليتان كيتقاربو لنفس \\(\\ell\\)، و\\(u_n\\leq\\ell\\leq v_n\\) لكل رتبة.",
+      "فالمتتاليات المتداخلة، \\(d_n=v_n-u_n\\) غالبا كيبسط الحساب.",
+      "كمية ثابتة بحال مجموع موزون كتعاون نحدد النهاية المشتركة.",
+      "الوسط كيضمن خطأ لا يتجاوز نصف عرض الحصر."
+    ],
+    "pitfalls": [
+      "تثبت أن الفرق كيمشي للصفر وتعلن التقارب بلا monotonicité ولا bornes.",
+      "تبدل الحد الخطأ فـ dichotomie وتخرج الحل من القطعة.",
+      "تستنتج أن النهاية هي الوسط الأول، بلا برهان أن هاد الوسط محفوظ."
+    ],
+    "exercises": [
+      {
+        "id": "adj-e1",
+        "title": "Deux expressions explicites",
+        "level": "Application",
+        "statement": "لـ \\(n\\geq0\\)، \\(u_n=2-1/(n+1)\\)، \\(v_n=2+2/(n+1)\\). أثبت التجاور، وحدد أصغر رتبة بحيث عرض الحصر لا يتجاوز \\(0{,}01\\).",
+        "hint": "قارن مقلوب n + 1 بمقلوب n + 2، ثم احسب الفرق.",
+        "steps": [
+          "\\(1/(n+1)\\) متناقصة، إذن \\(u_n\\) متزايدة و\\(v_n\\) متناقصة.",
+          "\\(v_n-u_n=3/(n+1)\\to0\\)، إذن adjacentes، ونهايتيهما من الصيغ هي \\(2\\).",
+          "\\(3/(n+1)\\leq0{,}01\\iff n+1\\geq300\\iff n\\geq299\\)."
+        ],
+        "answer": "النهاية المشتركة \\(2\\)، وأصغر رتبة مطلوبة \\(299\\)."
+      },
+      {
+        "id": "adj-e2",
+        "title": "Un invariant pondéré",
+        "level": "Approfondissement",
+        "statement": "\\(u_0=0\\)، \\(v_0=6\\)، \\(u_{n+1}=(u_n+v_n)/2\\)، \\(v_{n+1}=(u_n+3v_n)/4\\). أثبت التجاور وحدد النهاية.",
+        "hint": "احسب \\(d_{n+1}\\)، ثم جرب الكمية \\(u_n+2v_n\\).",
+        "steps": [
+          "\\(d_{n+1}=d_n/4\\)، إذن \\(d_n=6/4^n>0\\) وكيمشي للصفر.",
+          "\\(u_{n+1}-u_n=d_n/2>0\\)، و\\(v_{n+1}-v_n=-d_n/4<0\\). إذن adjacentes.",
+          "\\(u_{n+1}+2v_{n+1}=u_n+2v_n\\)، وهاذ الكمية كتساوي \\(12\\) من البداية.",
+          "إلى سمينا النهاية المشتركة \\(\\ell\\)، عندنا \\(3\\ell=12\\)، إذن \\(\\ell=4\\)."
+        ],
+        "answer": "النهاية المشتركة هي \\(4\\). ويمكن التحقق بـ \\(u_n=4-4/4^n\\)، \\(v_n=4+2/4^n\\)."
+      },
+      {
+        "id": "adj-e3",
+        "title": "Quatre étapes de dichotomie",
+        "level": "Méthode",
+        "statement": "قرب \\(\\sqrt3\\) بـ dichotomie من \\([1,2]\\). أعط الحصر بعد أربع خطوات والخطأ المضمون لتقريب الوسط.",
+        "hint": "فكل خطوة قارن مربع الوسط بالعدد ثلاثة.",
+        "steps": [
+          "الوسط \\(3/2\\)، ومربعه \\(9/4<3\\): الحصر \\([3/2,2]\\).",
+          "الوسط \\(7/4\\)، ومربعه \\(49/16>3\\): الحصر \\([3/2,7/4]\\).",
+          "الوسط \\(13/8\\)، ومربعه \\(169/64<3\\): الحصر \\([13/8,7/4]\\).",
+          "الوسط \\(27/16\\)، ومربعه \\(729/256<3\\): الحصر \\([27/16,7/4]\\).",
+          "عرض القطعة \\(1/16\\)، ووسطها \\(55/32\\)، إذن الخطأ المضمون للوسط لا يتجاوز \\(1/32\\)."
+        ],
+        "answer": "\\(27/16\\leq\\sqrt3\\leq7/4\\)، وتقريب الوسط \\(55/32\\) بخطأ \\(\\leq1/32\\)."
+      }
+    ],
+    "videos": [],
+    "quiz": [
+      {
+        "question": "واش الفرق بين جوج متتاليات كيمشي للصفر كافي باش يكونو adjacentes؟",
+        "choices": [
+          "نعم دائما",
+          "لا، خاص حتى monotonicité المناسبة",
+          "نعم إلا كانت الحدود موجبة"
+        ],
+        "correct": 1,
+        "explanation": "مثلا، للرتب n ≥ 1، المتتاليتان n وn + 1/n كيتباعدو للمالانهاية رغم أن الفرق كيمشي للصفر."
+      },
+      {
+        "question": "إلى \\(u_n\\leq\\ell\\leq v_n\\)، شنو الحد المضمون لخطأ الوسط؟",
+        "choices": [
+          "\\(v_n-u_n\\) بالضبط",
+          "\\((v_n-u_n)/2\\) كحد أقصى",
+          "\\(0\\) دائما"
+        ],
+        "correct": 1,
+        "explanation": "أبعد نقطة فالحصر على الوسط كتبعد عليه بنصف طول القطعة."
+      }
+    ],
+    "videoLesson": {
+      "title": "Prouver une adjacence simplement",
+      "segments": [
+        {
+          "text": "غادي ندرس جوج متتاليات، الأولى واحد ناقص مقلوب الرتبة زائد واحد، والثانية واحد زائد نفس المقلوب. كنبدأو من الرتبة صفر.",
+          "equation": "u_n=1-\\frac1{n+1},\\quad v_n=1+\\frac1{n+1},\\quad n\\geq0",
+          "note": "Définir les suites"
+        },
+        {
+          "text": "ملي الرتبة كتزاد، المقام كيكبر والمقلوب كيصغر. فالحد الأول كنطرح كمية أصغر، وبالتالي المتتالية الأولى كتطلع مع كل خطوة.",
+          "equation": "u_{n+1}-u_n=\\frac1{(n+1)(n+2)}>0",
+          "note": "Montrer la croissance"
+        },
+        {
+          "text": "فالحد الثاني كنزيد كمية كتتناقص، إذن المتتالية الثانية كتهبط. عندنا دابا الاتجاهين المطلوبين، ولكن ما زال خاصنا ندرس الفرق.",
+          "equation": "v_{n+1}-v_n=-\\frac1{(n+1)(n+2)}<0",
+          "note": "Montrer la décroissance"
+        },
+        {
+          "text": "نطرح الحد الأول من الثاني. الواحد كيمشي مع الواحد، وكيبقى جوج على الرتبة زائد واحد، وهاد الكمية كتمشي للصفر.",
+          "equation": "v_n-u_n=\\frac2{n+1}\\longrightarrow0",
+          "note": "Calculer l’écart"
+        },
+        {
+          "text": "الشروط الثلاثة تحققات، إذن المتتاليتان متجاورتان وعندهما نهاية مشتركة. العدد واحد باقي دائما بين الحد السفلي والحد العلوي اللي بنينا.",
+          "equation": "u_n\\leq1\\leq v_n",
+          "note": "Appliquer le théorème"
+        },
+        {
+          "text": "نقدر نحدد النهاية من الصيغ، أو من المجموع اللي كيساوي جوج. نهاية المجموع هي جوج مرات النهاية المشتركة، إذن النهاية واحد.",
+          "equation": "u_n+v_n=2\\Longrightarrow2\\ell=2\\Longrightarrow\\ell=1",
+          "note": "Identifier la limite"
+        }
+      ]
+    },
+    "tags": [
+      "suites adjacentes",
+      "dichotomie",
+      "récurrence",
+      "encadrement"
+    ]
+  },
+  {
+    "id": "integration-sm",
+    "title": "Intégration, fonctions intégrales et sommes de Riemann",
+    "titleAr": "تقنيات التكامل الخاصة بالعلوم الرياضية",
+    "domain": "analyse",
+    "tracks": [
+      "sm"
+    ],
+    "level": "Approfondissement SM",
+    "duration": "80 min",
+    "prerequisites": [
+      "Primitives et intégrales",
+      "Fonction composée",
+      "Arctangente",
+      "Limites de suites"
+    ],
+    "goals": [
+      "Effectuer un changement de variable avec ses bornes",
+      "Dériver une fonction définie par une intégrale",
+      "Reconnaître et calculer une limite de somme de Riemann"
+    ],
+    "intro": "فهاد الدرس غادي نربطو التكامل بثلاثة أفكار. تبديل المتغير كيبسط بعض الحسابات، المبرهنة الأساسية كتخلينا نشتق دالة معرفة بتكامل حتى بلا primitive صريحة، وsommes de Riemann كتحول نهاية مجموع كبير لتكامل واضح. كل تقنية عندها علامات كنقلبو عليها قبل البدء.",
+    "sections": [
+      {
+        "title": "1. Reconnaître le changement de variable",
+        "body": "<p>إلى كانت \\(\\varphi\\) من الصنف \\(C^1\\) على \\([a,b]\\)، و\\(f\\) مستمرة على مجال فيه صورة القطعة، عندنا \\[\\int_a^b f(\\varphi(x))\\varphi^{\\prime}(x)\\,dx=\\int_{\\varphi(a)}^{\\varphi(b)}f(t)\\,dt.\\] كنقلبو على دالة داخلية ومشتقتها حاضرة فالتعبير، ولو بمعامل ثابت.</p><p>الكتابة \\(dt=\\varphi^{\\prime}(x)dx\\) وسيلة لتنظيم التعويض. خاص الحدود الجديدة تتوافق مع المتغير الجديد، وما يبقى حتى \\(x\\) غير مبرر فالتكامل النهائي.</p>",
+        "example": {
+          "title": "Une substitution logarithmique",
+          "statement": "احسب \\(I=\\displaystyle\\int_0^1\\frac{2x}{1+x^2}\\,dx\\).",
+          "steps": [
+            "المقام \\(1+x^2\\) موجب على \\([0,1]\\)، إذن الدالة مستمرة والتكامل معرف.",
+            "نضع \\(t=1+x^2\\)، إذن \\(dt=2x\\,dx\\).",
+            "عندما \\(x=0\\)، \\(t=1\\). وعندما \\(x=1\\)، \\(t=2\\).",
+            "\\(I=\\int_1^2dt/t=[\\ln t]_1^2=\\ln2-\\ln1\\)."
+          ],
+          "answer": "\\(I=\\ln2\\)."
+        }
+      },
+      {
+        "title": "2. Bornes et orientation",
+        "body": "<p>المتغير الجديد يقدر ينقص ملي القديم كيطلع. ما كنرتبوش الحدود بلا ما نراقبو الإشارة. مثلا \\(t=1-x\\) كيعطي \\(dt=-dx\\)، و\\(x:0\\to1\\) كيقابل \\(t:1\\to0\\). إذن \\(\\int_0^1 e^{1-x}dx=-\\int_1^0 e^tdt=\\int_0^1e^tdt=e-1\\).</p><p>إلى حسبتي primitive بالمتغير الجديد ورجعتي لـ \\(x\\)، استعمل الحدود القديمة. أما إذا بقيتي بـ \\(t\\)، استعمل الحدود الجديدة. خلط الاختيارين كيبدل النتيجة.</p>"
+      },
+      {
+        "title": "3. La fonction définie par une intégrale",
+        "body": "<p>إذا كانت \\(f\\) مستمرة على intervalle \\(I\\) و\\(a\\in I\\)، فالدالة \\(F(x)=\\int_a^x f(t)dt\\) مشتقة فداخل \\(I\\)، و\\(F^{\\prime}(x)=f(x)\\) تماك. عند طرف داخل المجال كنستعملو الاشتقاق من الجهة المناسبة. المتغير \\(t\\) داخل التكامل مجرد variable muette، و\\(x\\) هو المتغير ديال الدالة.</p><p>ماشي ضروري نعرف primitive بصيغة معتادة باش ندرس \\(F\\). مثلا \\(F(x)=\\int_0^x e^{-t^2}dt\\) معرفة على \\(\\mathbb R\\)، و\\(F^{\\prime}(x)=e^{-x^2}>0\\)، إذن متزايدة تماما. وعندنا مباشرة \\(F(0)=0\\).</p>"
+      },
+      {
+        "title": "4. Deux bornes qui dépendent de x",
+        "body": "<p>إذا كانت \\(u,v\\) مشتقتين و\\(f\\) مستمرة على مجال مناسب، فنكتب باستعمال Chasles \\(G(x)=F(v(x))-F(u(x))\\). من قاعدة المركبة كنستنتجو \\[G^{\\prime}(x)=v^{\\prime}(x)f(v(x))-u^{\\prime}(x)f(u(x)).\\] الإشارة السالبة جاية من الحد السفلي.</p>",
+        "example": {
+          "title": "Une dérivée sans calculer de primitive",
+          "statement": "اشتق \\(G(x)=\\displaystyle\\int_x^{x^2}\\frac{dt}{1+t^2}\\).",
+          "steps": [
+            "الدالة \\(t\\mapsto1/(1+t^2)\\) مستمرة على \\(\\mathbb R\\)، والحدود \\(x,x^2\\) مشتقة. إذن \\(G\\) معرفة ومشتقة على \\(\\mathbb R\\).",
+            "الحد العلوي \\(v(x)=x^2\\) عندو مشتقة \\(2x\\)، فنحصل على \\(2x/(1+x^4)\\).",
+            "الحد السفلي \\(u(x)=x\\) عندو مشتقة \\(1\\)، وكنطرح \\(1/(1+x^2)\\)."
+          ],
+          "answer": "\\(G^{\\prime}(x)=\\dfrac{2x}{1+x^4}-\\dfrac1{1+x^2}\\). هاد الصيغة صحيحة حتى ملي \\(x^2<x\\)، حيث التكامل موجه."
+        }
+      },
+      {
+        "title": "5. Identifier une somme de Riemann",
+        "body": "<p>لـ \\(f\\) مستمرة على \\([a,b]\\)، كنقسمو القطعة لـ \\(n\\) أجزاء بعرض \\(\\Delta x=(b-a)/n\\). النتيجة هي \\[\\Delta x\\sum_{k=1}^n f(a+k\\Delta x)\\longrightarrow\\int_a^b f(x)dx.\\] كنميزو العرض، نقطة العينة، والدالة.</p><p>مثلا \\(n^{-1}\\sum_{k=1}^n(k/n)^2\\) مجموع Riemann للدالة \\(x^2\\) على \\([0,1]\\). نهايته هي \\(\\int_0^1x^2dx=1/3\\). العدد \\(n\\) ديال الحدود بوحدو ما كافيش، خاص العامل اللي يمثل العرض.</p>"
+      },
+      {
+        "title": "6. Choisir la bonne lecture",
+        "body": "<p>فكل تمرين سولو راسكم: واش المطلوب قيمة تكامل، مشتقة دالة، ولا نهاية مجموع؟ فالمشتقة ما نضيعوش الوقت فالبحث على primitive. وفمجموع Riemann كنخرج القوة المناسبة ديال \\(n\\) باش يظهر \\(1/n\\) والدالة فـ \\(k/n\\).</p><p>كنراجعو domains قبل الحساب: logarithme كيطلب قيمة موجبة، والجذر كيطلب غير السالب. بالنسبة لتبديل المتغير، الاستمرارية فوق جميع القطعة كتمنع مرور التعبير عبر نقطة ممنوعة.</p>"
+      }
+    ],
+    "summary": [
+      "في التعويض، بدل التعبير والمتغير التفاضلي والحدود في نفس الوقت.",
+      "\\(\\big(\\int_a^x f(t)dt\\big)^{\\prime}=f(x)\\) إذا كانت \\(f\\) مستمرة.",
+      "\\(\\big(\\int_{u(x)}^{v(x)}f(t)dt\\big)^{\\prime}=v^{\\prime} f(v)-u^{\\prime} f(u)\\).",
+      "على \\([0,1]\\): \\(\\frac1n\\sum_{k=1}^nf(k/n)\\to\\int_0^1f(x)dx\\).",
+      "قبل أي تقنية، تحقق من الاستمرارية ومجال تعريف التعبير."
+    ],
+    "pitfalls": [
+      "تبدل المتغير وتحتافظ بالحدود القديمة بدون الرجوع للمتغير الأصلي.",
+      "تنسى مشتقة الحد المتغير أو الإشارة السالبة ديال الحد السفلي.",
+      "تتعامل مع somme de Riemann بلا عامل العرض، وغالبا هو 1/n."
+    ],
+    "exercises": [
+      {
+        "id": "intsm-e1",
+        "title": "Substitution avec une racine",
+        "level": "Application",
+        "statement": "احسب \\(I=\\displaystyle\\int_0^1 3x^2\\sqrt{1+x^3}\\,dx\\).",
+        "hint": "خد \\(t=1+x^3\\)، ومشتقته حاضرة قدام الجذر.",
+        "steps": [
+          "\\(1+x^3\\geq1\\) على \\([0,1]\\)، إذن التعبير مستمر.",
+          "\\(t=1+x^3\\)، \\(dt=3x^2dx\\)، والحدود كتولي \\(1,2\\).",
+          "\\(I=\\int_1^2\\sqrt t\\,dt=[(2/3)t^{3/2}]_1^2\\).",
+          "\\(2^{3/2}=2\\sqrt2\\)، إذن \\(I=(2/3)(2\\sqrt2-1)\\)."
+        ],
+        "answer": "\\(I=\\dfrac23(2\\sqrt2-1)\\)."
+      },
+      {
+        "id": "intsm-e2",
+        "title": "Une borne logarithmique",
+        "level": "Méthode",
+        "statement": "لتكن \\(H(x)=\\displaystyle\\int_1^{\\ln x}e^{t^2}dt\\). حدد المجال، المشتقة، التغيرات، وحل \\(H(x)=0\\).",
+        "hint": "الدالة داخل التكامل مستمرة على R. القيد كيجي فقط من ln x.",
+        "steps": [
+          "\\(\\ln x\\) كيتطلب \\(x>0\\). إذن \\(D_H=]0,+\\infty[\\).",
+          "قاعدة المركبة كتعطي \\(H^{\\prime}(x)=e^{(\\ln x)^2}/x>0\\). إذن \\(H\\) متزايدة تماما.",
+          "\\(H(e)=\\int_1^1e^{t^2}dt=0\\). بما أن الدالة متزايدة تماما، هاد الجذر وحيد."
+        ],
+        "answer": "المجال \\(]0,+\\infty[\\)، والمشتقة \\(e^{(\\ln x)^2}/x\\)، والحل الوحيد \\(x=e\\)."
+      },
+      {
+        "id": "intsm-e3",
+        "title": "Reconnaître une intégrale dans une somme",
+        "level": "Approfondissement",
+        "statement": "احسب نهاية \\(S_n=\\displaystyle\\sum_{k=1}^n\\frac{n}{n^2+k^2}\\).",
+        "hint": "قسم البسط والمقام على \\(n^2\\) باش يظهر \\(1/n\\).",
+        "steps": [
+          "\\(\\frac{n}{n^2+k^2}=\\frac1n\\frac1{1+(k/n)^2}\\).",
+          "إذن \\(S_n=\\frac1n\\sum_{k=1}^nf(k/n)\\)، مع \\(f(x)=1/(1+x^2)\\) مستمرة على \\([0,1]\\).",
+          "بمبرهنة sommes de Riemann، النهاية هي \\(\\int_0^1dx/(1+x^2)\\).",
+          "Primitive هي arctan، فنلقى \\(\\arctan1-\\arctan0=\\pi/4\\)."
+        ],
+        "answer": "\\(\\displaystyle\\lim_{n\\to+\\infty}S_n=\\pi/4\\)."
+      }
+    ],
+    "videos": [],
+    "quiz": [
+      {
+        "question": "مشتقة \\(F(x)=\\int_0^{x^2}\\cos t\\,dt\\) هي شنو؟",
+        "choices": [
+          "\\(\\cos(x^2)\\)",
+          "\\(2x\\cos(x^2)\\)",
+          "\\(2x\\sin(x^2)\\)"
+        ],
+        "correct": 1,
+        "explanation": "كنقيم الدالة داخل التكامل عند x²، ثم كنضرب فمشتقة الحد العلوي، وهي 2x."
+      },
+      {
+        "question": "نهاية \\(\\frac1n\\sum_{k=1}^n(k/n)^2\\) هي شنو؟",
+        "choices": [
+          "0",
+          "\\(1/3\\)",
+          "1"
+        ],
+        "correct": 1,
+        "explanation": "هذا مجموع Riemann للدالة \\(x^2\\) على \\([0,1]\\)، والتكامل كيساوي \\(1/3\\)."
+      }
+    ],
+    "videoLesson": {
+      "title": "Changer de variable et garder les bonnes bornes",
+      "segments": [
+        {
+          "text": "بغينا نحسبو تكامل من صفر حتى واحد، فيه جوج إكس فوق واحد زائد إكس مربع. المقام موجب، إذن التكامل معرف مزيان.",
+          "equation": "I=\\int_0^1\\frac{2x}{1+x^2}\\,dx",
+          "note": "Vérifier le domaine"
+        },
+        {
+          "text": "كنلاحظو أن مشتقة المقام هي جوج إكس، وهي موجودة فالبسط. هاد العلامة كتقترح نختارو المقام نفسه كمتغير جديد.",
+          "equation": "t=1+x^2",
+          "note": "Choisir la substitution"
+        },
+        {
+          "text": "نشتق العلاقة، فنلقى دي تي كيساوي جوج إكس دي إكس. هكذا البسط مع العنصر التفاضلي غادي يتعوضو كاملين بدي تي.",
+          "equation": "dt=2x\\,dx",
+          "note": "Transformer le différentiel"
+        },
+        {
+          "text": "خاصنا حتى نبدلو الحدود. ملي إكس صفر، تي واحد، وملي إكس واحد، تي جوج. ما نخليوش الحدود القديمة مع المتغير الجديد.",
+          "equation": "x=0\\Rightarrow t=1,\\qquad x=1\\Rightarrow t=2",
+          "note": "Transformer les bornes"
+        },
+        {
+          "text": "التكامل ولا من واحد حتى جوج ديال واحد على تي. فهاد المجال تي موجب، وبالتالي primitive اللي كنحتاجو هي اللوغاريتم.",
+          "equation": "I=\\int_1^2\\frac{dt}{t}=[\\ln t]_1^2",
+          "note": "Intégrer"
+        },
+        {
+          "text": "نعوض الحد العلوي ثم نطرح قيمة الحد السفلي. لوغاريتم واحد صفر، وكتخرج النتيجة لوغاريتم جوج، موجبة كما كنا كنتوقعو.",
+          "equation": "I=\\ln2-\\ln1=\\ln2",
+          "note": "Calculer et contrôler"
+        }
+      ]
+    },
+    "tags": [
+      "changement de variable",
+      "fonction intégrale",
+      "Riemann",
+      "arctan"
+    ]
+  },
+  {
+    "id": "complexes-sm",
+    "title": "Nombres complexes, approfondissement SM",
+    "titleAr": "الأعداد العقدية، تعمق العلوم الرياضية",
+    "domain": "algebre",
+    "tracks": [
+      "sm"
+    ],
+    "level": "Approfondissement SM",
+    "duration": "80 min",
+    "prerequisites": [
+      "Forme algébrique et conjugué",
+      "Module et argument",
+      "Forme exponentielle",
+      "Transformations du plan"
+    ],
+    "goals": [
+      "Résoudre une équation à coefficients complexes",
+      "Déterminer toutes les racines n-ièmes",
+      "Identifier une transformation à partir de son écriture complexe"
+    ],
+    "intro": "فـ Sciences Mathématiques، الأعداد العقدية كتعطينا أدوات إضافية لحل المعادلات والهندسة. هنا coefficients حتى هما يقدرو يكونو complexes، والجذور كتحتاج حساب module وargument بطريقة منظمة. غادي نربطو الحلول بالمواقع ديال النقط فالمستوى، ونفهمو كيفاش كتابة قصيرة كتحدد transformation كاملة.",
+    "sections": [
+      {
+        "title": "1. Une équation du second degré dans ℂ",
+        "body": "<p>المعادلة \\(Az^2+Bz+C=0\\)، مع \\(A\\ne0\\) و\\(A,B,C\\in\\mathbb C\\)، كتتحل باستعمال \\(\\Delta=B^2-4AC\\). كنختارو \\(\\delta\\) بحيث \\(\\delta^2=\\Delta\\)، ومن بعد \\(z=(-B\\pm\\delta)/(2A)\\). إذا \\(\\Delta=0\\)، عندنا جذر مضاعف.</p><p>فـ \\(\\mathbb C\\) ما كنقسموش الحالات حسب إشارة \\(\\Delta\\)، لأن ترتيب موجب وسالب ما كيتطبقش على عدد عقدي عام. كذلك الجذور ماشي بالضرورة مترافقة إلا كانت coefficients غير حقيقية.</p>",
+        "example": {
+          "title": "Des coefficients réellement complexes",
+          "statement": "حل \\(z^2-(2+i)z+(1+i)=0\\).",
+          "steps": [
+            "\\(A=1\\)، \\(B=-(2+i)\\)، \\(C=1+i\\).",
+            "\\(\\Delta=(2+i)^2-4(1+i)=3+4i-4-4i=-1\\).",
+            "نختارو \\(\\delta=i\\) حيث \\(i^2=-1\\).",
+            "\\(z_1=((2+i)-i)/2=1\\)، و\\(z_2=((2+i)+i)/2=1+i\\).",
+            "كنراقبو المجموع \\(z_1+z_2=2+i\\)، والجداء \\(z_1z_2=1+i\\)، كما كتطلب معاملات المعادلة."
+          ],
+          "answer": "الحلول هي \\(z=1\\) و\\(z=1+i\\)."
+        }
+      },
+      {
+        "title": "2. Trouver une racine carrée complexe",
+        "body": "<p>باش نحل \\((u+iv)^2=a+ib\\)، كنساوي الجزء الحقيقي والتخيلي: \\(u^2-v^2=a\\)، \\(2uv=b\\). وزيادة على ذلك \\(u^2+v^2=\\sqrt{a^2+b^2}\\)، لأنها علاقة modules.</p><p>نجمع ونطرح باش نلقاو \\(u^2=(\\sqrt{a^2+b^2}+a)/2\\) و\\(v^2=(\\sqrt{a^2+b^2}-a)/2\\). العلامات ماشي مستقلة، خاصها تحقق \\(2uv=b\\). مثلا لجذر \\(3+4i\\)، كنلقى \\(u^2=4\\)، \\(v^2=1\\)، و\\(uv=2\\)، إذن الجذران هما \\(2+i\\) و\\(-2-i\\).</p>"
+      },
+      {
+        "title": "3. Toutes les racines n-ièmes",
+        "body": "<p>إذا \\(w=\\rho e^{i\\theta}\\ne0\\) و\\(n\\in\\mathbb N^*\\)، فحلول \\(z^n=w\\) هي \\[z_k=\\rho^{1/n}e^{i(\\theta+2k\\pi)/n},\\quad k=0,\\ldots,n-1.\\] كنقسم argument على \\(n\\)، ولكن كنحتافظ بجميع الزوايا الناتجة عن \\(2k\\pi\\). الحلول مختلفة وكتوزع بانتظام على دائرة.</p><p>خاصية جذور الوحدة كتخرج باختيار \\(\\rho=1\\)، \\(\\theta=0\\). أما \\(w=0\\)، فالحل الوحيد هو \\(z=0\\)، وما عندناش \\(n\\) حلول مختلفة.</p>",
+        "example": {
+          "title": "Les trois racines de 8i",
+          "statement": "حل \\(z^3=8i\\) وأعط الحلول بالشكل الجبري.",
+          "steps": [
+            "\\(8i=8e^{i\\pi/2}\\)، إذن module ديال كل جذر هو \\(2\\).",
+            "الزوايا هي \\(\\pi/6+2k\\pi/3\\)، لـ \\(k=0,1,2\\): \\(\\pi/6,5\\pi/6,3\\pi/2\\).",
+            "\\(z_0=2(\\sqrt3/2+i/2)=\\sqrt3+i\\).",
+            "\\(z_1=2(-\\sqrt3/2+i/2)=-\\sqrt3+i\\)، و\\(z_2=-2i\\)."
+          ],
+          "answer": "\\(\\{\\sqrt3+i,-\\sqrt3+i,-2i\\}\\). الصور كتكون مثلثا متساوي الأضلاع على دائرة مركزها الأصل ونصف قطرها \\(2\\)."
+        }
+      },
+      {
+        "title": "4. Lire une transformation affine complexe",
+        "body": "<p>فـ \\(z^{\\prime}=az+b\\)، مع \\(a\\ne0\\)، إذا \\(a=1\\)، عندنا translation ديال المتجه ذي affixe \\(b\\). إذا \\(a\\ne1\\)، النقطة الثابتة عندها affixe \\(\\omega=b/(1-a)\\)، وكنكتب \\(z^{\\prime}-\\omega=a(z-\\omega)\\).</p><p>إذا \\(a\\) حقيقي غير منعدم، نحصل على homothétie بنسبة \\(a\\). إذا \\(|a|=1\\) و\\(a\\ne1\\)، نحصل على rotation بزاوية \\(\\arg a\\). فالحالة العامة عندنا similitude directe بنسبة \\(|a|\\) وزاوية \\(\\arg a\\). مثلا \\(z^{\\prime}=iz+1-i\\) rotation مركزها affixe \\(1\\) وزاويتها \\(\\pi/2\\).</p><p>التركيب كيتحسب بالتعويض: إذا \\(f(z)=az+b\\)، و\\(g(z)=cz+d\\)، فإن \\(g(f(z))=caz+cb+d\\). الترتيب مهم حيث الحد الثابت يقدر يتبدل.</p>"
+      },
+      {
+        "title": "5. Traduire un calcul en propriété géométrique",
+        "body": "<p>المسافة \\(AB\\) هي \\(|z_B-z_A|\\). ومع ثلاثة نقط مختلفة، argument ديال \\((z_C-z_A)/(z_B-z_A)\\) هو الزاوية الموجهة من \\(\\overrightarrow{AB}\\) نحو \\(\\overrightarrow{AC}\\)، modulo \\(2\\pi\\). Quotient حقيقي كيعني alignement، وquotient تخيلي صرف كيعني perpendicularité.</p><p>المعادلة \\(|z-a|=r\\)، مع \\(r&gt;0\\)، كتصف دائرة. والمساواة \\(|z-a|=|z-b|\\)، مع \\(a\\ne b\\)، كتصف médiatrice ديال القطعة. دائما كنستثنيو المقامات المنعدمة قبل القسمة، ومن بعد كنترجمو النتيجة بلغة هندسية واضحة.</p>"
+      }
+    ],
+    "summary": [
+      "لـ \\(Az^2+Bz+C=0\\)، احسب \\(\\Delta\\)، ولقا \\(\\delta^2=\\Delta\\)، ثم طبق الصيغة.",
+      "فالجذر \\(u+iv\\)، شرط \\(2uv=b\\) هو اللي كيضبط العلامات.",
+      "إذا \\(w\\ne0\\)، فجذوره n-ièmes عددها \\(n\\)، وزواياها كتختلف بـ \\(2\\pi/n\\).",
+      "\\(z^{\\prime}=az+b\\)، مع \\(a\\ne1\\)، عندها مركز ثابت \\(b/(1-a)\\).",
+      "Module كيقيس المسافة، وargument ديال quotient كيعطي زاوية موجهة."
+    ],
+    "pitfalls": [
+      "تستعمل إشارة discriminant كما فالأعداد الحقيقية مع coefficients complexes.",
+      "تعطي جذر واحد لـ zⁿ = w وتنسى قيم k الأخرى.",
+      "تحدد مركز transformation بحل az + b = 0 عوض معادلة النقطة الثابتة az + b = z."
+    ],
+    "exercises": [
+      {
+        "id": "csm-e1",
+        "title": "Un trinôme à coefficient imaginaire",
+        "level": "Application",
+        "statement": "حل \\(z^2-2iz-2=0\\)، وتحقق من جداء الجذرين.",
+        "hint": "انتبه إلى \\((-2i)^2=-4\\).",
+        "steps": [
+          "\\(\\Delta=(-2i)^2-4(1)(-2)=-4+8=4\\).",
+          "نختارو \\(\\delta=2\\)، إذن \\(z=(2i\\pm2)/2=i\\pm1\\).",
+          "الجداء \\((1+i)(-1+i)=-1+i-i+i^2=-2\\)، وهو الحد الثابت حيث المعامل الرئيسي واحد."
+        ],
+        "answer": "\\(z_1=1+i\\)، \\(z_2=-1+i\\)."
+      },
+      {
+        "id": "csm-e2",
+        "title": "Quatre racines sur un cercle",
+        "level": "Méthode",
+        "statement": "حل \\(z^4=-16\\)، ثم وصف الشكل الهندسي ديال صور الحلول.",
+        "hint": "كتب \\(-16=16e^{i\\pi}\\).",
+        "steps": [
+          "Module ديال كل جذر هو \\(16^{1/4}=2\\).",
+          "\\(z_k=2e^{i(\\pi/4+k\\pi/2)}\\)، لـ \\(k=0,1,2,3\\).",
+          "الأشكال الجبرية هي \\(\\sqrt2+i\\sqrt2\\)، \\(-\\sqrt2+i\\sqrt2\\)، \\(-\\sqrt2-i\\sqrt2\\)، \\(\\sqrt2-i\\sqrt2\\).",
+          "الزوايا كتزيد بـ \\(\\pi/2\\)، وجميع modules كتساوي \\(2\\)، إذن الصور رؤوس مربع مركزه الأصل."
+        ],
+        "answer": "الحلول الأربعة هي \\(\\pm\\sqrt2\\pm i\\sqrt2\\)، مع جميع اختيارات العلامتين، وصورها مربع على دائرة نصف قطرها \\(2\\)."
+      },
+      {
+        "id": "csm-e3",
+        "title": "Identifier une homothétie",
+        "level": "Approfondissement",
+        "statement": "ندرس \\(T:z\\mapsto-2z+3+i\\). حدد طبيعتها ومركزها ونسبتها، ثم صورة النقطة ذات affixe \\(1+i\\).",
+        "hint": "حل معادلة النقطة الثابتة، ثم اكتب العلاقة بالنسبة للمركز.",
+        "steps": [
+          "\\(\\omega=-2\\omega+3+i\\iff3\\omega=3+i\\iff\\omega=1+i/3\\).",
+          "\\(z^{\\prime}-\\omega=-2(z-\\omega)\\)، إذن homothétie مركزها \\(\\Omega(1+i/3)\\) ونسبتها \\(-2\\).",
+          "لـ \\(z_A=1+i\\): \\(z_{A^{\\prime}}=-2(1+i)+3+i=1-i\\).",
+          "كنراقبو \\(z_{A^{\\prime}}-\\omega=-4i/3=-2(2i/3)=-2(z_A-\\omega)\\)."
+        ],
+        "answer": "Homothétie ديال المركز \\(1+i/3\\) والنسبة \\(-2\\)، وصورة \\(A\\) affixe ديالها \\(1-i\\)."
+      }
+    ],
+    "videos": [],
+    "quiz": [
+      {
+        "question": "شحال من حل مختلف عند المعادلة \\(z^4=-16\\) فـ \\(\\mathbb C\\)؟",
+        "choices": [
+          "2",
+          "4",
+          "8"
+        ],
+        "correct": 1,
+        "explanation": "كل عدد عقدي غير منعدم عندو أربعة جذور رابعة مختلفة. نفس العدد ماشي بالضرورة عندو أربعة جذور حقيقية."
+      },
+      {
+        "question": "التحويل \\(z^{\\prime}=iz+1-i\\) شنو هو؟",
+        "choices": [
+          "Rotation مركزها \\(1\\) وزاويتها \\(\\pi/2\\)",
+          "Translation بمتجه affixe ديالو i",
+          "Homothétie مركزها الأصل"
+        ],
+        "correct": 0,
+        "explanation": "\\(z^{\\prime}-1=i(z-1)\\)، والضرب فـ \\(i\\) كيدير دوران بزاوية \\(\\pi/2\\)."
+      }
+    ],
+    "videoLesson": {
+      "title": "Résoudre un trinôme à coefficients complexes",
+      "segments": [
+        {
+          "text": "اليوم عندنا معادلة من الدرجة الثانية بمعاملات عقدية. الطريقة كتبدأ بحساب ديلتا، وما كنحتاجوش نصنفوه موجب ولا سالب باش نكملو.",
+          "equation": "z^2-(2+i)z+1+i=0",
+          "note": "Lire les coefficients"
+        },
+        {
+          "text": "المعامل الرئيسي واحد. باش نحسبو ديلتا، كنربع جوج زائد إي، ثم كنطرح أربعة مرات الحد الثابت، اللي هو واحد زائد إي.",
+          "equation": "\\Delta=(2+i)^2-4(1+i)",
+          "note": "Former le discriminant"
+        },
+        {
+          "text": "نوسع المربع باستعمال إي مربع كيساوي ناقص واحد. الحدود التخيلية كيتحيدو ملي نطرح، وكيبقى لينا ديلتا كيساوي ناقص واحد.",
+          "equation": "\\Delta=3+4i-4-4i=-1",
+          "note": "Simplifier"
+        },
+        {
+          "text": "خاصنا عدد مربعو هو ديلتا. إي كيناسبنا لأن إي مربع ناقص واحد. إذن نقدر نستعمل إي فالصيغة مع علامتي زائد وناقص.",
+          "equation": "\\delta=i,\\qquad z=\\frac{2+i\\pm i}{2}",
+          "note": "Choisir une racine"
+        },
+        {
+          "text": "بإشارة ناقص، الأجزاء التخيلية كيمشيو وكنلقى واحد. بإشارة زائد، كنلقى جوج زائد جوج إي مقسومة على جوج، يعني واحد زائد إي.",
+          "equation": "z_1=1,\\qquad z_2=1+i",
+          "note": "Calculer les solutions"
+        },
+        {
+          "text": "فالآخر نراجع المجموع والجداء ديال الحلين. المجموع جوج زائد إي، والجداء واحد زائد إي، وهذا مطابق لمعاملات المعادلة الأصلية.",
+          "equation": "z_1+z_2=2+i,\\qquad z_1z_2=1+i",
+          "note": "Vérifier"
+        }
+      ]
+    },
+    "tags": [
+      "racines complexes",
+      "équation complexe",
+      "racines n-ièmes",
+      "transformations",
+      "géométrie"
+    ]
+  }
+]

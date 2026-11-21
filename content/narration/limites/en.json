@@ -1,0 +1,66 @@
+{
+  "lessonId": "limites",
+  "language": "en",
+  "provider": "vidIQ",
+  "voice": {
+    "voiceId": "Xb7hH8MSUJpSbSDYk0k2",
+    "name": "Alice - Clear, Engaging Educator",
+    "language": "en",
+    "accent": "british",
+    "gender": "female"
+  },
+  "scriptLines": [
+    "Find the limit of two x cubed minus x, divided by x cubed plus four, as x tends to positive infinity. Begin by identifying the form.",
+    "Both the numerator and denominator tend to positive infinity. Direct substitution therefore does not determine the result. We need to rewrite the quotient.",
+    "The highest power present is x cubed. Divide the entire numerator and denominator by it, including every term, to preserve the value of the quotient.",
+    "One over x squared tends to zero, as does four over x cubed. The new denominator tends to one, which is nonzero.",
+    "The result is two. We can check it because the degrees are equal and the ratio of the leading coefficients is two divided by one."
+  ],
+  "jobId": "job_0263531c-bd13-4212-b4b0-ed7785605b9f",
+  "result": {
+    "voiceoverId": "1abfa306-941b-445d-9590-8c47e241eb12",
+    "durationSeconds": 49.71102,
+    "charCount": 677,
+    "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/1abfa306-941b-445d-9590-8c47e241eb12.mp3",
+    "lines": [
+      {
+        "index": 0,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/24bcc209-b96b-4a85-b3a0-3bdb2cbf973c.mp3",
+        "startSeconds": 0,
+        "durationSeconds": 11.154286,
+        "charCount": 132
+      },
+      {
+        "index": 1,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/2d08525a-9d6f-4575-936e-1718f2ccf481.mp3",
+        "startSeconds": 11.154286,
+        "durationSeconds": 10.370612,
+        "charCount": 155
+      },
+      {
+        "index": 2,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/701e2164-089e-4e89-bae6-1b211f44e7f7.mp3",
+        "startSeconds": 21.524898,
+        "durationSeconds": 10.187755,
+        "charCount": 149
+      },
+      {
+        "index": 3,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/114796a4-a45e-4253-8c67-67afb2eb5444.mp3",
+        "startSeconds": 31.712653,
+        "durationSeconds": 9.247347,
+        "charCount": 112
+      },
+      {
+        "index": 4,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/7778844c-eaa1-46fe-af15-ce252d40654a.mp3",
+        "startSeconds": 40.96,
+        "durationSeconds": 8.75102,
+        "charCount": 129
+      }
+    ]
+  },
+  "creditsUsed": 28,
+  "generatedAt": "2026-11-21",
+  "review": "Technical validation pending; no full human listening review claimed."
+}

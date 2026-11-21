@@ -228,7 +228,12 @@
   function videoCard(video, lesson, showCourse=false) {
     if(!video?.src)return '';
     const tracks=arr(video.tracks),target=routeLink(paths.lesson(availableTrack(lesson),lesson.id,'videos'));
-    return `<article class="video-card" data-video-card><div class="video-stage ${video.silent?'landscape':'portrait'}"><video controls playsinline preload="none" ${video.poster?`poster="${esc(safeURL(video.poster))}"`:''} aria-label="${esc(video.title)}"><source src="${esc(safeURL(video.src))}" type="video/mp4">${tracks.map(track=>`<track kind="subtitles" src="${esc(safeURL(track.src))}" srclang="${esc(track.language)}" label="${esc(track.label)}" ${track.language===LANG?'default':''}>`).join('')}${t('videoUnsupported')}</video></div><div class="video-card-info">${showCourse?`<a class="video-course-link" href="${target}">${esc(lesson.title)}${icon('chevron')}</a>`:''}<h2>${esc(video.title)}</h2><span class="video-format-label">${icon(video.silent?'sheet':'video')}${t(video.silent?'silentLabel':'darijaAudio')}</span><p>${t(video.silent?'silentNote':'captionNote')}</p><p class="video-load-error" role="status" hidden>${t('videoError')}</p><div class="video-card-meta">${video.duration?`<span class="mono">${icon('clock')}${videoDuration(video.duration)}</span>`:''}<a href="${esc(safeURL(video.src))}" target="_blank" rel="noopener">${t('openVideo')}${icon('external')}</a><a href="${esc(safeURL(video.src))}" download>${t('downloadVideo')}${icon('download')}</a></div>${arr(video.transcript).length?`<details class="video-transcript"><summary>${t('transcript')}</summary><ol>${video.transcript.map(segment=>`<li>${segment.note?`<strong>${esc(segment.note)}</strong>`:''}<p>${esc(segment.text)}</p>${segment.equation?`<div class="math-block">${rich('\\['+segment.equation+'\\]')}</div>`:''}</li>`).join('')}</ol></details>`:''}</div></article>`;
+    const ratio=String(video.aspectRatio||'').split(':').map(Number);
+    const landscape=ratio.length===2&&ratio.every(n=>n>0) ? ratio[0]>=ratio[1] : Boolean(video.silent);
+    const audioLabel=video.silent?'silentLabel':({ar:'standardArabicAudio',fr:'frenchAudio',en:'englishAudio',ary:'darijaAudio'}[video.audioLanguage]||'narratedLabel');
+    const multilingualCaptions=['ar','fr','en'].every(lang=>tracks.some(track=>track.language===lang));
+    const note=video.silent?t('silentNote'):[video.narration==='synthetic'?t('syntheticNarrationNote'):'',tracks.length?t(multilingualCaptions?'captionNote':'captionsAvailable'):''].filter(Boolean).join(' ');
+    return `<article class="video-card" data-video-card><div class="video-stage ${landscape?'landscape':'portrait'}"><video controls playsinline preload="none" ${video.poster?`poster="${esc(safeURL(video.poster))}"`:''} aria-label="${esc(video.title)}"><source src="${esc(safeURL(video.src))}" type="video/mp4">${tracks.map(track=>`<track kind="subtitles" src="${esc(safeURL(track.src))}" srclang="${esc(track.language)}" label="${esc(track.label)}" ${track.language===LANG?'default':''}>`).join('')}${t('videoUnsupported')}</video></div><div class="video-card-info">${showCourse?`<a class="video-course-link" href="${target}">${esc(lesson.title)}${icon('chevron')}</a>`:''}<h2>${esc(video.title)}</h2><span class="video-format-label">${icon(video.silent?'sheet':'video')}${t(audioLabel)}</span>${note?`<p class="video-description">${note}</p>`:''}<p class="video-load-error" role="status" hidden>${t('videoError')}</p><div class="video-card-meta">${video.duration?`<span class="mono">${icon('clock')}${videoDuration(video.duration)}</span>`:''}<a href="${esc(safeURL(video.src))}" target="_blank" rel="noopener">${t('openVideo')}${icon('external')}</a><a href="${esc(safeURL(video.src))}" download>${t('downloadVideo')}${icon('download')}</a></div>${arr(video.transcript).length?`<details class="video-transcript"><summary>${t('transcript')}</summary><ol>${video.transcript.map(segment=>`<li>${segment.note?`<strong>${esc(segment.note)}</strong>`:''}<p>${esc(segment.text)}</p>${segment.equation?`<div class="math-block">${rich('\\['+segment.equation+'\\]')}</div>`:''}</li>`).join('')}</ol></details>`:''}</div></article>`;
   }
 
   function videosHTML(lesson) {
@@ -237,9 +242,27 @@
     return `<p class="video-info-note">${t('videoPractice')}</p><div class="video-grid">${videos.map(v=>videoCard(v,lesson)).join('')}</div>`;
   }
 
+  function videoLibraryPath(track='',audio='') {
+    const query=new URLSearchParams();
+    if(track)query.set('track',track);
+    if(audio)query.set('audio',audio);
+    const queryString=query.toString();
+    return '/videos'+(queryString?'?'+queryString:'');
+  }
+
+  function matchesVideoAudio(video,audio) {
+    if(audio==='current')return !video.silent&&video.audioLanguage===LANG;
+    if(audio==='narrated')return !video.silent;
+    if(audio==='silent')return Boolean(video.silent);
+    return true;
+  }
+
   function renderVideos(route) {
     const lessons=route.track?lessonsFor(route.track):DATA.lessons;
-    return `${breadcrumb([{label:t('videoLibrary')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('videoExplanations')}</div><h1>${t('videoLibrary')}</h1><p>${t('videoLibraryIntro')}</p></div><span class="small-badge">${t('videoCount',{n:countVideos(lessons)})}</span></div><div class="video-filters"><label for="video-track">${t('chooseTrack')}</label><select id="video-track"><option value="">${t('allTracks')}</option>${DATA.tracks.map(track=>`<option value="${track.id}" ${route.track===track.id?'selected':''}>${esc(track.name)}</option>`).join('')}</select></div><div class="video-grid">${lessons.flatMap(lesson=>arr(lesson.videos).map(video=>videoCard(video,lesson,true))).join('')}</div>`;
+    const entries=lessons.flatMap(lesson=>arr(lesson.videos).filter(video=>video.src).map(video=>({lesson,video})));
+    const visible=entries.filter(({video})=>matchesVideoAudio(video,route.audio));
+    const audioFilters=[['','allVideos'],['current','currentLanguageNarration'],['narrated','withNarration'],['silent','withoutNarration']];
+    return `${breadcrumb([{label:t('videoLibrary')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('videoExplanations')}</div><h1>${t('videoLibrary')}</h1><p>${t('videoLibraryIntro')}</p></div><span class="small-badge">${t('videoCount',{n:visible.length})}</span></div><div class="video-filters"><label for="video-track">${t('chooseTrack')}</label><select id="video-track"><option value="">${t('allTracks')}</option>${DATA.tracks.map(track=>`<option value="${track.id}" ${route.track===track.id?'selected':''}>${esc(track.name)}</option>`).join('')}</select><div class="filter-pills" role="group" aria-label="${t('videoAudioFilter')}">${audioFilters.map(([audio,key])=>`<button class="filter-pill ${route.audio===audio?'active':''}" type="button" data-video-audio="${audio}" aria-pressed="${route.audio===audio}">${t(key)} <span class="count">${entries.filter(({video})=>matchesVideoAudio(video,audio)).length}</span></button>`).join('')}</div></div><div class="video-grid">${visible.map(({lesson,video})=>videoCard(video,lesson,true)).join('')}</div>`;
   }
 
   function lessonFooter(lesson, track) {
@@ -287,7 +310,10 @@
       if (parts[2] === 'domain' && parts[3]) return { type: 'track', track: parts[1], domain: parts[3] };
       if (!parts[2]) return { type: 'track', track: parts[1] };
     }
-    if (parts[0] === 'videos') return { type: 'videos', track: ['pc','sm'].includes(new URLSearchParams(query).get('track')) ? new URLSearchParams(query).get('track') : '' };
+    if (parts[0] === 'videos') {
+      const params=new URLSearchParams(query);
+      return { type:'videos',track:['pc','sm'].includes(params.get('track'))?params.get('track'):'',audio:['current','narrated','silent'].includes(params.get('audio'))?params.get('audio'):'' };
+    }
     if (parts[0] === 'search') return { type: 'search', query: new URLSearchParams(query).get('q') || '' };
     if (parts[0] === 'favorites') return { type: 'favorites' };
     if (parts[0] === 'sources') return { type: 'sources' };
@@ -395,7 +421,7 @@
     document.getElementById('search-dialog').close();
     refreshChrome();renderRoute({keepScroll:true});
   });
-  document.addEventListener('change',event=>{if(event.target.id==='video-track')location.hash='#/videos'+(event.target.value?'?track='+encodeURIComponent(event.target.value):'');});
+  document.addEventListener('change',event=>{if(event.target.id==='video-track')location.hash=routeLink(videoLibraryPath(event.target.value,state.route?.audio||''));});
   document.addEventListener('error',event=>{
     const target=event.target;
     if(target?.tagName==='VIDEO'||target?.tagName==='SOURCE'){
@@ -463,6 +489,8 @@
       toast(saved ? (state.progress[key] ? t('savedReviewed') : t('resetReviewed')) : t('localUnavailable'));
       return;
     }
+    const audioFilterTarget = event.target.closest('[data-video-audio]');
+    if (audioFilterTarget) { location.hash=routeLink(videoLibraryPath(state.route?.track||'',audioFilterTarget.dataset.videoAudio)); return; }
     const filterTarget = event.target.closest('[data-filter]');
     if (filterTarget) { state.filter = filterTarget.dataset.filter; renderRoute({ keepScroll: true }); return; }
     const scrollTarget = event.target.closest('[data-scrollto]');

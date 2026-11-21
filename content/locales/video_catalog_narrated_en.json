@@ -1,0 +1,51 @@
+{
+  "limites": [
+    {
+      "title": "The limit of a quotient at infinity",
+      "src": "media/en/limites-narrated.mp4",
+      "poster": "media/en/limites-narrated.jpg",
+      "duration": 60.166667,
+      "silent": false,
+      "audioLanguage": "en",
+      "aspectRatio": "16:9",
+      "narration": "synthetic",
+      "textLanguage": "en",
+      "description": "With English narration",
+      "voiceName": "Alice - Clear, Engaging Educator",
+      "tracks": [
+        {
+          "src": "media/en/limites-narrated.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Find the limit of two x cubed minus x, divided by x cubed plus four, as x tends to positive infinity. Begin by identifying the form.",
+          "equation": "\\lim_{x\\to+\\infty}\\frac{2x^3-x}{x^3+4}",
+          "note": "Identify the form"
+        },
+        {
+          "text": "Both the numerator and denominator tend to positive infinity. Direct substitution therefore does not determine the result. We need to rewrite the quotient.",
+          "equation": "\\frac{\\infty}{\\infty}",
+          "note": "An indeterminate form"
+        },
+        {
+          "text": "The highest power present is x cubed. Divide the entire numerator and denominator by it, including every term, to preserve the value of the quotient.",
+          "equation": "\\frac{2-1/x^2}{1+4/x^3}",
+          "note": "Divide numerator and denominator by x³"
+        },
+        {
+          "text": "One over x squared tends to zero, as does four over x cubed. The new denominator tends to one, which is nonzero.",
+          "equation": "\\frac{2-0}{1+0}",
+          "note": "Take the limit"
+        },
+        {
+          "text": "The result is two. We can check it because the degrees are equal and the ratio of the leading coefficients is two divided by one.",
+          "equation": "\\boxed{2}",
+          "note": "Conclude"
+        }
+      ]
+    }
+  ]
+}

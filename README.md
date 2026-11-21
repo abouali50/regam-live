@@ -1,4 +1,4 @@
-# REGAM Academy 1.1
+# REGAM Academy 1.2
 
 Une bibliothèque de mathématiques pour la deuxième année du baccalauréat marocain, disponible en **arabe standard, en français et en anglais**.
 
@@ -26,10 +26,11 @@ Chaque langue contient **25 cours, 133 sections, 75 exercices corrigés et 43 qu
 
 La rubrique **Vidéos**, le bouton de la page d'accueil et les lecteurs intégrés aux cours donnent accès à **31 explications vidéo dans chaque langue**. Chaque lecteur propose également l'ouverture directe du fichier et le téléchargement MP4.
 
-- **24 explications visuelles sans voix** disposent chacune d'une version en arabe standard, en français et en anglais. Le texte à l'écran, les sous-titres et la transcription correspondent à la langue sélectionnée. Cela représente 72 nouveaux MP4 localisés.
+- **La vidéo des limites comporte maintenant une narration féminine synthétique** en arabe standard, en français et en anglais. La voix est intégrée au MP4 et fonctionne aussi dans le fichier téléchargé. Chaque étape de calcul est synchronisée avec sa phrase, suivie d'une courte pause de lecture.
+- **23 autres explications visuelles restent sans voix**, avec le texte à l'écran, les sous-titres et la transcription dans la langue sélectionnée. Le filtre audio permet de distinguer les formats.
 - **7 vidéos sur les formes indéterminées** conservent leur narration synthétique d'origine en darija. Elles proposent désormais des sous-titres en arabe standard, en français et en anglais. Le lecteur indique explicitement la langue de la voix.
 
-Les 24 explications écrites ne contiennent pas de piste audio. Cette version ne comprend pas de nouveau doublage vocal en arabe standard, en français ou en anglais. Les anciennes vidéos restent dans les fichiers pour préserver leurs liens existants.
+Les trois voix de la vidéo des limites sont Ghizlane (arabe standard), Victoria (français) et Alice (anglais). La bibliothèque comprend donc, dans chaque langue, une vidéo parlée dans cette langue, sept vidéos parlées en darija et vingt-trois explications silencieuses. Les anciens fichiers restent disponibles pour préserver leurs liens. La version 1.2 n'annonce pas un doublage complet de toute la bibliothèque.
 
 ## Installation ou mise à jour sur le VPS Hostinger
 
@@ -39,7 +40,7 @@ Dans le terminal du VPS, avec le compte `root`, copier-coller le bloc suivant. L
 REGAM_SRC="$(mktemp -d /tmp/regam-bac-source.XXXXXX)" && git clone --depth 1 --single-branch --branch academy-maths-v1 https://github.com/abouali50/regam-live.git "$REGAM_SRC" && bash "$REGAM_SRC/install.sh"
 ```
 
-Pour mettre à jour une installation existante, utiliser **le même domaine Academy**. La commande récupère la nouvelle version, conserve une sauvegarde et vérifie le site en HTTPS avant d'afficher `DONE`. La branche de publication reste `academy-maths-v1`, y compris pour la version 1.1.
+Pour mettre à jour une installation existante, utiliser **le même domaine Academy**. La commande récupère la nouvelle version, conserve une sauvegarde et vérifie le site en HTTPS avant d'afficher `DONE`. La branche de publication reste `academy-maths-v1`, y compris pour la version 1.2.
 
 Le DNS du domaine doit pointer directement vers le VPS. Le script prend en charge Ubuntu et Debian avec systemd et les configurations Caddy ou Nginx décrites dans le [guide d'installation](docs/INSTALL_FR.md). Il reconnaît aussi la disposition Docker précise de REGAM Live documentée dans ce guide. Il s'arrête si l'environnement ne correspond pas aux conditions prévues.
 
@@ -72,7 +73,9 @@ python3 scripts/render_localized_videos.py --lang fr --workers 4
 python3 scripts/build_content.py
 ```
 
-Les MP4, affiches et sous-titres sont écrits dans `site/media/fr/`. Le catalogue correspondant est généré dans `content/locales/video_catalog_fr.json`. Les sous-titres des sept vidéos avec narration d'origine se trouvent dans `site/media/captions/ar/`, `fr/` et `en/`.
+Les MP4, affiches et sous-titres silencieux sont écrits dans `site/media/fr/`. Le catalogue correspondant est généré dans `content/locales/video_catalog_fr.json`. Les sous-titres des sept vidéos avec narration d'origine se trouvent dans `site/media/captions/ar/`, `fr/` et `en/`.
+
+Pour reconstruire la vidéo parlée des limites depuis les audios déjà générés, exécuter `python3 scripts/render_narrated_video.py --lang fr`, puis le générateur de contenu. Cette opération ne déclenche aucune nouvelle synthèse vocale. Les audios d'origine, les textes effectivement envoyés, les voix et les contrôles techniques sont conservés dans `content/narration/limites/`. Les catalogues `video_catalog_narrated_ar.json`, `video_catalog_narrated_fr.json` et `video_catalog_narrated_en.json` remplacent les entrées silencieuses correspondantes dans le contenu public. Les nouveaux fichiers portent le suffixe `-narrated` pour éviter de servir une ancienne vidéo silencieuse depuis le cache.
 
 Les libellés de navigation sont définis dans `site/assets/i18n.js`. Les sous-titres, la transcription et la mention de l'absence de voix doivent rester cohérents avec chaque fichier vidéo.
 
@@ -84,7 +87,7 @@ npm ci --ignore-scripts
 npm test
 ```
 
-Les tests vérifient les routes, les formules, les exercices, la recherche, la sélection des langues, les vidéos et les données locales. Ils utilisent jsdom et ne remplacent pas une vérification visuelle dans un navigateur. Les résultats précis de cette version, y compris les limites de vérification, figurent dans [VALIDATION_V1_1.md](docs/VALIDATION_V1_1.md).
+Les tests vérifient les routes, les formules, les exercices, la recherche, la sélection des langues, les vidéos et les données locales. Ils utilisent jsdom et ne remplacent pas une vérification visuelle dans un navigateur. Les nouveaux lecteurs parlés font aussi l'objet d'un contrôle de la piste audio avec ffprobe. Les résultats précis de cette version, y compris les limites de vérification, figurent dans [VALIDATION_V1_2.md](docs/VALIDATION_V1_2.md).
 
 Pour régénérer l'archive et les empreintes des fichiers, exécuter `python3 scripts/package_release.py`. Le programme exclut les caches, les dépendances de développement et les fichiers intermédiaires de fabrication des vidéos.
 

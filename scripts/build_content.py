@@ -14,9 +14,9 @@ LANGUAGES = ('ar', 'fr', 'en')
 LANGUAGE_LABELS = {'ar': 'العربية الفصحى', 'fr': 'Français', 'en': 'English'}
 ORDER = ['limites','formes-indeterminees','continuite','derivation','fonctions-reciproques','etude-fonction','suites','logarithme','exponentielle','primitives-integrales','equations-differentielles','theoremes-analyse-sm','suites-adjacentes','integration-sm','complexes','complexes-sm','arithmetique','structures','espaces-vectoriels','geometrie-complexe','geometrie-espace','spheres','denombrement','probabilites','variables-aleatoires']
 MEDIA_NOTE = {
-    'ar': '<p>الدروس والتمارين متاحة بالعربية الفصحى والفرنسية والإنجليزية. تتوفر الشروح البصرية لأربعة وعشرين درسًا بالنص المكتوب باللغة المختارة، دون تعليق صوتي. أما المقاطع السبعة الخاصة بالحالات غير المحددة فتحتفظ بالتعليق الصوتي الاصطناعي بالدارجة المغربية، مع ترجمة نصية باللغات الثلاث. يُبيَّن نوع كل فيديو بجانب المشغّل.</p>',
-    'fr': '<p>Les cours et exercices sont disponibles en arabe standard, en français et en anglais. Les explications visuelles de vingt-quatre cours présentent un texte dans la langue choisie, sans voix. Les sept clips sur les formes indéterminées conservent leur narration synthétique en darija marocaine, avec des sous-titres dans les trois langues. Le type de chaque vidéo est indiqué près du lecteur.</p>',
-    'en': '<p>Courses and exercises are available in Standard Arabic, French and English. The visual explanations for twenty-four courses display text in the selected language without narration. The seven indeterminate-form clips retain their synthetic Moroccan Darija narration and include subtitles in all three languages. Each player clearly identifies the video format.</p>'
+    'ar': '<p>الدروس والتمارين متاحة بالعربية الفصحى والفرنسية والإنجليزية. يتضمن فيديو النهايات تعليقًا صوتيًا اصطناعيًا باللغة المختارة، مدمجًا في ملف الفيديو. وتبقى الشروح البصرية لثلاثة وعشرين درسًا دون صوت. أما المقاطع السبعة الخاصة بالحالات غير المحددة فتحتفظ بصوتها بالدارجة المغربية، مع ترجمة نصية باللغات الثلاث. يُبيَّن نوع كل فيديو ولغة صوته بجانب المشغّل.</p>',
+    'fr': '<p>Les cours et exercices sont disponibles en arabe standard, en français et en anglais. La vidéo des limites comporte une narration synthétique dans la langue choisie, intégrée au MP4. Les explications visuelles de vingt-trois autres cours restent sans voix. Les sept clips sur les formes indéterminées conservent leur narration en darija marocaine, avec des sous-titres dans les trois langues. Le type de vidéo et la langue de sa voix sont indiqués près du lecteur.</p>',
+    'en': '<p>Courses and exercises are available in Standard Arabic, French and English. The limits video includes synthetic narration in the selected language, embedded in the MP4. The visual explanations for twenty-three other courses remain silent. The seven indeterminate-form clips retain their Moroccan Darija narration and include subtitles in all three languages. Each player identifies the video format and spoken language.</p>'
 }
 
 
@@ -52,6 +52,16 @@ def build(allow_unrendered=False):
         catalog = json.loads(catalog_path.read_text()) if catalog_path.exists() else {}
         if catalog:
             assert len(catalog) == 24
+        narrated_path = CONTENT / f'video_catalog_narrated_{lang}.json'
+        if not allow_unrendered:
+            assert narrated_path.is_file(), f'Missing narrated catalogue for {lang}'
+        if narrated_path.exists():
+            narrated = json.loads(narrated_path.read_text())
+            assert set(narrated) <= set(catalog), f'Unexpected narrated lessons in {lang}'
+            for video_list in narrated.values():
+                for video in video_list:
+                    assert video.get('silent') is False and video.get('audioLanguage') == lang
+            catalog.update(narrated)
         for lesson in lessons:
             assert lesson['tracks'] and set(lesson['tracks']) <= {'pc','sm'}
             assert lesson['domain'] in {'analyse','algebre','geometrie','probabilites'}
@@ -59,7 +69,7 @@ def build(allow_unrendered=False):
             if lesson['id'] in catalog:
                 lesson['videos'] = copy.deepcopy(catalog[lesson['id']])
             for video in lesson['videos']:
-                if not video.get('silent'):
+                if not video.get('silent') and lesson['id'] == 'formes-indeterminees':
                     video['audioLanguage'] = 'ary'
                     stem = Path(video['src']).stem
                     caption_tracks = [{'src': f'media/captions/{code}/{stem}.vtt', 'language': code, 'label': LANGUAGE_LABELS[code]} for code in LANGUAGES]
@@ -74,14 +84,15 @@ def build(allow_unrendered=False):
                 assert 0 <= q['correct'] < len(q['choices'])
         actual = counts(data)
         assert actual == {'lessons':25,'sections':133,'exercises':75,'quizzes':43,'videos':31,'tracks':{'pc':18,'sm':23}}, (lang, actual)
-        data['meta'].update(version='1.1.0', language=lang, updated={'ar':'21 نوفمبر 2026','fr':'21 novembre 2026','en':'21 November 2026'}[lang])
+        data['meta'].update(version='1.2.0', language=lang, updated={'ar':'21 نوفمبر 2026','fr':'21 novembre 2026','en':'21 November 2026'}[lang])
         paragraphs = re.findall(r'<p>.*?</p>', data['meta']['curriculumNote'], flags=re.S)
         data['meta']['curriculumNote'] = ''.join(paragraphs[:2]) + MEDIA_NOTE[lang]
         locales[lang] = data
     destination = SITE / 'data' / 'courses.js'
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text('/* Generated from complete authored locales by scripts/build_content.py. */\nwindow.REGAM_LOCALES = ' + json.dumps(locales, ensure_ascii=False, separators=(',', ':')) + ';\nwindow.REGAM_DATA = window.REGAM_LOCALES.ar;\n', encoding='utf-8')
-    report = {'version':'1.1.0', 'languages':list(locales), 'counts_per_language':counts(locales['ar']), 'bundle_bytes':destination.stat().st_size, 'localized_silent_videos':sum(len(json.loads((CONTENT / f'video_catalog_{lang}.json').read_text())) for lang in LANGUAGES if (CONTENT / f'video_catalog_{lang}.json').exists()), 'development_build':allow_unrendered}
+    videos = [v for data in locales.values() for lesson in data['lessons'] for v in lesson['videos']]
+    report = {'version':'1.2.0', 'languages':list(locales), 'counts_per_language':counts(locales['ar']), 'bundle_bytes':destination.stat().st_size, 'localized_silent_videos':sum(bool(v.get('silent')) for v in videos), 'localized_narrated_videos':sum(v.get('audioLanguage') in LANGUAGES for v in videos), 'development_build':allow_unrendered}
     print(json.dumps(report, ensure_ascii=False))
     return report
 

@@ -1,6 +1,6 @@
 {
   "name": "regam-bac-maths",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Static Moroccan bac mathematics library. Node is needed only for development checks.",
   "scripts": {

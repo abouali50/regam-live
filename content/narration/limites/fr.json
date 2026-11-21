@@ -1,0 +1,66 @@
+{
+  "lessonId": "limites",
+  "language": "fr",
+  "provider": "vidIQ",
+  "voice": {
+    "voiceId": "O31r762Gb3WFygrEOGh0",
+    "name": "Victoria - Content Creator",
+    "language": "fr",
+    "accent": "parisian",
+    "gender": "female"
+  },
+  "scriptLines": [
+    "On cherche la limite de deux x au cube moins x, divisé par x au cube plus quatre, lorsque x tend vers plus l’infini. Commençons par reconnaître la forme obtenue.",
+    "Le numérateur et le dénominateur tendent tous deux vers plus l’infini. La substitution directe ne détermine donc pas la limite. Il faut réécrire le quotient.",
+    "La plus grande puissance présente est x au cube. On divise le numérateur et le dénominateur entiers par cette puissance pour conserver la même valeur du quotient.",
+    "Un sur x au carré tend vers zéro, tout comme quatre sur x au cube. Le nouveau dénominateur tend vers un, qui est non nul.",
+    "La limite vaut donc deux. On peut la vérifier grâce à l’égalité des degrés. Le rapport des coefficients dominants est deux divisé par un."
+  ],
+  "jobId": "job_f5374fc8-baa2-4aa0-8152-21107cc16d47",
+  "result": {
+    "voiceoverId": "308f22d1-492c-41ee-ac16-ed9e3f608a49",
+    "durationSeconds": 45.348571,
+    "charCount": 738,
+    "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/308f22d1-492c-41ee-ac16-ed9e3f608a49.mp3",
+    "lines": [
+      {
+        "index": 0,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/02542085-94e2-4f25-82f6-d0288107cd42.mp3",
+        "startSeconds": 0,
+        "durationSeconds": 10.370612,
+        "charCount": 161
+      },
+      {
+        "index": 1,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/d9dabad7-e135-4fb6-abd7-b200372678af.mp3",
+        "startSeconds": 10.370612,
+        "durationSeconds": 9.639184,
+        "charCount": 157
+      },
+      {
+        "index": 2,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/ec861fca-a899-42bd-8c29-1c1dcc73b0ec.mp3",
+        "startSeconds": 20.009796,
+        "durationSeconds": 9.325714,
+        "charCount": 162
+      },
+      {
+        "index": 3,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/ca0f033e-4083-4029-b4b6-7fbd6de8d534.mp3",
+        "startSeconds": 29.33551,
+        "durationSeconds": 7.810612,
+        "charCount": 121
+      },
+      {
+        "index": 4,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/83b10e47-186f-43ce-9dee-876462b3a934.mp3",
+        "startSeconds": 37.146122,
+        "durationSeconds": 8.202449,
+        "charCount": 137
+      }
+    ]
+  },
+  "creditsUsed": 28,
+  "generatedAt": "2026-11-21",
+  "review": "Technical validation pending; no full human listening review claimed."
+}

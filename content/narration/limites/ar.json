@@ -1,0 +1,66 @@
+{
+  "lessonId": "limites",
+  "language": "ar",
+  "provider": "vidIQ",
+  "voice": {
+    "voiceId": "u0TsaWvt0v8migutHM3M",
+    "name": "Ghizlane - Smooth, Distinctive and Calm",
+    "language": "ar",
+    "accent": "modern standard",
+    "gender": "female"
+  },
+  "scriptLines": [
+    "نريد نهاية اثنين في مكعب إكس ناقص إكس، مقسوماً على مكعب إكس زائد أربعة، عندما تتجه إكس إلى موجب اللانهاية. نبدأ بتحديد الشكل.",
+    "يتجه البسط والمقام معاً إلى موجب اللانهاية. لا يحدد التعويض المباشر النتيجة، ولذلك نحتاج إلى تغيير صورة الكسر.",
+    "أكبر قوة هي مكعب إكس. نقسم عليها البسط والمقام كاملين، حتى نحافظ على قيمة الكسر، ولا نكتفي بقسمة بعض الحدود.",
+    "يقترب مقلوب مربع إكس من الصفر، وكذلك أربعة على مكعب إكس. ويقترب المقام الجديد من الواحد، وهو غير منعدم.",
+    "إذن النهاية اثنان. نتحقق أيضاً بملاحظة تساوي درجتي البسط والمقام، وأن نسبة المعاملين الرئيسيين اثنان على واحد."
+  ],
+  "jobId": "job_399fcb8f-1059-4c36-8939-7995bbf4bb7d",
+  "result": {
+    "voiceoverId": "cedc946f-6a2a-4e87-82a7-7ea0edba883b",
+    "durationSeconds": 54.93551,
+    "charCount": 556,
+    "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/cedc946f-6a2a-4e87-82a7-7ea0edba883b.mp3",
+    "lines": [
+      {
+        "index": 0,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/4b0e60eb-9f90-43ff-81f7-ffe508a03fb8.mp3",
+        "startSeconds": 0,
+        "durationSeconds": 12.120816,
+        "charCount": 125
+      },
+      {
+        "index": 1,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/c989b28f-bafa-48e4-a519-a69a73f19f0b.mp3",
+        "startSeconds": 12.120816,
+        "durationSeconds": 10.527347,
+        "charCount": 110
+      },
+      {
+        "index": 2,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/b0f2b3c2-6d42-4337-b8f8-8e99c77a07ab.mp3",
+        "startSeconds": 22.648163,
+        "durationSeconds": 10.527347,
+        "charCount": 108
+      },
+      {
+        "index": 3,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/66e54ee3-a3f2-45a0-bd97-9ec944f81472.mp3",
+        "startSeconds": 33.17551,
+        "durationSeconds": 10.527347,
+        "charCount": 103
+      },
+      {
+        "index": 4,
+        "audioUrl": "https://assets.vidiq.com/voiceovers/ed2464e1-7c94-401f-992c-4842a5eb45c4/8973710b-5190-4f67-8da6-0ffe02f3968e.mp3",
+        "startSeconds": 43.702857,
+        "durationSeconds": 11.232653,
+        "charCount": 110
+      }
+    ]
+  },
+  "creditsUsed": 28,
+  "generatedAt": "2026-11-21",
+  "review": "Technical validation pending; no full human listening review claimed."
+}

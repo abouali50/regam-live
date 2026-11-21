@@ -62,13 +62,13 @@ def wrapped(text, size, rtl):
     return result
 
 
-def frame(lesson, segment, index, lang):
+def frame(lesson, segment, index, lang, audio_label=None):
     rtl = lang == 'ar'
     labels = LABELS[lang]
     im = drawing.BG.copy()
     draw = ImageDraw.Draw(im)
     draw.text((72, 38), 'REGAM / ACADEMY', font=drawing.font(25, True), fill=drawing.GOLD)
-    text = labels['silent']
+    text = audio_label or labels['silent']
     font = drawing.font(24)
     bounds = draw.textbbox((0, 0), text, font=font, direction='rtl' if rtl else 'ltr')
     draw.text((1520 - bounds[2], 32 - bounds[1]), text, font=font, fill=drawing.MUTED, direction='rtl' if rtl else 'ltr')

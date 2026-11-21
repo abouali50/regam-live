@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "REGAM Academy",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "updated": "21 novembre 2026",
     "curriculumNote": "<p>Cette bibliothèque propose des cours et des exercices originaux de mathématiques pour la deuxième année du baccalauréat au Maroc. L’ordre des thèmes s’appuie sur les orientations pédagogiques disponibles pour les sciences expérimentales et les sciences mathématiques. Le découpage en leçons courtes est un choix pédagogique du site.</p><p>Les documents de référence ci-dessous sont des copies de documents ministériels hébergées sur des sites éducatifs. Ces cours ne constituent pas une publication officielle et ne confirment aucune modification propre à l’examen de 2027. Pour une session donnée, consultez avec votre professeur le cadre de référence et les notes applicables.</p><p>Les cours écrits sont disponibles en arabe standard, en français et en anglais. Les sept vidéos sur les formes indéterminées comportent actuellement une voix de synthèse en darija marocaine. Les autres explications visuelles présentent les étapes par écrit, sans commentaire audio. Cette distinction est indiquée dans le lecteur. Le nombre de vidéos affiché pour chaque leçon correspond aux fichiers réellement disponibles.</p>",
     "language": "fr"

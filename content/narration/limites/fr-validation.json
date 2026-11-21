@@ -1,0 +1,67 @@
+{
+  "language": "fr",
+  "lesson": "limites",
+  "duration": 55.666667,
+  "audio_codec": "aac",
+  "video_sha256": "36557465f9d1bfe1f9243f7971d2f496c14d47fd31b3d2d6014d0cf36d4d2482",
+  "timings": [
+    {
+      "index": 0,
+      "start": 0.0,
+      "audio_duration": 10.370563,
+      "scene_duration": 12.5,
+      "source": "content/narration/limites/fr/01.mp3",
+      "source_sha256": "b6fb85926ffed72faf31cd5c46cbbba1ffb2aba196245e779b2eec340b40567d"
+    },
+    {
+      "index": 1,
+      "start": 12.5,
+      "audio_duration": 9.639125,
+      "scene_duration": 11.666666666666666,
+      "source": "content/narration/limites/fr/02.mp3",
+      "source_sha256": "5f1fcad42388053dc30152bac64e2acd496f0c070acb23082469e51d57050107"
+    },
+    {
+      "index": 2,
+      "start": 24.166666666666664,
+      "audio_duration": 9.325688,
+      "scene_duration": 11.333333333333334,
+      "source": "content/narration/limites/fr/03.mp3",
+      "source_sha256": "148473fb1d0192ffab041c9db8133b89c8665334df70213970ad3f21b0b40e35"
+    },
+    {
+      "index": 3,
+      "start": 35.5,
+      "audio_duration": 7.810563,
+      "scene_duration": 9.833333333333334,
+      "source": "content/narration/limites/fr/04.mp3",
+      "source_sha256": "1cd7379b9c4c3ab97fdc54051887ee370dd39d507aa03c46ff3a809794dfe771"
+    },
+    {
+      "index": 4,
+      "start": 45.333333333333336,
+      "audio_duration": 8.202438,
+      "scene_duration": 10.333333333333334,
+      "source": "content/narration/limites/fr/05.mp3",
+      "source_sha256": "923c559a75432daed42d4d00e66f5db8d021437f2713dcab7aaae271763f1e59"
+    }
+  ],
+  "loudness_target": {
+    "integrated_lufs": -18,
+    "true_peak_db": -2,
+    "source_measurement": {
+      "input_i": "-21.67",
+      "input_tp": "-2.15",
+      "input_lra": "5.80",
+      "input_thresh": "-31.96",
+      "output_i": "-17.96",
+      "output_tp": "-2.00",
+      "output_lra": "4.80",
+      "output_thresh": "-28.24",
+      "normalization_type": "dynamic",
+      "target_offset": "-0.04"
+    }
+  },
+  "volume_measurement": "mean_volume: -18.9 dB\n[Parsed_volumedetect_0 @ 0x7fee04003140] max_volume: -1.9 dB\n[Parsed_volumedetect_0 @ 0x7fee04003140] histogram_1db: 17\n[Parsed_volumedetect_0 @ 0x7fee04003140] histogram_2db: 553\n[Parsed_volumedetect_0 @ 0x7fee04003140] histogram_3db: 1352\n[Parsed_volumedetect_0 @ 0x7fee04003140] histogram_4db: 2605\n[out#0/null @ 0x5612fe2c0c40] video:0KiB audio:5216KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\nsize=N/A time=00:00:55.67 bitrate=N/A speed=1.4e+03x",
+  "listening_review": "Not independently listened to or transcribed in this environment."
+}

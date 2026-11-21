@@ -1,0 +1,51 @@
+{
+  "limites": [
+    {
+      "title": "Limite d’un quotient à l’infini",
+      "src": "media/fr/limites-narrated.mp4",
+      "poster": "media/fr/limites-narrated.jpg",
+      "duration": 55.666667,
+      "silent": false,
+      "audioLanguage": "fr",
+      "aspectRatio": "16:9",
+      "narration": "synthetic",
+      "textLanguage": "fr",
+      "description": "Avec narration en français",
+      "voiceName": "Victoria - Content Creator",
+      "tracks": [
+        {
+          "src": "media/fr/limites-narrated.vtt",
+          "language": "fr",
+          "label": "Français"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "On cherche la limite de deux x au cube moins x, divisé par x au cube plus quatre, lorsque x tend vers plus l’infini. Commençons par reconnaître la forme obtenue.",
+          "equation": "\\lim_{x\\to+\\infty}\\frac{2x^3-x}{x^3+4}",
+          "note": "Identifier la forme"
+        },
+        {
+          "text": "Le numérateur et le dénominateur tendent tous deux vers plus l’infini. La substitution directe ne détermine donc pas la limite. Il faut réécrire le quotient.",
+          "equation": "\\frac{\\infty}{\\infty}",
+          "note": "Une forme indéterminée"
+        },
+        {
+          "text": "La plus grande puissance présente est x au cube. On divise le numérateur et le dénominateur entiers par cette puissance pour conserver la même valeur du quotient.",
+          "equation": "\\frac{2-1/x^2}{1+4/x^3}",
+          "note": "Diviser les deux termes par x³"
+        },
+        {
+          "text": "Un sur x au carré tend vers zéro, tout comme quatre sur x au cube. Le nouveau dénominateur tend vers un, qui est non nul.",
+          "equation": "\\frac{2-0}{1+0}",
+          "note": "Passer à la limite"
+        },
+        {
+          "text": "La limite vaut donc deux. On peut la vérifier grâce à l’égalité des degrés. Le rapport des coefficients dominants est deux divisé par un.",
+          "equation": "\\boxed{2}",
+          "note": "Conclure"
+        }
+      ]
+    }
+  ]
+}

@@ -55,6 +55,25 @@
     };
   }
 
+  // while the audience sees the flag and hears the anthem, the host is told, with the time left
+  function openingNote() {
+    fetch('/api/opening', { cache: 'no-store' }).then((r) => r.json()).then((o) => {
+      if (!o.on || document.querySelector('.opening-note')) return;
+      const n = el('div', { class: 'opening-note', role: 'status' });
+      document.body.append(n);
+      const audio = new Audio('/opening/hymne.mp3');
+      audio.addEventListener('loadedmetadata', () => { left = Math.round(audio.duration || left); }, { once: true });
+      let left = 68;
+      const tick = () => {
+        if (left < 0) { n.remove(); clearInterval(t); return; }
+        n.textContent = T('الجمهور كيشوف دابا العلم المغربي ويسمع النشيد الوطني: {s} ثانية. بدا الهضرة من بعد.', { s: left });
+        left -= 1;
+      };
+      const t = setInterval(tick, 1000); tick();
+      n.onclick = () => { n.remove(); clearInterval(t); };
+    }).catch(() => {});
+  }
+
   function logout() {
     sessionStorage.removeItem(TOKEN_KEY);
     location.reload();
@@ -1150,7 +1169,7 @@
     })
       .on('anyone', (d) => { $('#anyoneChk').checked = !!d.on; })
       .on('waiting', (d) => showWaiting(d.gate, d.list))
-      .on('live', (d) => setBadge(d.on))
+      .on('live', (d) => { setBadge(d.on); if (d.on && d.openingAt) openingNote(); })
       .on('viewers', (d) => { $('#viewers').textContent = d.n; fitBitrate(d.n); })
       .on('hands', (d) => showHands(d.list))
       .on('guests', (d) => showGuests(d.guests))

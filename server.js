@@ -1331,7 +1331,7 @@ wss.on('connection', (ws, req) => {
       if (!room.byUid.has(ws.uid)) room.byUid.set(ws.uid, new Set());
       room.byUid.get(ws.uid).add(ws);
       return tx(ws, {
-        t: 'init', now: Date.now(), tz: siteTz(), live: room.live, handOk: handOk(room, ws), anyone: ws.mod ? !!room.cfg.anyone : undefined, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
+        t: 'init', now: Date.now(), tz: siteTz(), live: room.live, openingAt: room.live && room.openingAt && Date.now() - room.openingAt < 90e3 ? room.openingAt : 0, handOk: handOk(room, ws), anyone: ws.mod ? !!room.cfg.anyone : undefined, likes: room.likes, reacts: room.totals, viewers: peopleIn(room),
         slow: room.cfg.slow, pinned: room.cfg.pinned, title: room.cfg.liveTitle, admin: ws.admin || undefined, words: ws.mod ? room.cfg.words || [] : undefined, reporting: room.live && room.cfg.report !== false,
         reports: ws.mod ? { list: reportsOf(room), on: room.cfg.report !== false, lang: room.cfg.reportLang || 'auto', ai: ai.ready() } : undefined, relay: ws.mod ? relayView(room) : undefined,
         history: room.history, guests: guestsPublic(room), maxGuests: MAX_GUESTS, mod: ws.mod || ws.helper, helper: ws.helper || undefined, helpers: ws.mod ? helpersOf(room) : undefined, banned: !!room.cfg.banned[ws.uid],
@@ -1872,6 +1872,7 @@ async function pollLive() {
     room.live = on;
     const fresh = on && !(room.offAt && Date.now() - room.offAt < 5 * 60e3);      // a live that came back within five minutes is the same live: no new opening
     if (!on) room.offAt = Date.now();
+    if (fresh) room.openingAt = Date.now();      // the flag and the anthem start now, for everyone: who comes in a little later joins them where they are
     if (on) { room.liveSince = Date.now(); room.limitWarned = false; }
     if (on) { room.likes = 0; room.cheered = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }
     if (on) {                                                                       // going on air ahead of a planned live starts that live: its code, its link and its "open" setting count from now
@@ -1883,7 +1884,7 @@ async function pollLive() {
         for (const c of [...room.clients]) if (!c.mod && !c.helper && !slotOf(room, c.uid) && c.sessCode && !safeEq(c.sessCode, s.code || '')) c.close();      // who came in with the link of another live comes back through the code
       } else if (room.cfg.active) { delete room.cfg.active; save(); }
     }      // a new live starts its reactions from zero
-    broadcast(room, { t: 'live', on, fresh });
+    broadcast(room, { t: 'live', on, fresh, openingAt: fresh ? room.openingAt : 0 });
     if (on) {                                                                       // the minutes: carried on if the live just dropped for a moment, else new
       if (room.reportTimer) { clearTimeout(room.reportTimer); room.reportTimer = null; }
       else room.minutes = null;

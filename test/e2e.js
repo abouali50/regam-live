@@ -216,6 +216,14 @@ async function until(fn, ms = 15000, step = 250) {
     check('by default, a viewer without the link of a meeting cannot ask to come on stage', !(await studio.isChecked('#anyoneChk')) && await viewer.locator('#handBtn').isHidden());
     await studio.check('#anyoneChk');
     check('once the host lets everybody ask, the "ask to speak" button appears for them', (await until(() => viewer.locator('#handBtn').isVisible())) !== null);
+    {   // someone who arrives a few seconds after the start still gets the flag and the anthem, joined where they are
+      const lctx = await browser.newContext({ locale: 'fr-FR' });
+      await lctx.addInitScript(() => { const stub = { play: (o) => { window.__opening = o || {}; return Promise.resolve(true); }, preload() {} }; Object.defineProperty(window, 'RegamOpening', { get: () => stub, set() {}, configurable: true }); });
+      const late = await lctx.newPage(); await late.goto(BASE + '/');
+      const op = await until(() => late.evaluate(() => window.__opening || null), 8000);
+      check('a viewer arriving just after the live started gets the opening (flag and anthem), joined at the point it has reached', !!op && op.from > 0 && op.from < 62, JSON.stringify(op));
+      await lctx.close();
+    }
     check('relay receives mixed video + audio from the studio', (await until(() => sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v && v.videoWidth === 1280 && window.paths.studio_main.getAudioTracks().length === 1; }))) !== null, await sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v ? v.videoWidth + 'x' + v.videoHeight + ' audio=' + window.paths.studio_main.getAudioTracks().length : 'none'; }));
 
     // ---- chat + moderation --------------------------------------------------

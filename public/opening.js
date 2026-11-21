@@ -22,7 +22,8 @@
   .opening .op-tap{bottom:18vh;left:50%;transform:translateX(-50%)}
   @keyframes op-zoom{from{transform:scale(1)}to{transform:scale(1.12)}}
   @media (prefers-reduced-motion:reduce){.opening .op-flag{animation:none}}`;
-  function play() {
+  function play(opts = {}) {
+    const from = Math.max(0, Number(opts.from) || 0);
     return load().then((d) => new Promise((done) => {
       if (running || !d.on) return done(false);
       running = true;
@@ -41,6 +42,7 @@
       const skip = el('button', 'op-skip', { type: 'button', textContent: (window.T || ((x) => x))('تخطى') });
       root.append(skip, bar);
       const audio = new Audio('/opening/hymne.mp3'); audio.preload = 'auto';
+      if (from > 0) audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = Math.min(from, Math.max(0, (audio.duration || 68) - 2)); } catch {} }, { once: true });      // came in late: joins the anthem where it is
       let over = false, timer = null;
       const finish = () => {
         if (over) return; over = true; clearInterval(timer);

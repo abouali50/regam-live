@@ -643,6 +643,7 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  'الجمهور كيشوف دابا العلم المغربي ويسمع النشيد الوطني: {s} ثانية. بدا الهضرة من بعد.': ['Les spectateurs voient le drapeau marocain et entendent l\'hymne national : encore {s} s. Commencez à parler après.', 'The audience is seeing the Moroccan flag and hearing the national anthem: {s} s left. Start speaking after it.'],
   'افتتاح اللايف': ['Ouverture du live', 'Live opening'],
   'فبداية كل لايف كيبان للمتابعين العلم المغربي مع النشيد الوطني، وكاين زر «تخطى».': ['Au début de chaque live, les spectateurs voient le drapeau du Maroc et entendent l’hymne national. Un bouton « Passer » est proposé.', 'At the start of every live, viewers see the Moroccan flag and hear the national anthem. A “Skip” button is offered.'],
   'شغل الافتتاح': ['Activer l’ouverture', 'Turn the opening on'],

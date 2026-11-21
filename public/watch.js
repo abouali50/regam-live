@@ -526,6 +526,17 @@
   link.on('asked', (d) => toast(T(d.wait ? 'تسنى شوية قبل ما تصيفط سؤال آخر.' : 'وصل السؤال ديالك للأستاذ.')));
 
   // ---- a poll or a quiz from the teacher: answer with one tap, see the result
+  // ---- the opening of a live (flag and anthem): for those here when it starts, and for those who come in during it,
+  // joined at the point it has reached, so everyone ends it together
+  let openingSeen = 0;
+  function opening(at, serverNow) {
+    if (!at || !window.RegamOpening || openingSeen === at) return;
+    const from = serverNow ? Math.max(0, (serverNow - at) / 1000) : 0;
+    if (from > 62) return;
+    openingSeen = at;
+    video.pause();
+    RegamOpening.play({ from }).then(() => { if (live) video.play().catch(() => {}); });
+  }
   let pollSeen = '';
   function showPoll(p) {
     $('#pollBox').hidden = !!p.off;
@@ -668,12 +679,13 @@
     loadExtras();
     if (d.needPass) await pass();                 // lets the player fetch the stream
     setLive(d.live);
+    if (d.live) opening(d.openingAt, d.now);      // the live started less than a minute ago: the flag and the anthem, from where they are now
     $('#viewers').textContent = d.viewers;
     if (d.title) $('#title').textContent = d.title;
     showGuests(d.guests); setHand(!!d.hand);
     if (onStage && !(d.guests || []).some((g) => g.uid === link.uid)) leaveStage(false);
   })
-    .on('live', (d) => { const starting = d.on && !live && d.fresh !== false; setLive(d.on); if (starting && window.RegamOpening) { video.pause(); RegamOpening.play().then(() => { if (live) video.play().catch(() => {}); }); } })
+    .on('live', (d) => { setLive(d.on); if (d.on) opening(d.openingAt, 0); })
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guests', (d) => showGuests(d.guests))

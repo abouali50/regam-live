@@ -1,0 +1,33 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Identify the form
+Find the limit of two x cubed minus x, divided by x cubed plus four, as x
+tends to positive infinity. Begin by identifying the form.
+
+2
+00:00:14.818 --> 00:00:28.273
+An indeterminate form
+Both the numerator and denominator tend to positive infinity. Direct
+substitution therefore does not determine the result. We need to rewrite the
+quotient.
+
+3
+00:00:28.273 --> 00:00:42.636
+Divide numerator and denominator by x³
+The highest power present is x cubed. Divide the entire numerator and
+denominator by it, including every term, to preserve the value of the
+quotient.
+
+4
+00:00:42.636 --> 00:00:55.636
+Take the limit
+One over x squared tends to zero, as does four over x cubed. The new
+denominator tends to one, which is nonzero.
+
+5
+00:00:55.636 --> 00:01:10.000
+Conclude
+The result is two. We can check it because the degrees are equal and the ratio
+of the leading coefficients is two divided by one.

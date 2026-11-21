@@ -1,0 +1,40 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Lire les données
+On cherche une fonction dont la dérivée vaut moins deux fois la fonction plus
+six. Une condition supplémentaire impose que sa valeur en zéro soit un.
+
+2
+00:00:14.818 --> 00:00:27.818
+Trouver l’équilibre
+Déterminons la solution constante. Sa dérivée vaut zéro, donc moins deux fois
+cette constante plus six doit être nul. On obtient trois.
+
+3
+00:00:27.818 --> 00:00:41.273
+Écrire la solution générale
+La solution générale s’écrit trois plus une constante multipliée par
+l’exponentielle de moins deux x. La condition initiale permettra de fixer
+cette constante.
+
+4
+00:00:41.273 --> 00:00:54.727
+Utiliser la condition
+En remplaçant x par zéro, l’exponentielle vaut un. Il reste trois plus la
+constante égal à un, donc la constante vaut moins deux.
+
+5
+00:00:54.727 --> 00:01:10.000
+Obtenir la fonction
+On remplace la constante dans la formule générale. La solution vaut trois
+moins deux fois l’exponentielle de moins deux x. Vérifions encore la dérivée
+et la condition.
+
+6
+00:01:10.000 --> 00:01:26.182
+Vérifier et conclure
+La dérivée vaut quatre fois cette exponentielle, ce qui coïncide avec moins
+deux fois la fonction plus six. La valeur en zéro est bien un. La solution est
+vérifiée.

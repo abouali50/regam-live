@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.727
+Sphère et plan
+La sphère est centrée à l’origine et son rayon vaut cinq. On cherche son
+intersection avec le plan z égal à trois et le rayon de cette intersection.
+
+2
+00:00:15.727 --> 00:00:29.182
+Projeter le centre
+Le projeté du centre sur le plan est H, de coordonnées zéro, zéro, trois. La
+distance de l’origine à H vaut exactement trois.
+
+3
+00:00:29.182 --> 00:00:43.545
+Une intersection circulaire
+Trois est inférieur à cinq. Le plan coupe donc la sphère suivant un cercle.
+Son centre est H, et non le centre de la sphère.
+
+4
+00:00:43.545 --> 00:00:57.909
+Appliquer Pythagore
+Pour déterminer le rayon, on applique Pythagore dans le triangle rectangle. Le
+carré du rayon du cercle vaut cinq au carré moins trois au carré.
+
+5
+00:00:57.909 --> 00:01:09.091
+Choisir la racine positive
+Vingt-cinq moins neuf vaut seize. Le rayon étant positif, on prend la racine
+positive, qui vaut ici quatre.
+
+6
+00:01:09.091 --> 00:01:26.636
+Cercle de centre H et de rayon 4
+L’intersection est donc un cercle dans le plan z égal à trois, de centre zéro,
+zéro, trois et de rayon quatre. La distance a permis de déterminer la position
+puis les dimensions.

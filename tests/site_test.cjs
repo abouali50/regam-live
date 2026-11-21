@@ -25,7 +25,7 @@ window.print = () => {};
 window.HTMLElement.prototype.scrollIntoView = () => {};
 window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
 window.HTMLDialogElement.prototype.close = function () { this.open = false; };
-for (const file of ['assets/vendor/katex.min.js', 'assets/vendor/auto-render.min.js', 'data/courses.js']) window.eval(read(file));
+for (const file of ['assets/vendor/katex.min.js', 'assets/vendor/auto-render.min.js', 'data/courses.js', 'assets/i18n.js']) window.eval(read(file));
 const data = window.REGAM_DATA;
 assert.equal(data.lessons.length, 25);
 assert.equal(data.lessons.filter(l => l.tracks.includes('pc')).length, 18);

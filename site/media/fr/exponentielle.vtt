@@ -1,0 +1,39 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Reconnaître une expression répétée
+L’équation contient l’exponentielle de x et celle de deux x. Pour la
+simplifier, on la transforme en une équation du second degré dans une nouvelle
+variable.
+
+2
+00:00:14.818 --> 00:00:29.636
+Changement de variable : t > 0
+On pose t égal à l’exponentielle de x. Le nombre t est strictement positif, et
+l’exponentielle de deux x est le carré de celle de x.
+
+3
+00:00:29.636 --> 00:00:44.000
+Factoriser le trinôme
+On factorise maintenant le polynôme. On cherche deux nombres de somme trois et
+de produit deux. Ce sont un et deux, d’où le produit indiqué.
+
+4
+00:00:44.000 --> 00:00:59.273
+Garder les racines positives
+Un produit est nul si l’un de ses facteurs est nul. Ainsi, t vaut un ou deux.
+Ces deux valeurs sont positives et admissibles dans la substitution.
+
+5
+00:00:59.273 --> 00:01:14.091
+Revenir à la variable x
+On revient à x. Une exponentielle égale à un donne x égal à zéro. Une
+exponentielle égale à deux donne x égal au logarithme de deux.
+
+6
+00:01:14.091 --> 00:01:29.818
+Vérifier les deux solutions
+La substitution dans l’équation initiale donne bien zéro dans les deux cas. Ce
+sont les solutions finales. La réponse doit être exprimée en x, pas seulement
+en t.

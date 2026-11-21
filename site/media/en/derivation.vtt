@@ -1,0 +1,31 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:12.545
+Find the tangent
+Let f of x be x cubed minus three x. We want the tangent at the point whose
+x-coordinate is two.
+
+2
+00:00:12.545 --> 00:00:26.455
+Find the point
+First find the point's height. Substitute x equal to two to get eight minus
+six, or two. The point therefore has coordinates two, two.
+
+3
+00:00:26.455 --> 00:00:41.273
+Calculate the derivative
+Now differentiate. The derivative of x cubed is three x squared, and the
+derivative of minus three x is minus three. This gives the slope function.
+
+4
+00:00:41.273 --> 00:00:55.182
+Use the point and the slope
+At two, the slope is three times four minus three, or nine. Use the tangent
+formula with the value and slope we have calculated.
+
+5
+00:00:55.182 --> 00:01:09.545
+Check the result
+Expand and simplify to get y equal to nine x minus sixteen. Check by
+substituting x equal to two. We recover two, the point's height.

@@ -1,0 +1,34 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:16.636
+Identifier la forme
+On cherche la limite de deux x au cube moins x, divisé par x au cube plus
+quatre, lorsque x tend vers plus l’infini. Commençons par reconnaître la forme
+obtenue.
+
+2
+00:00:16.636 --> 00:00:31.000
+Une forme indéterminée
+Le numérateur et le dénominateur tendent tous deux vers plus l’infini. La
+substitution directe ne détermine donc pas la limite. Il faut réécrire le
+quotient.
+
+3
+00:00:31.000 --> 00:00:46.273
+Diviser les deux termes par x³
+La plus grande puissance présente est x au cube. On divise le numérateur et le
+dénominateur entiers par cette puissance pour conserver la même valeur du
+quotient.
+
+4
+00:00:46.273 --> 00:01:00.636
+Passer à la limite
+Un sur x au carré tend vers zéro, tout comme quatre sur x au cube. Le nouveau
+dénominateur tend vers un, qui est non nul.
+
+5
+00:01:00.636 --> 00:01:14.545
+Conclure
+La limite vaut donc deux. On peut la vérifier grâce à l’égalité des degrés. Le
+rapport des coefficients dominants est deux divisé par un.

@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.455
+Read the condition
+Consider the set of triples whose coordinates sum to zero. We will prove that
+it is a subspace, then find an explicit basis.
+
+2
+00:00:13.455 --> 00:00:27.818
+Prove the subspace property
+The zero vector belongs to the set. A real linear combination of two solutions
+still has coordinate sum zero, so closure under linear combinations holds.
+
+3
+00:00:27.818 --> 00:00:40.364
+Parametrize
+Choose y and z as free parameters. The equation forces x to equal minus y
+minus z, giving a parametric representation.
+
+4
+00:00:40.364 --> 00:00:54.273
+Find spanning vectors
+Collect the terms for each parameter separately. Every element becomes s times
+one vector plus t times another, so these vectors span the space.
+
+5
+00:00:54.273 --> 00:01:10.000
+Check linear independence
+To check independence, suppose the combination is the zero vector. The second
+coordinate forces s to be zero, and the third forces t to be zero as well.
+
+6
+00:01:10.000 --> 00:01:24.818
+Conclude
+The family is spanning and linearly independent, so it is a basis. It contains
+two vectors, giving dimension two, even though the elements have three
+coordinates.

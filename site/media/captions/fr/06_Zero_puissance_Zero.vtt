@@ -1,0 +1,61 @@
+WEBVTT
+
+1
+00:00:00.143 --> 00:00:02.375
+Sixième cas, zéro puissance zéro,
+
+2
+00:00:02.405 --> 00:00:05.277
+dans un calcul de limite. Prenons x puissance x,
+
+3
+00:00:05.349 --> 00:00:07.602
+lorsque x tend vers zéro par la droite.
+
+4
+00:00:07.696 --> 00:00:10.396
+La base et l’exposant tendent tous deux vers zéro.
+
+5
+00:00:10.574 --> 00:00:12.614
+Notons x puissance x
+
+6
+00:00:12.665 --> 00:00:16.676
+y. Prenons son logarithme. Ln y vaut alors
+
+7
+00:00:16.676 --> 00:00:18.269
+x multiplié par ln x.
+
+8
+00:00:18.451 --> 00:00:20.491
+Nous avons vu que x multiplié par ln x
+
+9
+00:00:20.499 --> 00:00:23.358
+tend vers zéro lorsque x tend vers zéro par
+
+10
+00:00:23.358 --> 00:00:26.208
+la droite. Donc ln y tend vers zéro.
+
+11
+00:00:26.430 --> 00:00:30.085
+On revient à l’exponentielle. y tend vers e puissance zéro,
+
+12
+00:00:30.085 --> 00:00:32.176
+soit un. La limite de x puissance
+
+13
+00:00:32.176 --> 00:00:33.598
+x vaut donc ici un.
+
+14
+00:00:33.755 --> 00:00:35.240
+C’est le résultat de cette limite,
+
+15
+00:00:35.291 --> 00:00:37.509
+pas une définition générale de zéro puissance zéro.

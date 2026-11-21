@@ -2,10 +2,22 @@
 (() => {
   'use strict';
 
-  const DATA = window.REGAM_DATA;
+  const LOCALES = window.REGAM_LOCALES || { ar: window.REGAM_DATA };
+  let savedLanguage = 'ar';
+  try { savedLanguage = localStorage.getItem('regam-maths-language') || 'ar'; } catch {}
+  let LANG = new URLSearchParams(location.search).get('lang') || savedLanguage;
+  if (!['ar', 'fr', 'en'].includes(LANG) || !LOCALES[LANG]) LANG = 'ar';
+  let DATA = LOCALES[LANG];
+  window.REGAM_DATA = DATA;
+  const t = (key, values = {}) => {
+    const message = window.REGAM_I18N?.[LANG]?.[key] ?? window.REGAM_I18N?.ar?.[key] ?? key;
+    return String(message).replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ''));
+  };
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
   const app = document.getElementById('app');
   if (!DATA || !Array.isArray(DATA.lessons) || !Array.isArray(DATA.tracks)) {
-    app.innerHTML = '<main class="loading-error"><h1>REGAM Academy</h1><p>ملف الدروس ما تحمّلش. تأكد أن مجلد <code>data</code> موجود حدا <code>index.html</code>، ومن بعد عاود حلّ الصفحة.</p></main>';
+    app.innerHTML = `<main class="loading-error"><h1>REGAM Academy</h1><p>${t('loadError')}</p></main>`;
     return;
   }
 
@@ -27,7 +39,7 @@
   };
 
   const paths = {
-    home: '/', book: '/search', star: '/favorites', sources: '/sources',
+    home: '/', book: '/search', star: '/favorites', sources: '/sources', videos: '/videos',
     track: track => `/track/${slug(track)}`,
     domain: (track, domain) => `/track/${slug(track)}/domain/${slug(domain)}`,
     lesson: (track, lesson, tab = 'cours') => `/track/${slug(track)}/lesson/${slug(lesson)}/${tab}`,
@@ -45,7 +57,7 @@
   const domainSymbol = id => ({ analyse: '∫', algebre: 'ℂ', geometrie: '△', probabilites: 'P' })[id] || '∑';
   const domainTitle = id => { const d = domainById(id); return d.titleAr || d.title || id; };
   const trackLabel = track => track?.nameAr || track?.name || '';
-  const trackShort = track => track?.id === 'sm' ? 'Sciences Maths' : (track?.id === 'pc' ? 'PC / SVT' : track?.name || '');
+  const trackShort = track => track?.id === 'sm' ? 'SM A / B' : (track?.id === 'pc' ? 'PC / SVT' : track?.name || '');
   const availableTrack = lesson => {
     const desired = state.route?.track || state.last?.track;
     return arr(lesson.tracks).includes(desired) ? desired : arr(lesson.tracks)[0] || DATA.tracks[0]?.id;
@@ -84,11 +96,12 @@
     external: '<path d="M14 3h7v7M10 14 21 3M11 3H3v18h18v-8"/>',
     download: '<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
   };
-  const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.book}</svg>`;
+  const icon = (name, className = '') => `<svg class="icon icon-${name} ${className}" viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.book}</svg>`;
 
   // Curriculum files are authored, trusted site content. Search/user strings are escaped.
   function rich(value) {
     if (value == null) return '';
+    if (LANG === 'en' && typeof value === 'string') value = value.replaceAll('\\mathrm{PGCD}', '\\gcd').replaceAll('\\mathrm{PPCM}', '\\operatorname{lcm}');
     // Keep authored HTML, but protect TeX from the HTML parser. Otherwise an
     // inequality such as 0<x<1 can become an accidental HTML element.
     if (typeof value === 'string' || typeof value === 'number') return String(value).replace(/\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$/g, esc);
@@ -121,68 +134,39 @@
 
   function renderSidebar() {
     const current = state.route || {};
-    const completedAll = DATA.lessons.filter(l => arr(l.tracks).some(t => completed(t, l.id))).length;
-    const percentage = DATA.lessons.length ? Math.round(completedAll / DATA.lessons.length * 100) : 0;
-    document.getElementById('sidebar').innerHTML = `
-      <a class="brand" href="#/" aria-label="REGAM Academy، الرئيسية">
-        <span class="brand-mark" aria-hidden="true">∑</span><span><span class="brand-name">REGAM</span><span class="brand-sub">ACADEMY</span></span>
-      </a>
-      <nav aria-label="التنقل الرئيسي">
-        <div class="side-nav">
-          <a class="side-link ${current.type === 'home' ? 'active' : ''}" href="#/">${icon('grid')}<span>المكتبة ديالك</span></a>
-          <a class="side-link ${current.type === 'search' ? 'active' : ''}" href="#/search">${icon('book')}<span>جميع الدروس</span><span class="count">${DATA.lessons.length}</span></a>
-          <a class="side-link ${current.type === 'favorites' ? 'active' : ''}" href="#/favorites">${icon('star')}<span>دروسي المفضلة</span><span class="count">${state.favorites.size}</span></a>
-        </div>
-        <div class="side-section-label">اختار المسار ديالك</div>
-        ${DATA.tracks.map(t => `<a class="side-track ${current.track === t.id ? 'active' : ''}" href="${routeLink(paths.track(t.id))}"><span class="track-monogram">${t.id === 'sm' ? 'SM' : 'PC'}</span><span><strong>${esc(t.name || t.id)}</strong><small>${esc(t.nameAr || (t.id === 'sm' ? 'العلوم الرياضية A و B' : 'الفيزياء وعلوم الحياة والأرض'))}</small></span></a>`).join('')}
-        <div class="side-section-label">باش تقرا على بيّنة</div>
-        <a class="side-link ${current.type === 'sources' ? 'active' : ''}" href="#/sources">${icon('sources')}<span>البرنامج والمراجع</span></a>
-      </nav>
-      <div class="side-bottom"><div class="local-progress"><div class="local-progress-label"><span>دروس علّمتيها كمراجَعة</span><span class="mono">${completedAll}/${DATA.lessons.length}</span></div><div class="progress-line" role="progressbar" aria-label="الدروس المراجعة" aria-valuemin="0" aria-valuemax="${DATA.lessons.length || 1}" aria-valuenow="${completedAll}"><i style="width:${percentage}%"></i></div><p>${storageAvailable ? 'التقدم والمفضلة محفوظين فهاد المتصفح فقط.' : 'التقدم متاح فهاد الجلسة. الحفظ المحلي ما متاحش.'}</p></div><div class="side-footnote">MATHÉMATIQUES · BAC MAROC</div></div>`;
+    const done = DATA.lessons.filter(l => arr(l.tracks).some(track => completed(track, l.id))).length;
+    const nav = [['home','/','grid','myLibrary',null],['search','/search','book','allLessons',DATA.lessons.length],['videos','/videos','video','videoLibrary',countVideos(DATA.lessons)],['favorites','/favorites','star','myFavorites',state.favorites.size]];
+    document.getElementById('sidebar').innerHTML = `<a class="brand" href="#/" aria-label="REGAM Academy"><span class="brand-mark" aria-hidden="true">∑</span><span><span class="brand-name">REGAM</span><span class="brand-sub">ACADEMY</span></span></a><nav aria-label="${t('mainNavigation')}"><div class="side-nav">${nav.map(([type,url,symbol,label,count])=>`<a class="side-link ${current.type===type?'active':''}" href="#${url}">${icon(symbol)}<span>${t(label)}</span>${count!=null?`<span class="count">${count}</span>`:''}</a>`).join('')}</div><div class="side-section-label">${t('chooseTrack')}</div>${DATA.tracks.map(track=>`<a class="side-track ${current.track===track.id?'active':''}" href="${routeLink(paths.track(track.id))}"><span class="track-monogram">${track.id==='sm'?'SM':'PC'}</span><span><strong>${esc(track.name)}</strong><small>${trackShort(track)}</small></span></a>`).join('')}<div class="side-section-label">${t('curriculum')}</div><a class="side-link ${current.type==='sources'?'active':''}" href="#/sources">${icon('sources')}<span>${t('curriculum')}</span></a></nav><div class="side-bottom"><div class="local-progress"><div class="local-progress-label"><span>${t('reviewedLessons')}</span><span class="mono">${done}/${DATA.lessons.length}</span></div><div class="progress-line" role="progressbar" aria-label="${t('reviewedLessons')}" aria-valuemin="0" aria-valuemax="${DATA.lessons.length}" aria-valuenow="${done}"><i style="width:${Math.round(done/DATA.lessons.length*100)}%"></i></div><p>${t(storageAvailable?'localSaved':'localUnavailable')}</p></div></div>`;
     updateDrawerAccessibility();
   }
 
-  function footer() {
-    return `<footer class="site-footer"><span class="footer-name">REGAM ACADEMY</span><span>فهم، تطبيق، ومراجعة على حساب إيقاعك.</span><a href="#/sources">البرنامج والمراجع</a></footer>`;
-  }
+  function footer() { return `<footer class="site-footer"><span class="footer-name">REGAM ACADEMY</span><span>${t('footer')}</span><a href="#/sources">${t('curriculum')}</a></footer>`; }
 
   function breadcrumb(items) {
-    const all = [{ label: 'المكتبة', path: '/' }, ...items];
-    return `<nav class="breadcrumbs" aria-label="مسار الصفحة">${all.map((item, i) => `${i ? icon('chevron') : ''}${item.path ? `<a href="${routeLink(item.path)}">${esc(item.label)}</a>` : `<span aria-current="page">${esc(item.label)}</span>`}`).join('')}</nav>`;
+    return `<nav class="breadcrumbs" aria-label="${t('pagePath')}">${[{label:t('library'),path:'/'},...items].map((item,i)=>`${i?icon('chevron'):''}${item.path?`<a href="${routeLink(item.path)}">${esc(item.label)}</a>`:`<span aria-current="page">${esc(item.label)}</span>`}`).join('')}</nav>`;
   }
 
   function graph() {
-    return `<div class="graph-card"><div class="graph-top"><span>COMPRENDRE LA COURBE</span><span class="tiny-chip">ANALYSE</span></div><svg class="function-graph" viewBox="0 0 390 305" role="img" aria-labelledby="curve-title curve-desc"><title id="curve-title">منحنى الدالة f(x) = (x − 1)²</title><desc id="curve-desc">قطع مكافئ رأسه في النقطة (1، 0). المماس عند x = 1 أفقي.</desc><g stroke="#a8c6c324" stroke-width="1"><path d="M20 80H355M20 140H355M20 200H355M170 35V280M270 35V280"/></g><g stroke="#bdd3d170" stroke-width="1.3"><path d="M20 260H360M70 285V28"/><path d="m354 256 6 4-6 4M66 34l4-6 4 6"/></g><g fill="#afcbca" font-family="Arial,sans-serif" font-size="11"><text x="58" y="278">0</text><text x="166" y="278">1</text><text x="267" y="278">2</text><text x="365" y="264" font-style="italic">x</text><text x="63" y="22" font-style="italic">y</text></g><path d="M20 125 Q170 395 320 125" fill="none" stroke="#85dac1" stroke-width="3.5" stroke-linecap="round"/><path d="M113 260H227" stroke="#e8c482" stroke-width="2" stroke-dasharray="5 5"/><circle cx="170" cy="260" r="5.5" fill="#e8c482" stroke="#123d44" stroke-width="3"/><g fill="#e8c482" font-family="Georgia,serif" font-size="16" font-style="italic"><text x="246" y="89">f(x) = (x − 1)²</text><text x="147" y="230">f′(1) = 0</text></g></svg><div class="graph-bottom"><strong>La méthode avant la réponse.</strong><span>خطوة مفهومة، نتيجة واضحة.</span></div></div>`;
+    return `<div class="graph-card"><div class="graph-top"><span>${t('graphHeading')}</span><span class="tiny-chip">${esc(domainTitle("analyse"))}</span></div><svg class="function-graph" viewBox="0 0 390 305" role="img" aria-labelledby="curve-title curve-desc"><title id="curve-title">${t('graphTitle')}</title><desc id="curve-desc">${t('graphDescription')}</desc><g stroke="#a8c6c324" stroke-width="1"><path d="M20 80H355M20 140H355M20 200H355M170 35V280M270 35V280"/></g><g stroke="#bdd3d170" stroke-width="1.3"><path d="M20 260H360M70 285V28"/><path d="m354 256 6 4-6 4M66 34l4-6 4 6"/></g><g fill="#afcbca" font-family="Arial,sans-serif" font-size="11"><text x="58" y="278">0</text><text x="166" y="278">1</text><text x="267" y="278">2</text><text x="365" y="264" font-style="italic">x</text><text x="63" y="22" font-style="italic">y</text></g><path d="M20 125 Q170 395 320 125" fill="none" stroke="#85dac1" stroke-width="3.5" stroke-linecap="round"/><path d="M113 260H227" stroke="#e8c482" stroke-width="2" stroke-dasharray="5 5"/><circle cx="170" cy="260" r="5.5" fill="#e8c482" stroke="#123d44" stroke-width="3"/><g fill="#e8c482" font-family="Georgia,serif" font-size="16" font-style="italic"><text x="246" y="89">f(x) = (x − 1)²</text><text x="147" y="230">f′(1) = 0</text></g></svg><div class="graph-bottom"><strong>${t('graphMotto')}</strong><span>${t('graphFootnote')}</span></div></div>`;
   }
 
   function renderHome() {
-    let resume = '';
     const lastLesson = state.last && lessonById(state.last.lesson);
-    if (lastLesson && arr(lastLesson.tracks).includes(state.last.track)) {
-      resume = `<a class="continue-card" href="${routeLink(paths.lesson(state.last.track, lastLesson.id, state.last.tab || 'cours'))}"><span class="icon-box">${icon('book')}</span><span><small>كمل من آخر درس فتحتيه</small><strong>${esc(lastLesson.title)}</strong></span>${icon('arrow')}</a>`;
-    }
-    return `${resume}<section class="hero"><div class="hero-copy"><div class="page-eyebrow"><span class="dot"></span><span>المقرر المغربي · الثانية باكالوريا</span></div><h1>المات كتوضح،<br><em>خطوة بخطوة.</em></h1><p>اختار المسار ديالك، فهم الدرس بمثال، وخدم التمارين حتى تولّي الطريقة واضحة. الشرح بالدارجة والمصطلحات الرياضية بالفرنسية.</p><div class="hero-tags"><span class="tag">${icon('book')}دروس منظمة</span><span class="tag">${icon('sheet')}خلاصات للمراجعة</span><span class="tag">${icon('pen')}تمارين مصححة</span><span class="tag">${icon('video')}شرح بالفيديو</span></div></div>${graph()}</section>
-      <section aria-labelledby="tracks-title"><div class="section-heading"><div><h2 id="tracks-title">من هنا كتبدا الرحلة ديالك</h2><p>كل مسار عندو الدروس والتمارين المناسبة ليه.</p></div><span class="section-kicker">CHOISIS TON PARCOURS</span></div><div class="track-grid">${DATA.tracks.map(track => {
-        const lessons = lessonsFor(track.id);
-        return `<a class="track-card ${track.id === 'sm' ? 'sm' : 'pc'}" href="${routeLink(paths.track(track.id))}"><div class="track-card-top"><span class="track-chip">2ᵉ année bac ${track.id === 'sm' ? '· A / B' : '· PC / SVT'}</span><span class="track-card-symbol" aria-hidden="true">${track.id === 'sm' ? '∑' : '∫'}</span></div><h3>${esc(track.name)}</h3><p class="track-ar">${esc(track.nameAr || track.description || '')}</p><div class="track-card-bottom"><span class="counts">${lessons.length} درس <span aria-hidden="true">·</span> ${countExercises(lessons)} تمرين مصحح</span><span class="arrow-button" aria-hidden="true">${icon('arrow')}</span></div></a>`;
-      }).join('')}</div></section>
-      <section class="learning-path" aria-label="طريقة الاستفادة من كل درس"><div class="path-step"><span class="step-no">01</span><div><strong>فهم الدرس</strong><span>الفكرة، القاعدة، والمثال.</span></div></div><div class="path-step"><span class="step-no">02</span><div><strong>شدّ الخلاصة</strong><span>النقط اللي خاصك تتذكر.</span></div></div><div class="path-step"><span class="step-no">03</span><div><strong>جرّب بيدك</strong><span>خدم قبل ما تفتح التصحيح.</span></div></div><div class="path-step"><span class="step-no">04</span><div><strong>شوف الخطوات</strong><span>رجع للفيديو فالوقت اللي تحتاج.</span></div></div></section>
-      <p class="source-domain-note">الدروس مرتبة حسب المسار. الأعداد العقدية كاينة فـ <strong>Algèbre</strong>، و <strong>l’étude de fonction</strong> فـ <strong>Analyse</strong>. <a class="text-accent" href="#/sources">شوف خريطة البرنامج والمراجع ${icon('chevron')}</a></p>`;
+    const resume = lastLesson && arr(lastLesson.tracks).includes(state.last.track) ? `<a class="continue-card" href="${routeLink(paths.lesson(state.last.track,lastLesson.id,state.last.tab||'cours'))}"><span class="icon-box">${icon('book')}</span><span><small>${t('resume')}</small><strong>${esc(lastLesson.title)}</strong></span>${icon('arrow')}</a>` : '';
+    const featured = ['formes-indeterminees','limites','derivation'].map(id=>lessonById(id)).filter(Boolean);
+    return `${resume}<section class="hero"><div class="hero-copy"><div class="page-eyebrow"><span class="dot"></span>${t('moroccanBac')}</div><h1>${t('heroTitle')}<br><em>${t('heroEmphasis')}</em></h1><p>${t('heroIntro')}</p><div class="hero-actions"><a class="button" href="#/videos">${icon('play')}${t('browseVideos')}<span class="button-count">${countVideos(DATA.lessons)}</span></a><a class="button secondary" href="#/search">${t('browseCourses')}${icon('arrow')}</a></div><div class="hero-tags">${[['book','structuredLessons'],['sheet','reviewSheets'],['pen','correctedExercises'],['video','videoExplanations']].map(([symbol,key])=>`<span class="tag">${icon(symbol)}${t(key)}</span>`).join('')}</div></div>${graph()}</section><section aria-labelledby="tracks-title"><div class="section-heading"><div><h2 id="tracks-title">${t('tracksTitle')}</h2><p>${t('tracksIntro')}</p></div></div><div class="track-grid">${DATA.tracks.map(track=>{ const lessons=lessonsFor(track.id);return `<a class="track-card ${track.id}" href="${routeLink(paths.track(track.id))}"><div class="track-card-top"><span class="track-chip">${t('bacYear')} · ${trackShort(track)}</span><span class="track-card-symbol" aria-hidden="true">${track.id==='sm'?'∑':'∫'}</span></div><h3>${esc(track.name)}</h3><p class="track-ar">${esc(track.description)}</p><div class="track-card-bottom"><span class="counts">${t('lessonCount',{n:lessons.length})} · ${t('exerciseCount',{n:countExercises(lessons)})}</span><span class="arrow-button" aria-hidden="true">${icon('arrow')}</span></div></a>`;}).join('')}</div></section><section class="featured-videos" aria-labelledby="featured-videos-title"><div class="section-heading"><div><h2 id="featured-videos-title">${t('featuredVideos')}</h2><p>${t('videoPractice')}</p></div><a class="text-accent" href="#/videos">${t('videoLibrary')}${icon('chevron')}</a></div><div class="video-grid featured-grid">${featured.map(l=>videoCard(l.videos[0],l,true)).join('')}</div></section><section class="learning-path" aria-label="${t('learningMethod')}">${[['stepUnderstand','stepUnderstandBody'],['stepSummary','stepSummaryBody'],['stepPractice','stepPracticeBody'],['stepVideo','stepVideoBody']].map(([head,body],i)=>`<div class="path-step"><span class="step-no">0${i+1}</span><div><strong>${t(head)}</strong><span>${t(body)}</span></div></div>`).join('')}</section>`;
   }
 
   function renderDomainCards(track, selected) {
-    const lessons = lessonsFor(track.id);
-    return `<div class="domain-grid">${arr(DATA.domains).filter(d => lessons.some(l => l.domain === d.id)).map(d => `<a class="domain-card ${selected === d.id ? 'active' : ''}" href="${routeLink(paths.domain(track.id, d.id))}"><span class="domain-symbol" aria-hidden="true">${domainSymbol(d.id)}</span><strong>${esc(d.title)}</strong><span>${esc(d.titleAr || '')} · ${lessons.filter(l => l.domain === d.id).length} دروس</span></a>`).join('')}</div>`;
+    const lessons=lessonsFor(track.id);
+    return `<div class="domain-grid">${DATA.domains.filter(d=>lessons.some(l=>l.domain===d.id)).map(d=>`<a class="domain-card ${selected===d.id?'active':''}" href="${routeLink(paths.domain(track.id,d.id))}"><span class="domain-symbol" aria-hidden="true">${domainSymbol(d.id)}</span><strong>${esc(d.title)}</strong><span>${t('lessonCount',{n:lessons.filter(l=>l.domain===d.id).length})}</span></a>`).join('')}</div>`;
   }
 
-  function favoriteButton(lesson) {
-    return `<button class="favorite-button" type="button" data-favorite="${esc(lesson.id)}" aria-pressed="${favorite(lesson.id)}" aria-label="${favorite(lesson.id) ? 'حيد من المفضلة' : 'زيد للمفضلة'}: ${esc(lesson.title)}" title="${favorite(lesson.id) ? 'حيد من المفضلة' : 'زيد للمفضلة'}">${icon('star')}</button>`;
-  }
+  function favoriteButton(lesson) { const label=t(favorite(lesson.id)?'removeFavorite':'addFavorite');return `<button class="favorite-button" type="button" data-favorite="${esc(lesson.id)}" aria-pressed="${favorite(lesson.id)}" aria-label="${label}: ${esc(lesson.title)}" title="${label}">${icon('star')}</button>`; }
 
-  function lessonCard(lesson, track, index = 0, showTrack = false) {
-    const link = routeLink(paths.lesson(track, lesson.id));
-    const videoCount = arr(lesson.videos).filter(v => v.src).length;
-    return `<article class="lesson-card"><div class="lesson-card-top"><span class="lesson-index">${String(index + 1).padStart(2, '0')} / ${esc(domainById(lesson.domain).title)}</span>${favoriteButton(lesson)}</div><a href="${link}"><h3>${esc(lesson.title)}</h3><p class="lesson-ar">${esc(lesson.titleAr || '')}</p></a>${showTrack ? `<div class="search-match-track">${arr(lesson.tracks).map(id => esc(trackShort(trackById(id)))).join(' · ')}</div>` : ''}<div class="lesson-card-footer"><div class="lesson-card-meta">${lesson.duration ? `<span>${icon('clock')}${esc(lesson.duration)} د</span>` : ''}<span>${icon('pen')}${arr(lesson.exercises).length} تمارين</span>${videoCount ? `<span>${icon('video')}${videoCount}</span>` : ''}${completed(track, lesson.id) ? `<span class="completed-label">${icon('circleCheck')}تراجع</span>` : ''}</div><a class="lesson-link" href="${link}">افتح الدرس ${icon('arrow')}</a></div></article>`;
+  function lessonCard(lesson, track, index=0, showTrack=false) {
+    const url=routeLink(paths.lesson(track,lesson.id)), videos=arr(lesson.videos).filter(v=>v.src);
+    return `<article class="lesson-card"><div class="lesson-card-top"><span class="lesson-index">${String(index+1).padStart(2,'0')} / ${esc(domainTitle(lesson.domain))}</span>${favoriteButton(lesson)}</div><a href="${url}"><h3>${esc(lesson.title)}</h3></a>${showTrack?`<div class="search-match-track">${lesson.tracks.map(id=>esc(trackShort(trackById(id)))).join(' · ')}</div>`:''}<div class="lesson-card-footer"><div class="lesson-card-meta">${lesson.duration?`<span>${icon('clock')}${lesson.duration} ${t('minuteShort')}</span>`:''}<span>${icon('pen')}${t('exerciseCount',{n:lesson.exercises.length})}</span>${completed(track,lesson.id)?`<span class="completed-label">${icon('circleCheck')}${t('reviewed')}</span>`:''}</div><a class="lesson-link" href="${url}">${t('openLesson')}${icon('arrow')}</a></div>${videos.length?`<a class="course-video-link" href="${routeLink(paths.lesson(track,lesson.id,'videos'))}">${icon('play')}${t('watchLessonVideo')}<span>${videos.length}</span></a>`:''}</article>`;
   }
 
   function filterLessons(lessons, track) {
@@ -192,57 +176,46 @@
     return lessons;
   }
 
-  function toolbar(count) {
-    return `<div class="catalog-toolbar"><div class="filter-pills" role="group" aria-label="تصفية الدروس">${[['all', 'الكل'], ['remaining', 'باقي نراجع'], ['completed', 'تراجعو'], ['favorites', 'المفضلة']].map(([id, label]) => `<button class="filter-pill ${state.filter === id ? 'active' : ''}" data-filter="${id}" type="button" aria-pressed="${state.filter === id}">${label}</button>`).join('')}</div><span class="toolbar-count">${count} ${count === 1 ? 'درس' : 'دروس'} فهاد اللائحة</span></div>`;
-  }
+  function toolbar(count) { return `<div class="catalog-toolbar"><div class="filter-pills" role="group" aria-label="${t('filterLessons')}">${[['all','all'],['remaining','remaining'],['completed','completed'],['favorites','favorites']].map(([id,key])=>`<button class="filter-pill ${state.filter===id?'active':''}" data-filter="${id}" type="button" aria-pressed="${state.filter===id}">${t(key)}</button>`).join('')}</div><span class="toolbar-count">${t('listCount',{n:count})}</span></div>`; }
 
   function empty(title, body, action) {
     return `<section class="empty-state">${icon('book')}<h2>${esc(title)}</h2><p>${esc(body)}</p>${action || ''}</section>`;
   }
 
   function renderTrack(route) {
-    const track = trackById(route.track);
-    if (!track) return notFound();
-    const all = lessonsFor(track.id);
-    const domain = route.domain && domainById(route.domain);
-    const scoped = route.domain ? all.filter(l => l.domain === route.domain) : all;
-    const visible = filterLessons(scoped, track.id);
-    const crumbs = [{ label: trackShort(track), path: route.domain ? paths.track(track.id) : null }];
-    if (domain) crumbs.push({ label: domain.title, path: null });
-    return `${breadcrumb(crumbs)}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${esc(trackLabel(track))}</div><h1 class="fr-title">${esc(domain ? domain.title : track.name)}</h1><p>${esc(domain ? domain.titleAr || '' : track.description || 'اختار المحور، ومن بعد الدرس. كل صفحة كتجمع الشرح والخلاصة والتطبيق باش تبقى الفكرة مترابطة.')}</p></div><span class="small-badge">${scoped.length} درس · ${countVideos(scoped)} فيديو</span></div>${renderDomainCards(track, route.domain)}${toolbar(visible.length)}${visible.length ? (route.domain || state.filter !== 'all' ? `<div class="lesson-grid">${visible.map((l, i) => lessonCard(l, track.id, i)).join('')}</div>` : arr(DATA.domains).filter(d => visible.some(l => l.domain === d.id)).map(d => `<section class="catalog-section"><div class="catalog-section-title"><h2><span aria-hidden="true">${domainSymbol(d.id)}</span>${esc(d.title)} <small class="muted" style="font-size:11px;font-weight:400">${esc(d.titleAr || '')}</small></h2><a href="${routeLink(paths.domain(track.id, d.id))}">شوف المحور ${icon('chevron')}</a></div><div class="lesson-grid">${visible.filter(l => l.domain === d.id).map((l, i) => lessonCard(l, track.id, i)).join('')}</div></section>`).join('')) : empty('ما كاين حتى درس بهاد الاختيار', 'جرّب تصفية أخرى باش ترجع تشوف الدروس.', '<button class="button secondary small" type="button" data-filter="all">عرض جميع الدروس</button>')}`;
+    const track=trackById(route.track);if(!track)return notFound();
+    const all=lessonsFor(track.id),domain=route.domain&&DATA.domains.find(d=>d.id===route.domain);
+    if(route.domain&&!domain)return notFound();
+    const scoped=domain?all.filter(l=>l.domain===domain.id):all, visible=filterLessons(scoped,track.id);
+    const crumbs=[{label:trackShort(track),path:domain?paths.track(track.id):null}];if(domain)crumbs.push({label:domain.title});
+    let content='';
+    if(!visible.length)content=empty(t('noFilteredLessons'),t('tryFilter'),`<button class="button secondary" data-filter="all" type="button">${t('allLessons')}</button>`);
+    else if(domain||state.filter!=='all')content=`<div class="lesson-grid">${visible.map((l,i)=>lessonCard(l,track.id,i)).join('')}</div>`;
+    else content=DATA.domains.filter(d=>visible.some(l=>l.domain===d.id)).map(d=>`<section class="catalog-section"><div class="catalog-section-title"><h2><span aria-hidden="true">${domainSymbol(d.id)}</span>${esc(d.title)}</h2><a href="${routeLink(paths.domain(track.id,d.id))}">${t('viewDomain')}${icon('chevron')}</a></div><div class="lesson-grid">${visible.filter(l=>l.domain===d.id).map((l,i)=>lessonCard(l,track.id,i)).join('')}</div></section>`).join('');
+    return `${breadcrumb(crumbs)}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${trackShort(track)}</div><h1 class="fr-title">${esc(domain?domain.title:track.name)}</h1><p>${esc(domain?t('selectDomain'):track.description)}</p></div><span class="small-badge">${t('lessonCount',{n:scoped.length})} · ${t('videoCount',{n:countVideos(scoped)})}</span></div>${renderDomainCards(track,route.domain)}${toolbar(visible.length)}${content}`;
   }
 
-  function exampleHTML(example) {
-    if (!example) return '';
-    return `<div class="example"><div class="example-heading">${icon('pen')}<span>${esc(example.title || 'مثال مشروح')}</span></div><div class="example-content">${example.statement ? `<div class="example-statement prose">${rich(example.statement)}</div>` : ''}${stepsHTML(example.steps)}${example.answer != null ? `<div class="answer-box"><strong>النتيجة</strong>${rich(example.answer)}</div>` : ''}</div></div>`;
-  }
+  function exampleHTML(example) { if(!example)return '';return `<div class="example"><div class="example-heading">${icon('pen')}<span>${esc(example.title||t('workedExample'))}</span></div><div class="example-content">${example.statement?`<div class="example-statement prose">${rich(example.statement)}</div>`:''}${stepsHTML(example.steps)}${example.answer!=null?`<div class="answer-box"><strong>${t('result')}</strong>${rich(example.answer)}</div>`:''}</div></div>`; }
 
   function stepsHTML(steps) {
     return arr(steps).length ? `<ol class="solution-steps">${steps.map(step => `<li>${rich(step)}</li>`).join('')}</ol>` : '';
   }
 
-  function pitfallsHTML(lesson) {
-    return arr(lesson.pitfalls).length ? `<aside class="pitfalls"><h2>${icon('info')}ردّ بالك من هاد النقط</h2><ul>${lesson.pitfalls.map(p => `<li>${rich(p)}</li>`).join('')}</ul></aside>` : '';
-  }
+  function pitfallsHTML(lesson) { return arr(lesson.pitfalls).length?`<aside class="pitfalls"><h2>${icon('info')}${t('pitfalls')}</h2><ul>${lesson.pitfalls.map(p=>`<li>${rich(p)}</li>`).join('')}</ul></aside>`:''; }
 
   function courseHTML(lesson) {
-    const sections = arr(lesson.sections);
-    return `<div class="lesson-layout"><div class="lesson-body">${lesson.intro ? `<div class="intro-panel prose">${rich(lesson.intro)}</div>` : ''}${arr(lesson.goals).length || arr(lesson.prerequisites).length ? `<section class="goals"><h2>من بعد هاد الدرس، تقدر...</h2><ul>${arr(lesson.goals).map(goal => `<li>${icon('check')}<span>${rich(goal)}</span></li>`).join('')}</ul>${arr(lesson.prerequisites).length ? `<div class="prerequisites"><strong>قبل ما تبدا</strong> · ${lesson.prerequisites.map(p => prerequisiteHTML(p, lesson)).join('، ')}</div>` : ''}</section>` : ''}${sections.map((section, i) => `<section class="course-section" id="lesson-section-${i}"><div class="section-title-row"><span class="section-number">${String(i + 1).padStart(2, '0')}</span><h2>${esc(section.title)}</h2></div><div class="prose">${rich(section.body)}</div>${exampleHTML(section.example)}${arr(section.examples).map(exampleHTML).join('')}</section>`).join('')}${pitfallsHTML(lesson)}</div>${sections.length > 2 ? `<aside class="lesson-toc" aria-label="داخل الدرس"><div class="overline">داخل هاد الدرس</div>${sections.map((s, i) => `<button type="button" data-scrollto="lesson-section-${i}"><span class="toc-number">${String(i + 1).padStart(2, '0')}</span>${esc(s.title)}</button>`).join('')}</aside>` : ''}</div>`;
+    const sections=arr(lesson.sections),video=arr(lesson.videos).find(v=>v.src),track=availableTrack(lesson);
+    return `<div class="lesson-layout"><div class="lesson-body">${lesson.intro?`<div class="intro-panel prose">${rich(lesson.intro)}</div>`:''}${video?`<section class="inline-course-video" aria-label="${t('videoLessonHeading')}"><div class="section-heading"><h2>${t('videoLessonHeading')}</h2><a class="text-accent" href="${routeLink(paths.lesson(track,lesson.id,'videos'))}">${t('allLessonVideos')}${icon('chevron')}</a></div>${videoCard(video,lesson)}</section>`:''}<section class="goals"><h2>${t('goals')}</h2><ul>${arr(lesson.goals).map(goal=>`<li>${icon('check')}<span>${rich(goal)}</span></li>`).join('')}</ul>${arr(lesson.prerequisites).length?`<div class="prerequisites"><strong>${t('prerequisites')}</strong> · ${lesson.prerequisites.map(p=>prerequisiteHTML(p,lesson)).join(LANG==='ar'?'، ':', ')}</div>`:''}</section>${sections.map((section,i)=>`<section class="course-section" id="lesson-section-${i}"><div class="section-title-row"><span class="section-number">${String(i+1).padStart(2,'0')}</span><h2>${esc(section.title)}</h2></div><div class="prose">${rich(section.body)}</div>${exampleHTML(section.example)}${arr(section.examples).map(exampleHTML).join('')}</section>`).join('')}${pitfallsHTML(lesson)}</div>${sections.length>2?`<aside class="lesson-toc" aria-label="${t('lessonContents')}"><div class="overline">${t('lessonContents')}</div>${sections.map((s,i)=>`<button type="button" data-scrollto="lesson-section-${i}"><span class="toc-number">${String(i+1).padStart(2,'0')}</span>${esc(s.title)}</button>`).join('')}</aside>`:''}</div>`;
   }
 
-  function summaryHTML(lesson) {
-    return `<div class="summary-top"><div><h2>الخلاصة اللي ترجع ليها</h2><p>راجع القواعد والشروط، ومن بعد جرّب تطبقهم بلا ما تشوف الحل.</p></div><button class="button secondary small" type="button" data-print>${icon('print')}طبع الخلاصة</button></div><div class="summary-grid">${arr(lesson.summary).map((item, i) => `<div class="summary-item"><span class="summary-no">${String(i + 1).padStart(2, '0')}</span><div class="prose">${rich(item)}</div></div>`).join('')}</div>${pitfallsHTML(lesson)}`;
-  }
+  function summaryHTML(lesson) { return `<div class="summary-top"><div><h2>${t('summaryTitle')}</h2><p>${t('summaryIntro')}</p></div><button class="button secondary small" type="button" data-print>${icon('print')}${t('printSummary')}</button></div><div class="summary-grid">${arr(lesson.summary).map((item,i)=>`<div class="summary-item"><span class="summary-no">${String(i+1).padStart(2,'0')}</span><div class="prose">${rich(item)}</div></div>`).join('')}</div>${pitfallsHTML(lesson)}`; }
 
   function exercisesHTML(lesson) {
-    const exercises = arr(lesson.exercises);
-    return `<p class="exercise-count-note">خدم فالكراسة أولاً. إلا توقفتي، افتح التلميح. التصحيح كيبقى مخبّي حتى تختار تشوفو.</p>${exercises.map((ex, i) => `<article class="exercise-card"><div class="exercise-header"><h2>${esc(ex.title || `تمرين ${i + 1}`)}</h2>${ex.level ? `<span class="exercise-level">${esc(ex.level)}</span>` : ''}</div><div class="exercise-content"><div class="prose">${rich(ex.statement)}</div>${ex.hint ? `<details class="hint-details"><summary>${icon('bulb')}بغيت غير تلميح</summary><div class="hint prose">${rich(ex.hint)}</div></details>` : ''}<details class="solution-details"><summary>${icon('pen')}شوف التصحيح خطوة بخطوة</summary><div class="solution-inner">${stepsHTML(ex.steps || ex.correction?.steps)}${ex.answer != null || ex.correction?.answer != null ? `<div class="answer-box"><strong>الجواب النهائي</strong>${rich(ex.answer ?? ex.correction.answer)}</div>` : ''}</div></details></div></article>`).join('')}${!exercises.length ? empty('الشرح هو نقطة البداية', 'راجع أمثلة الدرس والخلاصة باش ترسخ الطريقة.') : ''}${quizHTML(lesson)}`;
+    const exercises=arr(lesson.exercises);
+    return `<p class="exercise-count-note">${t('practiceIntro')}</p>${exercises.map((ex,i)=>`<article class="exercise-card"><div class="exercise-header"><h2>${esc(ex.title||t('exercise',{n:i+1}))}</h2>${ex.level?`<span class="exercise-level">${esc(ex.level)}</span>`:''}</div><div class="exercise-content"><div class="prose">${rich(ex.statement)}</div>${ex.hint?`<details class="hint-details"><summary>${icon('bulb')}${t('hint')}</summary><div class="hint prose">${rich(ex.hint)}</div></details>`:''}<details class="solution-details"><summary>${icon('pen')}${t('showSolution')}</summary><div class="solution-inner">${stepsHTML(ex.steps||ex.correction?.steps)}${ex.answer!=null||ex.correction?.answer!=null?`<div class="answer-box"><strong>${t('finalAnswer')}</strong>${rich(ex.answer??ex.correction.answer)}</div>`:''}</div></details></div></article>`).join('')}${!exercises.length?empty(t('startWithExamples'),t('reviewExamples')):''}${quizHTML(lesson)}`;
   }
 
-  function quizHTML(lesson) {
-    const quiz = arr(lesson.quiz);
-    return quiz.length ? `<section class="quiz-section"><h2>تأكد من الفهم ديالك</h2>${quiz.map((q, i) => `<form class="quiz-card" data-quiz="${i}" data-lesson="${esc(lesson.id)}"><h3>${rich(q.question)}</h3><div class="quiz-options">${arr(q.choices).map((choice, ci) => `<label class="quiz-option"><input type="radio" name="answer" value="${ci}" required><span>${rich(choice)}</span></label>`).join('')}</div><div class="quiz-actions"><button class="button small" type="submit">صحّح جوابي ${icon('check')}</button></div><div class="quiz-feedback" role="status" hidden></div></form>`).join('')}</section>` : '';
-  }
+  function quizHTML(lesson) { const quiz=arr(lesson.quiz);return quiz.length?`<section class="quiz-section"><h2>${t('checkUnderstanding')}</h2>${quiz.map((q,i)=>`<form class="quiz-card" data-quiz="${i}" data-lesson="${esc(lesson.id)}"><h3>${rich(q.question)}</h3><div class="quiz-options">${arr(q.choices).map((choice,ci)=>`<label class="quiz-option"><input type="radio" name="answer" value="${ci}" required><span>${rich(choice)}</span></label>`).join('')}</div><div class="quiz-actions"><button class="button small" type="submit">${t('checkAnswer')}${icon('check')}</button></div><div class="quiz-feedback" role="status" hidden></div></form>`).join('')}</section>`:''; }
 
   function videoDuration(value) {
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -252,62 +225,57 @@
     return value ? String(value) : '';
   }
 
+  function videoCard(video, lesson, showCourse=false) {
+    if(!video?.src)return '';
+    const tracks=arr(video.tracks),target=routeLink(paths.lesson(availableTrack(lesson),lesson.id,'videos'));
+    return `<article class="video-card" data-video-card><div class="video-stage ${video.silent?'landscape':'portrait'}"><video controls playsinline preload="none" ${video.poster?`poster="${esc(safeURL(video.poster))}"`:''} aria-label="${esc(video.title)}"><source src="${esc(safeURL(video.src))}" type="video/mp4">${tracks.map(track=>`<track kind="subtitles" src="${esc(safeURL(track.src))}" srclang="${esc(track.language)}" label="${esc(track.label)}" ${track.language===LANG?'default':''}>`).join('')}${t('videoUnsupported')}</video></div><div class="video-card-info">${showCourse?`<a class="video-course-link" href="${target}">${esc(lesson.title)}${icon('chevron')}</a>`:''}<h2>${esc(video.title)}</h2><span class="video-format-label">${icon(video.silent?'sheet':'video')}${t(video.silent?'silentLabel':'darijaAudio')}</span><p>${t(video.silent?'silentNote':'captionNote')}</p><p class="video-load-error" role="status" hidden>${t('videoError')}</p><div class="video-card-meta">${video.duration?`<span class="mono">${icon('clock')}${videoDuration(video.duration)}</span>`:''}<a href="${esc(safeURL(video.src))}" target="_blank" rel="noopener">${t('openVideo')}${icon('external')}</a><a href="${esc(safeURL(video.src))}" download>${t('downloadVideo')}${icon('download')}</a></div>${arr(video.transcript).length?`<details class="video-transcript"><summary>${t('transcript')}</summary><ol>${video.transcript.map(segment=>`<li>${segment.note?`<strong>${esc(segment.note)}</strong>`:''}<p>${esc(segment.text)}</p>${segment.equation?`<div class="math-block">${rich('\\['+segment.equation+'\\]')}</div>`:''}</li>`).join('')}</ol></details>`:''}</div></article>`;
+  }
+
   function videosHTML(lesson) {
-    const videos = arr(lesson.videos).filter(v => v.src);
-    if (!videos.length) return empty('هاد الدرس متوفر بالشرح المكتوب', 'الأمثلة والتمارين المصححة كاينين فهاد الصفحة. ما كاينش فيديو مرفق به حالياً.');
-    const formatNote = videos.every(video => video.silent) ? 'هاد الشرح بصري مكتوب بلا تعليق صوتي. تقدر توقف كل خطوة وتبدّل سرعة العرض.' : videos.some(video => video.silent) ? 'نوع الشرح مبيّن تحت كل فيديو: صوتي أو بصري مكتوب بلا تعليق صوتي.' : 'تقدر تتحكم فالسرعة والصوت من المشغّل.';
-    return `<p class="video-info-note">شوف المثال مع الكراسة، وقف الفيديو عند كل خطوة وجرّب تكمل بوحدك. ${formatNote}</p><div class="video-grid">${videos.map(video => `<article class="video-card"><div class="video-stage"><video controls playsinline preload="metadata" ${video.poster ? `poster="${esc(safeURL(video.poster))}"` : ''} aria-label="${esc(video.title)}"><source src="${esc(safeURL(video.src))}" type="video/mp4">${arr(video.tracks).map(t => `<track kind="captions" src="${esc(safeURL(t.src))}" srclang="${esc(t.language || 'ar')}" label="${esc(t.label || 'العربية')}">`).join('')}المتصفح ما كيدعمش تشغيل الفيديو. استعمل رابط فتح الفيديو اللي تحت.</video></div><div class="video-card-info"><h2>${esc(video.title)}</h2>${video.description ? `<p>${esc(video.description)}</p>` : ''}<div class="video-card-meta">${video.duration ? `<span class="mono">${icon('clock')} ${esc(videoDuration(video.duration))}</span>` : ''}${video.silent ? '<span>شرح بصري بلا تعليق صوتي</span>' : video.label ? `<span>${esc(video.label)}</span>` : ''}<a href="${esc(safeURL(video.src))}" target="_blank" rel="noopener">فتح الفيديو ${icon('external')}</a></div></div></article>`).join('')}</div>`;
+    const videos=arr(lesson.videos).filter(v=>v.src);
+    if(!videos.length)return empty(t('videoWrittenOnly'),t('videoNotAttached'));
+    return `<p class="video-info-note">${t('videoPractice')}</p><div class="video-grid">${videos.map(v=>videoCard(v,lesson)).join('')}</div>`;
+  }
+
+  function renderVideos(route) {
+    const lessons=route.track?lessonsFor(route.track):DATA.lessons;
+    return `${breadcrumb([{label:t('videoLibrary')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('videoExplanations')}</div><h1>${t('videoLibrary')}</h1><p>${t('videoLibraryIntro')}</p></div><span class="small-badge">${t('videoCount',{n:countVideos(lessons)})}</span></div><div class="video-filters"><label for="video-track">${t('chooseTrack')}</label><select id="video-track"><option value="">${t('allTracks')}</option>${DATA.tracks.map(track=>`<option value="${track.id}" ${route.track===track.id?'selected':''}>${esc(track.name)}</option>`).join('')}</select></div><div class="video-grid">${lessons.flatMap(lesson=>arr(lesson.videos).map(video=>videoCard(video,lesson,true))).join('')}</div>`;
   }
 
   function lessonFooter(lesson, track) {
-    const list = lessonsFor(track.id);
-    const index = list.findIndex(l => l.id === lesson.id);
-    const previous = list[index - 1];
-    const next = list[index + 1];
-    return `<section class="lesson-finish"><div><strong>${completed(track.id, lesson.id) ? 'هاد الدرس معلّم كمراجَع.' : 'ساليت المراجعة ديال هاد الدرس؟'}</strong><small>هاد العلامة كتعاونك تنظم خدمتك، والتقدم كيبقى فهاد المتصفح.</small></div><button class="button ${completed(track.id, lesson.id) ? 'secondary' : ''}" type="button" data-complete="${esc(lesson.id)}" data-track="${esc(track.id)}" aria-pressed="${completed(track.id, lesson.id)}">${icon(completed(track.id, lesson.id) ? 'circleCheck' : 'check')}${completed(track.id, lesson.id) ? 'رجّعو للائحة المراجعة' : 'علّم الدرس كمراجَع'}</button></section><nav class="lesson-next" aria-label="الدروس المتتالية">${previous ? `<a href="${routeLink(paths.lesson(track.id, previous.id))}"><small>الدرس السابق</small><strong>${esc(previous.title)}</strong></a>` : ''}${next ? `<a href="${routeLink(paths.lesson(track.id, next.id))}"><small>الدرس الموالي</small><strong>${esc(next.title)}</strong></a>` : `<a href="${routeLink(paths.track(track.id))}"><small>كمل على حساب برنامجك</small><strong>رجع للائحة الدروس</strong></a>`}</nav>`;
+    const list=lessonsFor(track.id),index=list.findIndex(l=>l.id===lesson.id),previous=list[index-1],next=list[index+1],done=completed(track.id,lesson.id);
+    return `<section class="lesson-finish"><div><strong>${t(done?'reviewDone':'reviewQuestion')}</strong><small>${t('reviewHelp')}</small></div><button class="button ${done?'secondary':''}" type="button" data-complete="${esc(lesson.id)}" data-track="${track.id}" aria-pressed="${done}">${icon(done?'circleCheck':'check')}${t(done?'markRemaining':'markReviewed')}</button></section><nav class="lesson-next" aria-label="${t('successiveLessons')}">${previous?`<a href="${routeLink(paths.lesson(track.id,previous.id))}"><small>${t('previousLesson')}</small><strong>${esc(previous.title)}</strong></a>`:''}${next?`<a href="${routeLink(paths.lesson(track.id,next.id))}"><small>${t('nextLesson')}</small><strong>${esc(next.title)}</strong></a>`:`<a href="${routeLink(paths.track(track.id))}"><small>${t('keepLearning')}</small><strong>${t('returnCourses')}</strong></a>`}</nav>`;
   }
 
   function renderLesson(route) {
-    const track = trackById(route.track);
-    const lesson = lessonById(route.lesson);
-    if (!track || !lesson || !arr(lesson.tracks).includes(track.id)) return notFound();
-    const tab = ['cours', 'resume', 'exercices', 'videos'].includes(route.tab) ? route.tab : 'cours';
-    state.last = { track: track.id, lesson: lesson.id, tab };
-    persist();
-    document.title = `${lesson.title} | REGAM Academy`;
-    const tabContent = { cours: courseHTML, resume: summaryHTML, exercices: exercisesHTML, videos: videosHTML }[tab](lesson);
-    return `${breadcrumb([{ label: trackShort(track), path: paths.track(track.id) }, { label: domainById(lesson.domain).title, path: paths.domain(track.id, lesson.domain) }, { label: lesson.title }])}<div class="print-only">REGAM Academy · ${esc(track.name)} · ${esc(lesson.title)}</div><header class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${esc(domainTitle(lesson.domain))} · ${esc(lesson.titleAr || '')}</div><h1 class="fr-title">${esc(lesson.title)}</h1><div class="lesson-meta"><span>${icon('book')}${esc(trackShort(track))}</span>${lesson.duration ? `<span>${icon('clock')}حوالي ${esc(lesson.duration)} دقيقة للمراجعة</span>` : ''}<span>${icon('pen')}${arr(lesson.exercises).length} تمارين</span>${lesson.level ? `<span>${esc(lesson.level)}</span>` : ''}</div></div><div class="lesson-heading-actions">${favoriteButton(lesson)}<button class="icon-button" type="button" data-print title="طبع خلاصة الدرس" aria-label="طبع خلاصة الدرس">${icon('print')}</button></div></header><nav class="lesson-tabs" aria-label="أجزاء الدرس">${[['cours', 'الدرس', 'book', null], ['resume', 'الخلاصة', 'sheet', null], ['exercices', 'التمارين', 'pen', arr(lesson.exercises).length], ['videos', 'الفيديو', 'video', arr(lesson.videos).filter(v => v.src).length]].map(([id, label, symbol, count]) => `<a class="lesson-tab ${tab === id ? 'active' : ''}" href="${routeLink(paths.lesson(track.id, lesson.id, id))}" ${tab === id ? 'aria-current="page"' : ''}>${icon(symbol)}${label}${count != null ? `<span class="tab-count">${count}</span>` : ''}</a>`).join('')}</nav><div id="lesson-tab-panel">${tabContent}</div>${lessonFooter(lesson, track)}`;
+    const track=trackById(route.track),lesson=lessonById(route.lesson);
+    if(!track||!lesson||!lesson.tracks.includes(track.id))return notFound();
+    const tab=['cours','resume','exercices','videos'].includes(route.tab)?route.tab:'cours';
+    state.last={track:track.id,lesson:lesson.id,tab};persist();document.title=`${lesson.title} | REGAM Academy`;
+    const content={cours:courseHTML,resume:summaryHTML,exercices:exercisesHTML,videos:videosHTML}[tab](lesson);
+    const tabs=[['cours','courseTab','book',null],['resume','summaryTab','sheet',null],['exercices','exercisesTab','pen',lesson.exercises.length],['videos','videos','video',lesson.videos.length]];
+    return `${breadcrumb([{label:trackShort(track),path:paths.track(track.id)},{label:domainTitle(lesson.domain),path:paths.domain(track.id,lesson.domain)},{label:lesson.title}])}<div class="print-only">REGAM Academy · ${esc(track.name)} · ${esc(lesson.title)}</div><header class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${esc(domainTitle(lesson.domain))}</div><h1 class="fr-title">${esc(lesson.title)}</h1><div class="lesson-meta"><span>${icon('book')}${trackShort(track)}</span>${lesson.duration?`<span>${icon('clock')}${t('revisionDuration',{n:lesson.duration})}</span>`:''}<span>${icon('pen')}${t('exerciseCount',{n:lesson.exercises.length})}</span>${lesson.level?`<span>${esc(lesson.level)}</span>`:''}</div></div><div class="lesson-heading-actions">${favoriteButton(lesson)}<button class="icon-button" type="button" data-print title="${t('printSummary')}" aria-label="${t('printSummary')}">${icon('print')}</button></div></header><nav class="lesson-tabs" aria-label="${t('lessonParts')}">${tabs.map(([id,key,symbol,count])=>`<a class="lesson-tab ${tab===id?'active':''} ${id==='videos'?'video-tab':''}" href="${routeLink(paths.lesson(track.id,lesson.id,id))}" ${tab===id?'aria-current="page"':''}>${icon(symbol)}${t(key)}${count!=null?`<span class="tab-count">${count}</span>`:''}</a>`).join('')}</nav><div id="lesson-tab-panel">${content}</div>${lessonFooter(lesson,track)}`;
   }
 
   function searchLessons(query) {
-    const terms = normalize(query).split(/\s+/).filter(Boolean);
-    return DATA.lessons.filter(lesson => {
-      const haystack = normalize([lesson.title, lesson.titleAr, domainById(lesson.domain).title, domainTitle(lesson.domain), ...arr(lesson.tags)].join(' '));
-      return terms.every(term => haystack.includes(term));
+    const terms=normalize(query).split(/\s+/).filter(Boolean);
+    return DATA.lessons.filter(lesson=>{
+      const variants=Object.values(LOCALES).map(data=>data.lessons.find(l=>l.id===lesson.id)).filter(Boolean);
+      const haystack=normalize([lesson.id,domainTitle(lesson.domain),...variants.flatMap(l=>[l.title,l.titleAr,...arr(l.tags)])].join(' '));
+      return terms.every(term=>haystack.includes(term));
     });
   }
 
   function renderSearch(route) {
-    const query = route.query || '';
-    const found = searchLessons(query);
-    const visible = filterLessons(found);
-    return `${breadcrumb([{ label: 'جميع الدروس' }])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>المكتبة كاملة</div><h1>قلب على الفكرة اللي محتاج</h1><p>كتب اسم الدرس بالعربية أو بالفرنسية. المسار مبيّن تحت كل درس.</p></div></div><form class="search-page-form" id="search-page-form" role="search"><label class="sr-only" for="page-search">البحث فالدروس</label><input id="page-search" name="q" type="search" value="${esc(query)}" placeholder="مثلاً: dérivation، الأعداد العقدية..." autocomplete="off"><button class="button" type="submit">${icon('search')}بحث</button></form>${toolbar(visible.length)}${visible.length ? `<div class="lesson-grid">${visible.map((lesson, i) => lessonCard(lesson, availableTrack(lesson), i, true)).join('')}</div>` : empty('ما لقيناش درس بهاد الكلمات', 'جرّب اسم أقصر، أو قلّب بالعربية أو بالفرنسية.')} `;
+    const query=route.query||'',visible=filterLessons(searchLessons(query));
+    return `${breadcrumb([{label:t('allLessons')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('fullLibrary')}</div><h1>${t('searchTitle')}</h1><p>${t('searchIntro')}</p></div></div><form class="search-page-form" id="search-page-form" role="search"><label class="sr-only" for="page-search">${t('searchCourses')}</label><input id="page-search" name="q" type="search" value="${esc(query)}" placeholder="${t('searchPlaceholder')}" autocomplete="off"><button class="button" type="submit">${icon('search')}${t('search')}</button></form>${toolbar(visible.length)}${visible.length?`<div class="lesson-grid">${visible.map((l,i)=>lessonCard(l,availableTrack(l),i,true)).join('')}</div>`:empty(t('noSearchResults'),t('searchHelp'))}`;
   }
 
-  function renderFavorites() {
-    const lessons = DATA.lessons.filter(l => favorite(l.id));
-    return `${breadcrumb([{ label: 'المفضلة' }])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>مراجعة منظمة</div><h1>دروسي المفضلة</h1><p>نجمعو هنا الدروس اللي علّمتي بالنجمة. هاد اللائحة محفوظة فالمتصفح ديالك.</p></div><span class="small-badge">${lessons.length} دروس</span></div>${lessons.length ? `<div class="lesson-grid">${lessons.map((lesson, i) => lessonCard(lesson, availableTrack(lesson), i, true)).join('')}</div>` : empty('اللائحة ديالك باقية خاوية', 'من لائحة الدروس، كليكي على النجمة حدا أي درس باش ترجع ليه بسهولة.', '<a class="button" href="#/search">شوف الدروس ' + icon('arrow') + '</a>')}`;
-  }
+  function renderFavorites() { const lessons=DATA.lessons.filter(l=>favorite(l.id));return `${breadcrumb([{label:t('favorites')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('organizedRevision')}</div><h1>${t('myFavorites')}</h1><p>${t('favoritesIntro')}</p></div><span class="small-badge">${t('lessonCount',{n:lessons.length})}</span></div>${lessons.length?`<div class="lesson-grid">${lessons.map((l,i)=>lessonCard(l,availableTrack(l),i,true)).join('')}</div>`:empty(t('noFavorites'),t('favoritesHelp'),`<a class="button" href="#/search">${t('browseCourses')}${icon('arrow')}</a>`)}`; }
 
-  function renderSources() {
-    const sources = arr(DATA.sources);
-    return `${breadcrumb([{ label: 'البرنامج والمراجع' }])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>محتوى تعليمي مستقل</div><h1>البرنامج والمراجع</h1><p>باش يكون واضح شنو كيتقرا فكل مسار، وشنو هي المراجع اللي اعتمد عليها تنظيم هاد المكتبة.</p></div></div><div class="sources-intro prose">${rich(DATA.meta?.curriculumNote || 'هاد الموقع كيجمع دروساً وتمارين أصلية للرياضيات فالثانية باكالوريا بالمغرب. المساران مفصولان باش تلقى المحتوى المناسب للشعبة ديالك. الدروس ماشي وثائق رسمية، وما كتعوضش التوجيهات ديال الأستاذ والإطار المرجعي المعتمد للامتحان.')} ${DATA.meta?.updated ? `<p class="muted">آخر تحيين للمحتوى: ${esc(DATA.meta.updated)}</p>` : ''}</div>${sources.map(source => `<article class="source-card"><h2>${esc(source.title || source.name || 'مرجع البرنامج')}</h2>${source.dateNote ? `<p>${esc(source.dateNote)}</p>` : ''}${source.description || source.note ? `<p>${esc(source.description || source.note)}</p>` : ''}${source.url ? `<a href="${esc(safeURL(source.url))}" target="_blank" rel="noopener noreferrer">فتح المرجع ${icon('external')}</a>` : ''}</article>`).join('')}<p class="source-domain-note">التقدم والمفضلة كيتحفظو محلياً فالمتصفح. ما كاين حتى حساب طالب ولا إرسال لنقط التمارين. إلا مسحتي بيانات المتصفح، غادي تمسح هاد الاختيارات المحلية.</p>`;
-  }
+  function renderSources() { return `${breadcrumb([{label:t('curriculum')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('independentContent')}</div><h1>${t('curriculum')}</h1><p>${t('sourcesIntro')}</p></div></div><div class="sources-intro prose">${rich(DATA.meta.curriculumNote)}<p class="muted">${t('contentUpdated')}: ${esc(DATA.meta.updated)}</p></div>${arr(DATA.sources).map(source=>`<article class="source-card"><h2>${esc(source.title||source.name||t('source'))}</h2>${source.dateNote?`<p>${esc(source.dateNote)}</p>`:''}${source.description||source.note?`<p>${esc(source.description||source.note)}</p>`:''}${source.url?`<a href="${esc(safeURL(source.url))}" target="_blank" rel="noopener noreferrer">${t('openSource')}${icon('external')}</a>`:''}</article>`).join('')}<p class="source-domain-note">${t('privacy')}</p>`; }
 
-  function notFound() {
-    document.title = 'الصفحة غير موجودة | REGAM Academy';
-    return empty('هاد الصفحة ما لقيناهاش', 'رجع للمكتبة واختار المسار والدرس من اللائحة.', '<a class="button" href="#/">رجع للمكتبة ' + icon('arrow') + '</a>');
-  }
+  function notFound() { document.title=`${t('notFound')} | REGAM Academy`;return empty(t('notFound'),t('notFoundBody'),`<a class="button" href="#/">${t('backLibrary')}${icon('arrow')}</a>`); }
 
   function parseRoute() {
     const raw = location.hash.replace(/^#/, '') || '/';
@@ -319,6 +287,7 @@
       if (parts[2] === 'domain' && parts[3]) return { type: 'track', track: parts[1], domain: parts[3] };
       if (!parts[2]) return { type: 'track', track: parts[1] };
     }
+    if (parts[0] === 'videos') return { type: 'videos', track: ['pc','sm'].includes(new URLSearchParams(query).get('track')) ? new URLSearchParams(query).get('track') : '' };
     if (parts[0] === 'search') return { type: 'search', query: new URLSearchParams(query).get('q') || '' };
     if (parts[0] === 'favorites') return { type: 'favorites' };
     if (parts[0] === 'sources') return { type: 'sources' };
@@ -331,9 +300,9 @@
     state.route = route;
     const filterRoute = location.hash.split('?')[0];
     if (state.filterRoute !== filterRoute) { state.filter = 'all'; state.filterRoute = filterRoute; }
-    document.title = 'REGAM Academy | الرياضيات للباك المغربي';
+    document.title = `REGAM Academy | ${t('pageTitle')}`;
     const main = document.getElementById('main-content');
-    const views = { home: renderHome, track: renderTrack, lesson: renderLesson, search: renderSearch, favorites: renderFavorites, sources: renderSources, notfound: notFound };
+    const views = { home: renderHome, videos: renderVideos, track: renderTrack, lesson: renderLesson, search: renderSearch, favorites: renderFavorites, sources: renderSources, notfound: notFound };
     main.innerHTML = views[route.type](route) + footer();
     mathIn(main);
     renderSidebar();
@@ -342,19 +311,14 @@
     else window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  function updateThemeButton() {
-    const dark = document.documentElement.dataset.theme === 'dark';
-    const button = document.getElementById('theme-button');
-    button.innerHTML = icon(dark ? 'sun' : 'moon');
-    button.setAttribute('aria-label', dark ? 'فعّل الوضع النهاري' : 'فعّل الوضع الليلي');
-    button.title = dark ? 'الوضع النهاري' : 'الوضع الليلي';
-  }
+  function updateThemeButton() { const dark=document.documentElement.dataset.theme==='dark',button=document.getElementById('theme-button');button.innerHTML=icon(dark?'sun':'moon');button.setAttribute('aria-label',t(dark?'dayMode':'nightMode'));button.title=t(dark?'dayMode':'nightMode'); }
 
   function updateDrawerAccessibility() {
     const mobile = window.matchMedia('(max-width: 780px)').matches;
     const sidebar = document.getElementById('sidebar');
     const open = sidebar.classList.contains('is-open');
     sidebar.inert = mobile && !open;
+    document.querySelector('.app-shell').inert = mobile && open;
     sidebar.setAttribute('aria-hidden', String(mobile && !open));
     document.getElementById('menu-button').setAttribute('aria-expanded', String(open));
   }
@@ -377,10 +341,9 @@
   }
 
   function searchDialogResults(query) {
-    const list = searchLessons(query).slice(0, 12);
-    const target = document.getElementById('search-dialog-results');
-    target.innerHTML = list.length ? list.map(lesson => `<a class="search-result" href="${routeLink(paths.lesson(availableTrack(lesson), lesson.id))}"><span class="result-symbol" aria-hidden="true">${domainSymbol(lesson.domain)}</span><span><strong>${esc(lesson.title)}</strong><small>${esc(lesson.titleAr || '')} · ${arr(lesson.tracks).map(id => esc(trackShort(trackById(id)))).join(' / ')}</small></span>${icon('arrow')}</a>`).join('') : '<p class="search-dialog-note">ما لقيناش درس بهاد الكلمات. جرّب كلمة أخرى.</p>';
-    document.getElementById('search-dialog-count').textContent = query ? `${searchLessons(query).length} نتائج` : 'اختار درس أو كتب باش تقلّب';
+    const results=searchLessons(query),list=results.slice(0,12);
+    document.getElementById('search-dialog-results').innerHTML=list.length?list.map(lesson=>`<a class="search-result" href="${routeLink(paths.lesson(availableTrack(lesson),lesson.id))}"><span class="result-symbol" aria-hidden="true">${domainSymbol(lesson.domain)}</span><span><strong>${esc(lesson.title)}</strong><small>${lesson.tracks.map(id=>trackShort(trackById(id))).join(' / ')}</small></span>${icon('arrow')}</a>`).join(''):`<p class="search-dialog-note">${t('noSearchResults')}</p>`;
+    document.getElementById('search-dialog-count').textContent=query?t('listCount',{n:results.length}):t('chooseSearch');
   }
 
   function openSearch() {
@@ -401,7 +364,46 @@
     window.setTimeout(() => el.remove(), 3500);
   }
 
-  app.innerHTML = `<aside class="sidebar" id="sidebar" aria-label="المكتبة والمسارات"></aside><div class="drawer-scrim" id="drawer-scrim" aria-hidden="true"></div><div class="app-shell"><header class="topbar"><button class="icon-button mobile-menu" id="menu-button" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="فتح لائحة المسارات">${icon('menu')}</button><span class="topbar-label">فضاء الرياضيات <span class="muted">/</span> الباك المغربي</span><button class="search-launch" id="search-launch" type="button">${icon('search')}<span>قلّب على درس أو فكرة...</span><kbd>⌘ K</kbd></button><button class="icon-button" id="theme-button" type="button" aria-label="الوضع الليلي"></button></header><main class="main-wrap" id="main-content" tabindex="-1"></main></div><dialog class="search-dialog" id="search-dialog" aria-labelledby="search-dialog-label"><form id="dialog-search-form"><div class="search-dialog-top">${icon('search')}<label class="sr-only" id="search-dialog-label" for="dialog-search">قلّب فدروس الرياضيات</label><input type="search" id="dialog-search" placeholder="اسم الدرس بالعربية أو بالفرنسية..." autocomplete="off"><button class="icon-button" type="button" id="close-search" aria-label="سدّ البحث">${icon('close')}</button></div></form><div class="search-dialog-results" id="search-dialog-results"></div><div class="search-dialog-footer"><span id="search-dialog-count"></span><span>Enter للائحة كاملة · Esc للإغلاق</span></div></dialog>`;
+  app.innerHTML = `<aside class="sidebar" id="sidebar" aria-label="${t('libraryNavigation')}"></aside><div class="drawer-scrim" id="drawer-scrim" aria-hidden="true"></div><div class="app-shell"><header class="topbar"><button class="icon-button mobile-menu" id="menu-button" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="${t('openMenu')}">${icon('menu')}</button><span class="topbar-label">${t('topbar')}</span><button class="search-launch" id="search-launch" type="button">${icon('search')}<span>${t('launchSearch')}</span><kbd>⌘ K</kbd></button><label class="language-control"><span class="sr-only" id="language-label">${t('language')}</span><select id="language-select" aria-labelledby="language-label"><option value="ar">العربية الفصحى</option><option value="fr">Français</option><option value="en">English</option></select></label><button class="icon-button" id="theme-button" type="button"></button></header><main class="main-wrap" id="main-content" tabindex="-1"></main></div><dialog class="search-dialog" id="search-dialog" aria-labelledby="search-dialog-label"><form id="dialog-search-form"><div class="search-dialog-top">${icon('search')}<label class="sr-only" id="search-dialog-label" for="dialog-search">${t('searchDialogLabel')}</label><input type="search" id="dialog-search" placeholder="${t('searchDialogPlaceholder')}" autocomplete="off"><button class="icon-button" type="button" id="close-search" aria-label="${t('closeSearch')}">${icon('close')}</button></div></form><div class="search-dialog-results" id="search-dialog-results"></div><div class="search-dialog-footer"><span id="search-dialog-count"></span><span id="search-keyboard-help">${t('searchKeyboard')}</span></div></dialog>`;
+
+  function refreshChrome() {
+    document.documentElement.lang=LANG;
+    document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
+    document.querySelector('.skip-link').textContent=t('skip');
+    document.querySelector('.topbar-label').textContent=t('topbar');
+    document.querySelector('#search-launch span').textContent=t('launchSearch');
+    document.getElementById('sidebar').setAttribute('aria-label',t('libraryNavigation'));
+    document.getElementById('menu-button').setAttribute('aria-label',t('openMenu'));
+    document.getElementById('language-label').textContent=t('language');
+    document.getElementById('language-select').value=LANG;
+    document.getElementById('dialog-search').placeholder=t('searchDialogPlaceholder');
+    document.getElementById('search-dialog-label').textContent=t('searchDialogLabel');
+    document.getElementById('close-search').setAttribute('aria-label',t('closeSearch'));
+    document.getElementById('search-keyboard-help').textContent=t('searchKeyboard');
+    const description=document.querySelector('meta[name="description"]');
+    if(description)description.content=t('heroIntro');
+    updateThemeButton();
+  }
+
+  document.getElementById('language-select').addEventListener('change',event=>{
+    const next=event.target.value;
+    if(!LOCALES[next])return;
+    LANG=next;DATA=LOCALES[next];window.REGAM_DATA=DATA;
+    document.querySelector('.toast')?.remove();
+    try { localStorage.setItem('regam-maths-language',LANG); } catch {}
+    const url=new URL(location.href);url.searchParams.set('lang',LANG);history.replaceState(null,'',url);
+    document.getElementById('search-dialog').close();
+    refreshChrome();renderRoute({keepScroll:true});
+  });
+  document.addEventListener('change',event=>{if(event.target.id==='video-track')location.hash='#/videos'+(event.target.value?'?track='+encodeURIComponent(event.target.value):'');});
+  document.addEventListener('error',event=>{
+    const target=event.target;
+    if(target?.tagName==='VIDEO'||target?.tagName==='SOURCE'){
+      const message=target.closest('[data-video-card]')?.querySelector('.video-load-error');
+      if(message)message.hidden=false;
+    }
+  },true);
+  refreshChrome();
 
   updateThemeButton();
   renderRoute();
@@ -416,7 +418,7 @@
     else updateDrawerAccessibility();
   });
   document.getElementById('menu-button').addEventListener('click', toggleDrawer);
-  document.getElementById('drawer-scrim').addEventListener('click', closeDrawer);
+  document.getElementById('drawer-scrim').addEventListener('click', () => { closeDrawer(); document.getElementById('menu-button').focus(); });
   document.getElementById('search-launch').addEventListener('click', openSearch);
   document.getElementById('close-search').addEventListener('click', () => document.getElementById('search-dialog').close());
   document.getElementById('search-dialog').addEventListener('click', event => {
@@ -449,7 +451,7 @@
       if (state.favorites.has(id)) state.favorites.delete(id); else state.favorites.add(id);
       const saved = persist();
       renderRoute({ keepScroll: true });
-      toast(saved ? (state.favorites.has(id) ? 'تزاد الدرس للمفضلة.' : 'تحيّد الدرس من المفضلة.') : 'تبدلات المفضلة فهاد الجلسة. الحفظ المحلي ما متاحش.');
+      toast(saved ? (state.favorites.has(id) ? t('savedFavorite') : t('removedFavorite')) : t('localUnavailable'));
       return;
     }
     const completeTarget = event.target.closest('[data-complete]');
@@ -458,7 +460,7 @@
       state.progress[key] = !state.progress[key];
       const saved = persist();
       renderRoute({ keepScroll: true });
-      toast(saved ? (state.progress[key] ? 'تسجّل الدرس كمراجَع فهاد المتصفح.' : 'رجع الدرس للائحة المراجعة.') : 'التقدم تبدّل فهاد الجلسة. الحفظ المحلي ما متاحش.');
+      toast(saved ? (state.progress[key] ? t('savedReviewed') : t('resetReviewed')) : t('localUnavailable'));
       return;
     }
     const filterTarget = event.target.closest('[data-filter]');
@@ -494,7 +496,7 @@
       const feedback = form.querySelector('.quiz-feedback');
       feedback.hidden = false;
       feedback.className = 'quiz-feedback ' + (good ? 'good' : 'retry');
-      feedback.innerHTML = `<strong>${good ? 'صحيح، الفكرة واضحة.' : 'جرّب تفهم علاش هاد الاختيار ما مناسبش.'}</strong>${question.explanation ? `<div>${rich(question.explanation)}</div>` : ''}`;
+      feedback.innerHTML = `<strong>${good ? t('quizCorrect') : t('quizRetry')}</strong>${question.explanation ? `<div>${rich(question.explanation)}</div>` : ''}`;
       mathIn(feedback);
     }
   });

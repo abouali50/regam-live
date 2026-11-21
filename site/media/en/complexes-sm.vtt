@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.909
+Read the coefficients
+This quadratic equation has complex coefficients. Begin by calculating delta.
+There is no need to classify a general complex discriminant as positive or
+negative.
+
+2
+00:00:13.909 --> 00:00:26.909
+Form the discriminant
+The leading coefficient is one. To find delta, square two plus i, then
+subtract four times the constant term, one plus i.
+
+3
+00:00:26.909 --> 00:00:39.909
+Simplify
+Expand the square using i squared equal to minus one. The imaginary terms
+cancel on subtraction, leaving delta equal to minus one.
+
+4
+00:00:39.909 --> 00:00:56.545
+Choose a square root
+We need a number whose square is delta. The number i works because i squared
+is minus one. Use i in the formula with both the plus and minus signs.
+
+5
+00:00:56.545 --> 00:01:12.273
+Calculate the solutions
+With the minus sign, the imaginary parts cancel and the result is one. With
+the plus sign, two plus two i divided by two gives one plus i.
+
+6
+00:01:12.273 --> 00:01:27.545
+Verify
+Finally, check the sum and product of the roots. The sum is two plus i, and
+the product is one plus i, matching the original equation's coefficients.

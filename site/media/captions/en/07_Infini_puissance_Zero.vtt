@@ -1,0 +1,69 @@
+WEBVTT
+
+1
+00:00:00.161 --> 00:00:02.905
+The seventh case is infinity to the power zero.
+
+2
+00:00:03.020 --> 00:00:04.975
+Take x to the power one over x,
+
+3
+00:00:05.025 --> 00:00:07.044
+as x tends to positive infinity.
+
+4
+00:00:07.116 --> 00:00:09.803
+The base grows while the exponent approaches zero.
+
+5
+00:00:09.954 --> 00:00:12.634
+Again, call the expression y,
+
+6
+00:00:12.684 --> 00:00:15.756
+and take its logarithm. ln y equals
+
+7
+00:00:15.756 --> 00:00:16.872
+ln x divided by x.
+
+8
+00:00:17.122 --> 00:00:19.322
+ln x divided by x tends to zero.
+
+9
+00:00:19.491 --> 00:00:23.408
+Apply the exponential function to obtain the limit one.
+
+10
+00:00:23.544 --> 00:00:25.427
+This result is specific to this example.
+
+11
+00:00:25.592 --> 00:00:27.090
+You now have the seven cases.
+
+12
+00:00:27.239 --> 00:00:30.432
+For quotients, try factorization or the dominant power.
+
+13
+00:00:30.568 --> 00:00:33.034
+For differences of roots, the conjugate helps.
+
+14
+00:00:33.170 --> 00:00:35.564
+For products, look for a suitable quotient.
+
+15
+00:00:35.712 --> 00:00:38.371
+For powers with a positive base,
+
+16
+00:00:38.400 --> 00:00:41.400
+use logarithms. Always identify the form,
+
+17
+00:00:41.429 --> 00:00:44.060
+transform the expression, then calculate.

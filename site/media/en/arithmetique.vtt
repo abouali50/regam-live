@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:12.545
+Identify the domain
+Solve an equation in two unknowns, with the requirement that both solutions be
+integers. This condition is central to the problem.
+
+2
+00:00:12.545 --> 00:00:24.636
+Check existence
+The greatest common divisor of eighteen and thirty is six. Since six divides
+twelve, the equation does have integer solutions.
+
+3
+00:00:24.636 --> 00:00:38.545
+Simplify
+Divide the entire equation by six to simplify the calculation. We obtain three
+x plus five y equal to two, without changing the solutions.
+
+4
+00:00:38.545 --> 00:00:54.273
+Find one pair
+Try x equal to minus one and y equal to one. Minus three plus five is two,
+giving a particular solution from which to build the general family.
+
+5
+00:00:54.273 --> 00:01:08.182
+Use Gauss's lemma
+Subtract the particular solution and apply Gauss's lemma. We deduce that x
+plus one is a multiple of five, represented using an integer t.
+
+6
+00:01:08.182 --> 00:01:22.545
+Write all integer pairs
+Substitute x to obtain y equal to one minus three t. The parameter t may be
+any integer. A final substitution verifies the original equation.

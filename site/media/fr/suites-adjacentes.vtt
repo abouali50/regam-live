@@ -1,0 +1,40 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+Définir les suites
+On étudie deux suites. La première vaut un moins l’inverse de n plus un, et la
+seconde un plus ce même inverse. Les indices commencent à zéro.
+
+2
+00:00:15.273 --> 00:00:29.636
+Montrer la croissance
+Lorsque l’indice augmente, le dénominateur augmente et son inverse diminue.
+Dans la première suite, on soustrait une quantité plus petite, donc la suite
+est croissante.
+
+3
+00:00:29.636 --> 00:00:44.909
+Montrer la décroissance
+Dans la seconde suite, on ajoute une quantité décroissante. Elle est donc
+décroissante. Les deux sens de variation sont établis, mais il reste à étudier
+leur différence.
+
+4
+00:00:44.909 --> 00:01:00.182
+Calculer l’écart
+On soustrait le premier terme du second. Les constantes un se simplifient et
+il reste deux divisé par n plus un, une quantité qui tend vers zéro.
+
+5
+00:01:00.182 --> 00:01:13.636
+Appliquer le théorème
+Les trois conditions sont satisfaites. Les suites sont adjacentes et possèdent
+une limite commune. Le nombre un reste toujours entre les deux bornes.
+
+6
+00:01:13.636 --> 00:01:30.273
+Identifier la limite
+On détermine la limite avec les expressions, ou avec la somme constante égale
+à deux. À la limite, cette somme vaut deux fois la limite commune, qui est
+donc un.

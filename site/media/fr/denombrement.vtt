@@ -1,0 +1,40 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+Choisir un groupe de trois
+On dispose de huit personnes et on veut former un comité de trois. Il n’y a ni
+président ni secrétaire, donc les membres jouent le même rôle.
+
+2
+00:00:15.273 --> 00:00:31.455
+Sans ordre et sans répétition
+Deux questions fixent la méthode. L’ordre ne compte pas et une même personne
+ne peut pas être choisie deux fois. Il s’agit d’un choix sans ordre et sans
+répétition.
+
+3
+00:00:31.455 --> 00:00:46.727
+Compter provisoirement avec ordre
+En comptant avec ordre, on aurait huit choix pour la première personne, sept
+pour la deuxième et six pour la troisième. Le produit vaut trois cent trente-
+six.
+
+4
+00:00:46.727 --> 00:01:01.091
+Retirer les ordres répétés
+Chaque comité a ainsi été compté six fois, car trois personnes peuvent être
+ordonnées de six façons. Il faut corriger ce comptage par une division.
+
+5
+00:01:01.091 --> 00:01:11.364
+Obtenir le nombre de comités
+Trois cent trente-six divisé par six donne cinquante-six comités distincts. On
+retrouve la formule des combinaisons.
+
+6
+00:01:11.364 --> 00:01:27.091
+Interpréter le résultat
+Pour choisir la formule, toujours vérifier le rôle de l’ordre et de la
+répétition. Le résultat est ici un nombre de comités, pas une probabilité ni
+un pourcentage.

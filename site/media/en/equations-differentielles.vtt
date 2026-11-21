@@ -1,0 +1,40 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+Read the given information
+Solve the equation stating that the function's derivative equals minus twice
+the function plus six. There is also a condition that its value at zero is
+one.
+
+2
+00:00:15.273 --> 00:00:29.182
+Find the equilibrium
+Start with the constant solution. A constant has derivative zero, so minus
+twice this constant plus six must be zero. The constant is three.
+
+3
+00:00:29.182 --> 00:00:43.091
+Write the general solution
+The general solution is three plus a constant times e to the power minus two
+x. Determine this constant using the given initial condition.
+
+4
+00:00:43.091 --> 00:00:57.455
+Use the condition
+Substitute x equal to zero. The exponential becomes one, so three plus the
+constant equals one. Subtract three from both sides to obtain minus two.
+
+5
+00:00:57.455 --> 00:01:14.091
+Obtain the function
+Substitute the constant into the general formula. The solution is three minus
+twice e to the power minus two x. We still need to check the derivative and
+the condition.
+
+6
+00:01:14.091 --> 00:01:29.818
+Verify and conclude
+The derivative is four times the same exponential, which also equals minus
+twice the function plus six. At zero the value is one, so the solution is
+correct.

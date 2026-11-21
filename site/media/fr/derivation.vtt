@@ -1,0 +1,31 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:12.091
+Chercher la tangente
+La fonction f vaut x au cube moins trois x. On cherche la tangente au point
+dont l’abscisse est deux.
+
+2
+00:00:12.091 --> 00:00:27.364
+Calculer le point
+On calcule d’abord l’ordonnée du point. En remplaçant x par deux, on obtient
+huit moins six, soit deux. Le point a donc pour coordonnées deux et deux.
+
+3
+00:00:27.364 --> 00:00:44.455
+Calculer la dérivée
+On dérive ensuite. La dérivée de x au cube est trois x au carré, et celle de
+moins trois x est moins trois. Cette fonction donne la pente de la tangente.
+
+4
+00:00:44.455 --> 00:00:58.818
+Utiliser le point et la pente
+En deux, la pente vaut trois fois quatre moins trois, soit neuf. On utilise
+l’équation de la tangente avec la valeur et la pente calculées.
+
+5
+00:00:58.818 --> 00:01:13.182
+Vérifier le résultat
+Après développement, on obtient y égal à neuf x moins seize. Pour vérifier,
+remplacer x par deux redonne bien deux, l’ordonnée du point de tangence.

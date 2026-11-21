@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:12.091
+Start with the domain
+We want to solve this equation involving two logarithms. First determine the
+domain, before changing the expression or calculating solutions.
+
+2
+00:00:12.091 --> 00:00:25.091
+Domain, ]1, +∞[
+Each logarithm's argument must be positive. Both x minus one and x plus one
+must be positive, giving x greater than one.
+
+3
+00:00:25.091 --> 00:00:40.364
+ln a + ln b = ln(ab)
+On this domain, combine the logarithms into the logarithm of a product. The
+product of x minus one and x plus one is a difference of squares.
+
+4
+00:00:40.364 --> 00:00:53.818
+Use injectivity
+Because the logarithm is strictly increasing, equal logarithms have equal
+arguments. Thus x squared minus one equals three, and x squared equals four.
+
+5
+00:00:53.818 --> 00:01:07.727
+Check the candidates
+The algebraic equation gives two candidates, two and minus two. We are not
+finished. Check each candidate against the conditions established at the
+start.
+
+6
+00:01:07.727 --> 00:01:22.545
+Verify and conclude
+Minus two is not greater than one, so reject it. Two is admissible, and
+substitution gives ln one plus ln three. The only solution is two.

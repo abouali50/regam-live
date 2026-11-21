@@ -1,0 +1,908 @@
+[
+  {
+    "id": "limites",
+    "courseTitle": "Limites et comportements asymptotiques",
+    "titleAr": "Limites et comportements asymptotiques",
+    "domain": "analyse",
+    "title": "Limite d’un quotient à l’infini",
+    "segments": [
+      {
+        "text": "On cherche la limite de deux x au cube moins x, divisé par x au cube plus quatre, lorsque x tend vers plus l’infini. Commençons par reconnaître la forme obtenue.",
+        "equation": "\\lim_{x\\to+\\infty}\\frac{2x^3-x}{x^3+4}",
+        "note": "Identifier la forme"
+      },
+      {
+        "text": "Le numérateur et le dénominateur tendent tous deux vers plus l’infini. La substitution directe ne détermine donc pas la limite. Il faut réécrire le quotient.",
+        "equation": "\\frac{\\infty}{\\infty}",
+        "note": "Une forme indéterminée"
+      },
+      {
+        "text": "La plus grande puissance présente est x au cube. On divise le numérateur et le dénominateur entiers par cette puissance pour conserver la même valeur du quotient.",
+        "equation": "\\frac{2-1/x^2}{1+4/x^3}",
+        "note": "Diviser les deux termes par x³"
+      },
+      {
+        "text": "Un sur x au carré tend vers zéro, tout comme quatre sur x au cube. Le nouveau dénominateur tend vers un, qui est non nul.",
+        "equation": "\\frac{2-0}{1+0}",
+        "note": "Passer à la limite"
+      },
+      {
+        "text": "La limite vaut donc deux. On peut la vérifier grâce à l’égalité des degrés. Le rapport des coefficients dominants est deux divisé par un.",
+        "equation": "\\boxed{2}",
+        "note": "Conclure"
+      }
+    ]
+  },
+  {
+    "id": "continuite",
+    "courseTitle": "Continuité et théorème des valeurs intermédiaires",
+    "titleAr": "Continuité et théorème des valeurs intermédiaires",
+    "domain": "analyse",
+    "title": "Choisir une valeur pour assurer la continuité",
+    "segments": [
+      {
+        "text": "La fonction vaut x au carré moins un, divisé par x moins un, pour x différent de un. En un, on lui attribue une valeur inconnue a.",
+        "equation": "f(x)=\\frac{x^2-1}{x-1}\\ (x\\ne1),\\quad f(1)=a",
+        "note": "Chercher la continuité en 1"
+      },
+      {
+        "text": "Pour obtenir la continuité, la valeur en un doit être égale à la limite. Calculons cette limite avec l’expression définie au voisinage du point.",
+        "equation": "\\lim_{x\\to1}f(x)=f(1)",
+        "note": "Écrire la condition"
+      },
+      {
+        "text": "On factorise la différence de deux carrés. Le numérateur devient le produit de x moins un par x plus un. Le facteur commun se simplifie puisque x est différent de un.",
+        "equation": "\\frac{(x-1)(x+1)}{x-1}=x+1",
+        "note": "Simplifier pour x ≠ 1"
+      },
+      {
+        "text": "Lorsque x tend vers un, x plus un tend vers deux. La valeur donnée à la fonction doit donc coïncider avec cette limite.",
+        "equation": "\\lim_{x\\to1}(x+1)=2",
+        "note": "Calculer la limite"
+      },
+      {
+        "text": "Il faut choisir a égal à deux. On comble ainsi le point manquant par la bonne valeur. La continuité exige l’égalité entre la limite et la valeur au point.",
+        "equation": "\\boxed{a=2}",
+        "note": "Conclure"
+      }
+    ]
+  },
+  {
+    "id": "derivation",
+    "courseTitle": "Dérivation et tangentes",
+    "titleAr": "Dérivation et tangentes",
+    "domain": "analyse",
+    "title": "Calculer une tangente avec le point et la pente",
+    "segments": [
+      {
+        "text": "La fonction f vaut x au cube moins trois x. On cherche la tangente au point dont l’abscisse est deux.",
+        "equation": "f(x)=x^3-3x,\\quad a=2",
+        "note": "Chercher la tangente"
+      },
+      {
+        "text": "On calcule d’abord l’ordonnée du point. En remplaçant x par deux, on obtient huit moins six, soit deux. Le point a donc pour coordonnées deux et deux.",
+        "equation": "f(2)=2^3-3\\times2=2",
+        "note": "Calculer le point"
+      },
+      {
+        "text": "On dérive ensuite. La dérivée de x au cube est trois x au carré, et celle de moins trois x est moins trois. Cette fonction donne la pente de la tangente.",
+        "equation": "f^{\\prime}(x)=3x^2-3",
+        "note": "Calculer la dérivée"
+      },
+      {
+        "text": "En deux, la pente vaut trois fois quatre moins trois, soit neuf. On utilise l’équation de la tangente avec la valeur et la pente calculées.",
+        "equation": "f^{\\prime}(2)=9,\\quad y=2+9(x-2)",
+        "note": "Utiliser le point et la pente"
+      },
+      {
+        "text": "Après développement, on obtient y égal à neuf x moins seize. Pour vérifier, remplacer x par deux redonne bien deux, l’ordonnée du point de tangence.",
+        "equation": "\\boxed{y=9x-16}",
+        "note": "Vérifier le résultat"
+      }
+    ]
+  },
+  {
+    "id": "etude-fonction",
+    "courseTitle": "Étude complète d’une fonction",
+    "titleAr": "Étude complète d’une fonction",
+    "domain": "analyse",
+    "title": "Étudier les variations d’une fonction cubique",
+    "segments": [
+      {
+        "text": "Étudions les variations de x au cube moins trois x. La fonction est définie sur tous les réels et ses limites aux deux extrémités sont moins l’infini et plus l’infini.",
+        "equation": "f(x)=x^3-3x,\\quad D_f=\\mathbb{R}",
+        "note": "Domaine et limites"
+      },
+      {
+        "text": "La dérivée est trois x au carré moins trois. On la factorise en trois multiplié par x moins un et par x plus un.",
+        "equation": "f^{\\prime}(x)=3(x-1)(x+1)",
+        "note": "Factoriser la dérivée"
+      },
+      {
+        "text": "La dérivée s’annule en moins un et en un. Le produit est positif avant moins un, négatif entre ces deux valeurs, puis positif après un.",
+        "equation": "f^{\\prime}>0\\ \\text{hors }[-1,1],\\quad f^{\\prime}<0\\ \\text{sur }]-1,1[",
+        "note": "Étudier le signe"
+      },
+      {
+        "text": "La fonction est donc croissante, puis décroissante, puis de nouveau croissante. Aux points remarquables, elle vaut deux en moins un et moins deux en un.",
+        "equation": "f(-1)=2,\\qquad f(1)=-2",
+        "note": "Calculer les valeurs remarquables"
+      },
+      {
+        "text": "On obtient un maximum local de deux et un minimum local de moins deux. Le tableau réunit ces valeurs et les limites pour construire un tracé justifié par les calculs.",
+        "equation": "-\\infty\\nearrow2\\searrow-2\\nearrow+\\infty",
+        "note": "Construire le tableau"
+      }
+    ]
+  },
+  {
+    "id": "suites",
+    "courseTitle": "Suites numériques et récurrence",
+    "titleAr": "Suites numériques et récurrence",
+    "domain": "analyse",
+    "title": "Transformer une suite en suite géométrique",
+    "segments": [
+      {
+        "text": "Le premier terme u zéro vaut zéro. Chaque terme suivant vaut la moitié du précédent plus trois. On cherche une expression explicite et la limite de la suite.",
+        "equation": "u_0=0,\\qquad u_{n+1}=\\frac12u_n+3",
+        "note": "Lire la récurrence"
+      },
+      {
+        "text": "Cherchons d’abord le nombre qui reste inchangé. L’équation du point fixe, l égal à la moitié de l plus trois, donne six.",
+        "equation": "\\ell=\\frac12\\ell+3\\ \\Longrightarrow\\ \\ell=6",
+        "note": "Trouver le point fixe"
+      },
+      {
+        "text": "On pose v n égal à u n moins six. La relation de récurrence montre que chaque nouveau terme de v est exactement la moitié du précédent.",
+        "equation": "v_n=u_n-6,\\qquad v_{n+1}=\\frac12v_n",
+        "note": "Obtenir une suite géométrique"
+      },
+      {
+        "text": "Le terme v zéro vaut moins six. Ainsi, v n vaut moins six multiplié par un demi à la puissance n. On revient à u en ajoutant six.",
+        "equation": "u_n=6-6\\left(\\frac12\\right)^n",
+        "note": "Revenir à u"
+      },
+      {
+        "text": "La puissance n de un demi tend vers zéro, donc u n tend vers six. L’expression montre aussi que la suite est croissante et reste inférieure à six.",
+        "equation": "\\boxed{\\lim u_n=6}",
+        "note": "Conclure"
+      }
+    ]
+  },
+  {
+    "id": "fonctions-reciproques",
+    "courseTitle": "Fonctions réciproques et puissances",
+    "titleAr": "Fonctions réciproques et puissances",
+    "domain": "analyse",
+    "title": "Dériver une réciproque sans calculer son expression",
+    "segments": [
+      {
+        "text": "La fonction f vaut x au cube plus x. On cherche la dérivée de sa réciproque en deux, sans déterminer l’expression de cette réciproque.",
+        "equation": "f(x)=x^3+x,\\quad (f^{-1})^{\\prime}(2)\\ ?",
+        "note": "Dérivée de la réciproque"
+      },
+      {
+        "text": "La dérivée de f vaut trois x au carré plus un et est toujours positive. Avec la continuité et les limites à l’infini, cela prouve que f réalise une bijection de R sur R.",
+        "equation": "f^{\\prime}(x)=3x^2+1>0",
+        "note": "Justifier la bijection"
+      },
+      {
+        "text": "Il faut trouver l’antécédent de deux. En essayant un, on obtient un au cube plus un, soit deux. L’image de deux par la réciproque est donc un.",
+        "equation": "f(1)=2\\quad\\Longrightarrow\\quad f^{-1}(2)=1",
+        "note": "Trouver le bon antécédent"
+      },
+      {
+        "text": "La dérivée en un vaut quatre, un nombre non nul. On peut maintenant appliquer la formule de dérivation de la réciproque.",
+        "equation": "f^{\\prime}(1)=4\\ne0",
+        "note": "Vérifier le dénominateur"
+      },
+      {
+        "text": "La dérivée de la réciproque en deux est l’inverse de la dérivée de f en un, soit un quart. On évalue bien la dérivée initiale à l’antécédent, et non à l’image.",
+        "equation": "\\boxed{(f^{-1})^{\\prime}(2)=\\frac14}",
+        "note": "Conclure"
+      }
+    ]
+  },
+  {
+    "id": "logarithme",
+    "courseTitle": "Fonctions logarithmiques",
+    "titleAr": "Fonctions logarithmiques",
+    "domain": "analyse",
+    "title": "Résoudre une équation logarithmique",
+    "segments": [
+      {
+        "text": "Cette équation comporte deux logarithmes. Avant de transformer l’expression ou de calculer les solutions, on détermine son domaine de définition.",
+        "equation": "\\ln(x-1)+\\ln(x+1)=\\ln3",
+        "note": "Commencer par le domaine"
+      },
+      {
+        "text": "L’argument de chaque logarithme doit être positif. On exige x moins un positif et x plus un positif. Ces deux conditions donnent x strictement supérieur à un.",
+        "equation": "x-1>0,\\quad x+1>0\\quad\\Rightarrow\\quad x>1",
+        "note": "Domaine : ]1, +∞["
+      },
+      {
+        "text": "Sur ce domaine, la somme des logarithmes devient le logarithme du produit. Le produit de x moins un par x plus un est une différence de deux carrés.",
+        "equation": "\\ln(x^2-1)=\\ln3",
+        "note": "ln a + ln b = ln(ab)"
+      },
+      {
+        "text": "Le logarithme est strictement croissant. Deux logarithmes égaux ont donc des arguments égaux. On obtient x au carré moins un égal à trois, puis x au carré égal à quatre.",
+        "equation": "x^2-1=3\\quad\\Rightarrow\\quad x^2=4",
+        "note": "Utiliser l’injectivité"
+      },
+      {
+        "text": "L’équation algébrique donne deux candidats, deux et moins deux. Il reste à vérifier pour chacun les conditions écrites au début.",
+        "equation": "x=2\\quad\\mathrm{ou}\\quad x=-2",
+        "note": "Contrôler les candidats"
+      },
+      {
+        "text": "Moins deux n’est pas supérieur à un, on le rejette. Deux convient et donne le logarithme de un plus le logarithme de trois. L’unique solution est donc deux.",
+        "equation": "S=\\{2\\}",
+        "note": "Vérifier et conclure"
+      }
+    ]
+  },
+  {
+    "id": "exponentielle",
+    "courseTitle": "Fonctions exponentielles",
+    "titleAr": "Fonctions exponentielles",
+    "domain": "analyse",
+    "title": "Résoudre une équation exponentielle par substitution",
+    "segments": [
+      {
+        "text": "L’équation contient l’exponentielle de x et celle de deux x. Pour la simplifier, on la transforme en une équation du second degré dans une nouvelle variable.",
+        "equation": "e^{2x}-3e^x+2=0",
+        "note": "Reconnaître une expression répétée"
+      },
+      {
+        "text": "On pose t égal à l’exponentielle de x. Le nombre t est strictement positif, et l’exponentielle de deux x est le carré de celle de x.",
+        "equation": "t=e^x>0,\\qquad t^2-3t+2=0",
+        "note": "Changement de variable : t > 0"
+      },
+      {
+        "text": "On factorise maintenant le polynôme. On cherche deux nombres de somme trois et de produit deux. Ce sont un et deux, d’où le produit indiqué.",
+        "equation": "(t-1)(t-2)=0",
+        "note": "Factoriser le trinôme"
+      },
+      {
+        "text": "Un produit est nul si l’un de ses facteurs est nul. Ainsi, t vaut un ou deux. Ces deux valeurs sont positives et admissibles dans la substitution.",
+        "equation": "t=1\\quad\\mathrm{ou}\\quad t=2",
+        "note": "Garder les racines positives"
+      },
+      {
+        "text": "On revient à x. Une exponentielle égale à un donne x égal à zéro. Une exponentielle égale à deux donne x égal au logarithme de deux.",
+        "equation": "x=0\\quad\\mathrm{ou}\\quad x=\\ln2",
+        "note": "Revenir à la variable x"
+      },
+      {
+        "text": "La substitution dans l’équation initiale donne bien zéro dans les deux cas. Ce sont les solutions finales. La réponse doit être exprimée en x, pas seulement en t.",
+        "equation": "S=\\{0,\\ln2\\}",
+        "note": "Vérifier les deux solutions"
+      }
+    ]
+  },
+  {
+    "id": "primitives-integrales",
+    "courseTitle": "Primitives et calcul intégral",
+    "titleAr": "Primitives et calcul intégral",
+    "domain": "analyse",
+    "title": "Calculer une intégrale par parties",
+    "segments": [
+      {
+        "text": "Calculons l’intégrale de zéro à un de x multiplié par son exponentielle. La présence de ce produit suggère une intégration par parties.",
+        "equation": "I=\\int_0^1 xe^x\\,dx",
+        "note": "Identifier le produit"
+      },
+      {
+        "text": "On choisit de dériver x, puisque sa dérivée vaut un. On prend une primitive de l’exponentielle, qui est l’exponentielle elle-même.",
+        "equation": "u=x,\\quad u^{\\prime}=1,\\quad v^{\\prime}=e^x,\\quad v=e^x",
+        "note": "Choisir u et v"
+      },
+      {
+        "text": "On applique la formule en évaluant le produit aux bornes, puis en soustrayant l’intégrale de l’exponentielle. Le signe moins est indispensable.",
+        "equation": "I=[xe^x]_0^1-\\int_0^1 e^x\\,dx",
+        "note": "Appliquer la formule"
+      },
+      {
+        "text": "Dans le premier crochet, la valeur en un est e et celle en zéro est zéro. La différence donne donc simplement e.",
+        "equation": "[xe^x]_0^1=e-0=e",
+        "note": "Calculer le premier terme"
+      },
+      {
+        "text": "Il reste l’intégrale de l’exponentielle entre zéro et un. Sa primitive est elle-même, donc l’évaluation aux bornes donne e moins un.",
+        "equation": "\\int_0^1 e^x\\,dx=[e^x]_0^1=e-1",
+        "note": "Calculer le second terme"
+      },
+      {
+        "text": "On soustrait e moins un à e en conservant les parenthèses. Les termes e se simplifient et il reste un. Le résultat positif est cohérent avec le signe de la fonction.",
+        "equation": "I=e-(e-1)=1",
+        "note": "Conclure et vérifier"
+      }
+    ]
+  },
+  {
+    "id": "equations-differentielles",
+    "courseTitle": "Équations différentielles",
+    "titleAr": "Équations différentielles",
+    "domain": "analyse",
+    "title": "Résoudre une équation avec condition initiale",
+    "segments": [
+      {
+        "text": "On cherche une fonction dont la dérivée vaut moins deux fois la fonction plus six. Une condition supplémentaire impose que sa valeur en zéro soit un.",
+        "equation": "y^{\\prime}=-2y+6,\\qquad y(0)=1",
+        "note": "Lire les données"
+      },
+      {
+        "text": "Déterminons la solution constante. Sa dérivée vaut zéro, donc moins deux fois cette constante plus six doit être nul. On obtient trois.",
+        "equation": "0=-2k+6\\quad\\Longrightarrow\\quad k=3",
+        "note": "Trouver l’équilibre"
+      },
+      {
+        "text": "La solution générale s’écrit trois plus une constante multipliée par l’exponentielle de moins deux x. La condition initiale permettra de fixer cette constante.",
+        "equation": "y(x)=3+Ce^{-2x}",
+        "note": "Écrire la solution générale"
+      },
+      {
+        "text": "En remplaçant x par zéro, l’exponentielle vaut un. Il reste trois plus la constante égal à un, donc la constante vaut moins deux.",
+        "equation": "3+C=1\\quad\\Longrightarrow\\quad C=-2",
+        "note": "Utiliser la condition"
+      },
+      {
+        "text": "On remplace la constante dans la formule générale. La solution vaut trois moins deux fois l’exponentielle de moins deux x. Vérifions encore la dérivée et la condition.",
+        "equation": "y(x)=3-2e^{-2x}",
+        "note": "Obtenir la fonction"
+      },
+      {
+        "text": "La dérivée vaut quatre fois cette exponentielle, ce qui coïncide avec moins deux fois la fonction plus six. La valeur en zéro est bien un. La solution est vérifiée.",
+        "equation": "y^{\\prime}=4e^{-2x}=-2y+6,\\qquad y(0)=1",
+        "note": "Vérifier et conclure"
+      }
+    ]
+  },
+  {
+    "id": "complexes",
+    "courseTitle": "Nombres complexes",
+    "titleAr": "Nombres complexes",
+    "domain": "algebre",
+    "title": "Résoudre une équation du second degré dans C",
+    "segments": [
+      {
+        "text": "Résolvons z au carré moins deux z plus cinq égal à zéro. L’inconnue est complexe et nous suivons la méthode du second degré.",
+        "equation": "z^2-2z+5=0",
+        "note": "Résoudre dans C"
+      },
+      {
+        "text": "On identifie les coefficients. Celui du carré vaut un, celui de z vaut moins deux et le terme constant vaut cinq. On peut calculer le discriminant.",
+        "equation": "a=1,\\quad b=-2,\\quad c=5",
+        "note": "Identifier les coefficients"
+      },
+      {
+        "text": "Le discriminant vaut b au carré moins quatre a c, soit quatre moins vingt. Il vaut donc moins seize, ce qui conduit à des solutions complexes non réelles.",
+        "equation": "\\Delta=(-2)^2-4\\times1\\times5=-16",
+        "note": "Calculer le discriminant"
+      },
+      {
+        "text": "La racine carrée de l’opposé du discriminant vaut quatre. La première solution est deux plus quatre i, divisé par deux. On divise les deux termes par deux.",
+        "equation": "z_1=\\frac{2+4i}{2}=1+2i",
+        "note": "Premier complexe"
+      },
+      {
+        "text": "Pour la seconde solution, on change le signe de la partie imaginaire. Deux moins quatre i, divisé par deux, donne un moins deux i, le conjugué de la première.",
+        "equation": "z_2=\\frac{2-4i}{2}=1-2i",
+        "note": "Deuxième complexe"
+      },
+      {
+        "text": "Les deux solutions sont conjuguées. Leur somme vaut deux et leur produit cinq, conformément aux coefficients de l’équation. Le calcul est ainsi vérifié.",
+        "equation": "z_1+z_2=2,\\quad z_1z_2=5",
+        "note": "Vérifier somme et produit"
+      }
+    ]
+  },
+  {
+    "id": "geometrie-complexe",
+    "courseTitle": "Géométrie dans le plan complexe",
+    "titleAr": "Géométrie dans le plan complexe",
+    "domain": "geometrie",
+    "title": "Reconnaître un triangle rectangle isocèle avec les affixes",
+    "segments": [
+      {
+        "text": "On considère trois points du plan complexe. A a pour affixe un plus i, B trois plus i et C un plus trois i.",
+        "equation": "z_A=1+i,\\quad z_B=3+i,\\quad z_C=1+3i",
+        "note": "Trois points du plan complexe"
+      },
+      {
+        "text": "Pour étudier le triangle à partir de A, on calcule l’affixe du vecteur AB. On soustrait l’affixe de A de celle de B et on obtient deux.",
+        "equation": "z_B-z_A=2",
+        "note": "Calculer le vecteur AB"
+      },
+      {
+        "text": "De même, l’affixe du vecteur AC est celle de C moins celle de A. Les parties réelles se simplifient et il reste deux i.",
+        "equation": "z_C-z_A=2i",
+        "note": "Calculer le vecteur AC"
+      },
+      {
+        "text": "On divise ensuite deux i par deux. Le quotient vaut i. Le dénominateur étant non nul, cette division est bien permise.",
+        "equation": "\\frac{z_C-z_A}{z_B-z_A}=i",
+        "note": "Comparer les deux vecteurs"
+      },
+      {
+        "text": "Le nombre i a pour argument pi sur deux et pour module un. L’angle entre les vecteurs est donc droit et leurs longueurs sont égales.",
+        "equation": "\\arg(i)=\\frac{\\pi}{2},\\quad |i|=1",
+        "note": "Angle droit et longueurs égales"
+      },
+      {
+        "text": "Le triangle ABC est rectangle isocèle en A. Le calcul justifie à la fois l’angle droit et l’égalité des longueurs, au-delà de ce que suggère le dessin.",
+        "equation": "AB=AC=2,\\qquad AB\\perp AC",
+        "note": "Triangle rectangle isocèle en A"
+      }
+    ]
+  },
+  {
+    "id": "geometrie-espace",
+    "courseTitle": "Géométrie analytique de l’espace",
+    "titleAr": "Géométrie analytique de l’espace",
+    "domain": "geometrie",
+    "title": "Calculer la distance d’un point à un plan",
+    "segments": [
+      {
+        "text": "On cherche la distance du point M de coordonnées un, un, un au plan d’équation x plus deux y plus deux z moins six égal à zéro.",
+        "equation": "M=(1,1,1),\\quad P:x+2y+2z-6=0",
+        "note": "Point et plan"
+      },
+      {
+        "text": "On lit d’abord un vecteur normal dans les coefficients de x, de y et de z. Ses coordonnées sont un, deux, deux. Ce vecteur est non nul.",
+        "equation": "n=(1,2,2)",
+        "note": "Lire le vecteur normal"
+      },
+      {
+        "text": "Sa norme est la racine carrée de un au carré plus deux au carré plus deux au carré. La somme vaut neuf, donc la norme vaut trois.",
+        "equation": "\\|n\\|=\\sqrt{1^2+2^2+2^2}=3",
+        "note": "Calculer la norme"
+      },
+      {
+        "text": "On remplace ensuite les coordonnées de M dans l’équation du plan. Un plus deux plus deux moins six donne moins un. Ce n’est pas encore la distance.",
+        "equation": "1+2+2-6=-1",
+        "note": "Évaluer au point M"
+      },
+      {
+        "text": "On prend la valeur absolue de moins un et on la divise par la norme du vecteur normal. On obtient un tiers, la distance recherchée.",
+        "equation": "d(M,P)=\\frac{|-1|}{3}=\\frac{1}{3}",
+        "note": "Appliquer la formule"
+      },
+      {
+        "text": "Le résultat est positif, ce qui est cohérent puisque M n’appartient pas au plan. La valeur absolue est essentielle, car une distance ne peut jamais être négative.",
+        "equation": "d(M,P)=\\frac{1}{3}>0",
+        "note": "Une distance est positive ou nulle"
+      }
+    ]
+  },
+  {
+    "id": "spheres",
+    "courseTitle": "Sphère, plan et droite",
+    "titleAr": "Sphère, plan et droite",
+    "domain": "geometrie",
+    "title": "Déterminer le cercle d’intersection d’une sphère et d’un plan",
+    "segments": [
+      {
+        "text": "La sphère est centrée à l’origine et son rayon vaut cinq. On cherche son intersection avec le plan z égal à trois et le rayon de cette intersection.",
+        "equation": "x^2+y^2+z^2=25,\\quad P:z=3",
+        "note": "Sphère et plan"
+      },
+      {
+        "text": "Le projeté du centre sur le plan est H, de coordonnées zéro, zéro, trois. La distance de l’origine à H vaut exactement trois.",
+        "equation": "H=(0,0,3),\\quad d=3",
+        "note": "Projeter le centre"
+      },
+      {
+        "text": "Trois est inférieur à cinq. Le plan coupe donc la sphère suivant un cercle. Son centre est H, et non le centre de la sphère.",
+        "equation": "d=3<5=R",
+        "note": "Une intersection circulaire"
+      },
+      {
+        "text": "Pour déterminer le rayon, on applique Pythagore dans le triangle rectangle. Le carré du rayon du cercle vaut cinq au carré moins trois au carré.",
+        "equation": "r^2=R^2-d^2=25-9",
+        "note": "Appliquer Pythagore"
+      },
+      {
+        "text": "Vingt-cinq moins neuf vaut seize. Le rayon étant positif, on prend la racine positive, qui vaut ici quatre.",
+        "equation": "r=\\sqrt{16}=4",
+        "note": "Choisir la racine positive"
+      },
+      {
+        "text": "L’intersection est donc un cercle dans le plan z égal à trois, de centre zéro, zéro, trois et de rayon quatre. La distance a permis de déterminer la position puis les dimensions.",
+        "equation": "z=3,\\quad x^2+y^2=16",
+        "note": "Cercle de centre H et de rayon 4"
+      }
+    ]
+  },
+  {
+    "id": "denombrement",
+    "courseTitle": "Dénombrement",
+    "titleAr": "Dénombrement",
+    "domain": "probabilites",
+    "title": "Choisir un comité de trois personnes",
+    "segments": [
+      {
+        "text": "On dispose de huit personnes et on veut former un comité de trois. Il n’y a ni président ni secrétaire, donc les membres jouent le même rôle.",
+        "equation": "n=8,\\qquad p=3",
+        "note": "Choisir un groupe de trois"
+      },
+      {
+        "text": "Deux questions fixent la méthode. L’ordre ne compte pas et une même personne ne peut pas être choisie deux fois. Il s’agit d’un choix sans ordre et sans répétition.",
+        "equation": "\\binom{8}{3}",
+        "note": "Sans ordre et sans répétition"
+      },
+      {
+        "text": "En comptant avec ordre, on aurait huit choix pour la première personne, sept pour la deuxième et six pour la troisième. Le produit vaut trois cent trente-six.",
+        "equation": "8\\times7\\times6=336",
+        "note": "Compter provisoirement avec ordre"
+      },
+      {
+        "text": "Chaque comité a ainsi été compté six fois, car trois personnes peuvent être ordonnées de six façons. Il faut corriger ce comptage par une division.",
+        "equation": "3!=3\\times2\\times1=6",
+        "note": "Retirer les ordres répétés"
+      },
+      {
+        "text": "Trois cent trente-six divisé par six donne cinquante-six comités distincts. On retrouve la formule des combinaisons.",
+        "equation": "\\binom{8}{3}=\\frac{336}{6}=56",
+        "note": "Obtenir le nombre de comités"
+      },
+      {
+        "text": "Pour choisir la formule, toujours vérifier le rôle de l’ordre et de la répétition. Le résultat est ici un nombre de comités, pas une probabilité ni un pourcentage.",
+        "equation": "56\\ \\mathrm{comites}",
+        "note": "Interpréter le résultat"
+      }
+    ]
+  },
+  {
+    "id": "probabilites",
+    "courseTitle": "Probabilités et conditionnement",
+    "titleAr": "Probabilités et conditionnement",
+    "domain": "probabilites",
+    "title": "Tirer deux boules rouges sans remise",
+    "segments": [
+      {
+        "text": "Un sac contient trois boules rouges et deux bleues, toutes équiprobables au tirage. On tire deux boules successivement sans remettre la première dans le sac.",
+        "equation": "3\\ \\mathrm{rouges},\\quad2\\ \\mathrm{bleues}",
+        "note": "Deux tirages sans remise"
+      },
+      {
+        "text": "On veut une rouge au premier tirage et une rouge au second. La probabilité de la première rouge vaut trois cinquièmes, puisqu’il y a cinq boules au départ.",
+        "equation": "P(R_1)=\\frac{3}{5}",
+        "note": "Premier tirage"
+      },
+      {
+        "text": "Supposons que la première soit rouge. Il reste deux rouges parmi quatre boules. Cette information modifie la probabilité au deuxième tirage.",
+        "equation": "P(R_2\\mid R_1)=\\frac{2}{4}",
+        "note": "Après une première rouge"
+      },
+      {
+        "text": "Pour obtenir les deux événements, on multiplie la probabilité du premier par la probabilité conditionnelle du second. Ici, on ne multiplie pas trois cinquièmes par lui-même.",
+        "equation": "P(R_1\\cap R_2)=\\frac{3}{5}\\times\\frac{2}{4}",
+        "note": "Multiplier sur la même branche"
+      },
+      {
+        "text": "Le produit vaut six vingtièmes. En simplifiant par deux, on obtient trois dixièmes, soit trente pour cent des cas.",
+        "equation": "\\frac{6}{20}=\\frac{3}{10}=0.3",
+        "note": "Simplifier le résultat"
+      },
+      {
+        "text": "Ce résultat repose sur le tirage sans remise indiqué dans l’énoncé. Avec remise, les effectifs ne diminueraient pas et le calcul serait différent.",
+        "equation": "P(R_1\\cap R_2)=\\frac{3}{10}",
+        "note": "Le modèle dépend de la remise"
+      }
+    ]
+  },
+  {
+    "id": "variables-aleatoires",
+    "courseTitle": "Variables aléatoires et loi binomiale",
+    "titleAr": "Variables aléatoires et loi binomiale",
+    "domain": "probabilites",
+    "title": "Obtenir deux succès en quatre lancers",
+    "segments": [
+      {
+        "text": "On lance une pièce équilibrée quatre fois de manière indépendante. X compte les faces. On cherche la probabilité d’obtenir exactement deux faces.",
+        "equation": "X\\sim\\mathcal{B}\\left(4,\\frac{1}{2}\\right)",
+        "note": "Quatre essais indépendants"
+      },
+      {
+        "text": "Il y a quatre expériences et la probabilité de succès à chacune vaut un demi. L’indépendance et la constance de cette probabilité permettent d’utiliser la loi binomiale.",
+        "equation": "n=4,\\quad p=\\frac{1}{2},\\quad k=2",
+        "note": "Vérifier le modèle binomial"
+      },
+      {
+        "text": "Il faut choisir les deux positions des succès parmi les quatre lancers. Le nombre de choix est la combinaison de deux parmi quatre, soit six.",
+        "equation": "\\binom{4}{2}=6",
+        "note": "Choisir les positions des succès"
+      },
+      {
+        "text": "Chaque ordre comportant deux succès et deux échecs a pour probabilité un demi au carré multiplié par un demi au carré, soit un seizième.",
+        "equation": "\\left(\\frac{1}{2}\\right)^2\\left(\\frac{1}{2}\\right)^2=\\frac{1}{16}",
+        "note": "Probabilité de chaque ordre"
+      },
+      {
+        "text": "Les six ordres distincts ont la même probabilité. On multiplie six par un seizième et on simplifie pour obtenir trois huitièmes.",
+        "equation": "P(X=2)=6\\times\\frac{1}{16}=\\frac{3}{8}",
+        "note": "Additionner les six cas"
+      },
+      {
+        "text": "Il s’agit de la probabilité d’exactement deux faces, et non d’au moins deux. Si la formulation change, les événements à compter changent aussi.",
+        "equation": "P(X=2)=\\frac{3}{8}",
+        "note": "Exactement deux succès"
+      }
+    ]
+  },
+  {
+    "id": "arithmetique",
+    "courseTitle": "Arithmétique dans ℤ",
+    "titleAr": "Arithmétique dans ℤ",
+    "domain": "algebre",
+    "title": "Résoudre une équation diophantienne pas à pas",
+    "segments": [
+      {
+        "text": "L’équation comporte deux inconnues, mais les solutions recherchées doivent être entières. Cette contrainte est au cœur de l’exercice.",
+        "equation": "18x+30y=12,\\quad(x,y)\\in\\mathbb Z^2",
+        "note": "Identifier le domaine"
+      },
+      {
+        "text": "Le PGCD de dix-huit et de trente vaut six. Puisque six divise douze, l’équation admet bien des solutions entières.",
+        "equation": "\\gcd(18,30)=6\\mid12",
+        "note": "Vérifier l’existence"
+      },
+      {
+        "text": "On divise toute l’équation par six pour simplifier les calculs. On obtient trois x plus cinq y égal à deux, sans changer l’ensemble des solutions.",
+        "equation": "3x+5y=2",
+        "note": "Simplifier"
+      },
+      {
+        "text": "Essayons x égal à moins un et y égal à un. Moins trois plus cinq vaut deux. Ce couple est donc une solution particulière pour construire toutes les autres.",
+        "equation": "(x_0,y_0)=(-1,1)",
+        "note": "Trouver un couple"
+      },
+      {
+        "text": "On soustrait la solution particulière et on applique le théorème de Gauss. On déduit que x plus un est un multiple de cinq, que l’on écrit cinq t.",
+        "equation": "3(x+1)=-5(y-1),\\quad x=-1+5t",
+        "note": "Utiliser Gauss"
+      },
+      {
+        "text": "En remplaçant x, on trouve y égal à un moins trois t. Le paramètre t parcourt tous les entiers. Une substitution finale vérifie l’équation initiale.",
+        "equation": "(x,y)=(-1+5t,1-3t),\\quad t\\in\\mathbb Z",
+        "note": "Écrire tous les couples"
+      }
+    ]
+  },
+  {
+    "id": "structures",
+    "courseTitle": "Structures algébriques",
+    "titleAr": "Structures algébriques",
+    "domain": "algebre",
+    "title": "Trouver le neutre et le symétrique",
+    "segments": [
+      {
+        "text": "Sur les réels, on définit une nouvelle opération en additionnant les deux nombres puis en retranchant deux. Déterminons son élément neutre et le symétrique de chaque élément.",
+        "equation": "x*y=x+y-2",
+        "note": "Lire la loi"
+      },
+      {
+        "text": "Le résultat reste réel pour tous les couples de réels. Cette vérification simple est indispensable. Elle prouve que la loi est interne.",
+        "equation": "x,y\\in\\mathbb R\\Longrightarrow x*y\\in\\mathbb R",
+        "note": "Vérifier la stabilité"
+      },
+      {
+        "text": "Le neutre doit laisser x inchangé. En écrivant l’équation puis en simplifiant x des deux côtés, on trouve que le neutre vaut deux, et non zéro.",
+        "equation": "x*e=x\\iff x+e-2=x\\iff e=2",
+        "note": "Calculer le neutre"
+      },
+      {
+        "text": "Pour trouver le symétrique de x, on impose un résultat égal au neutre, donc à deux. La résolution donne quatre moins x, qui appartient bien aux réels.",
+        "equation": "x*y=2\\iff y=4-x",
+        "note": "Calculer le symétrique"
+      },
+      {
+        "text": "Il reste l’associativité. On calcule les deux expressions avec parenthèses et on obtient dans les deux cas x plus y plus z moins quatre, pour tous les réels.",
+        "equation": "(x*y)*z=x+y+z-4=x*(y*z)",
+        "note": "Vérifier l’associativité"
+      },
+      {
+        "text": "La loi est aussi commutative, car échanger x et y ne modifie pas le résultat. On obtient donc un groupe abélien, après avoir vérifié toutes les conditions.",
+        "equation": "x*y=y*x,\\qquad(\\mathbb R,*)\\text{ groupe abélien}",
+        "note": "Conclure"
+      }
+    ]
+  },
+  {
+    "id": "espaces-vectoriels",
+    "courseTitle": "Espaces vectoriels réels",
+    "titleAr": "Espaces vectoriels réels",
+    "domain": "algebre",
+    "title": "Trouver une base d’un plan vectoriel",
+    "segments": [
+      {
+        "text": "On considère les triplets dont la somme des coordonnées est nulle. Montrons qu’ils forment un sous-espace, puis déterminons une base explicite.",
+        "equation": "F=\\{(x,y,z)\\in\\mathbb R^3:x+y+z=0\\}",
+        "note": "Lire la condition"
+      },
+      {
+        "text": "Le vecteur nul appartient à l’ensemble. Une combinaison linéaire de deux solutions conserve une somme des coordonnées nulle. La stabilité est donc vérifiée.",
+        "equation": "0\\in F,\\quad u,v\\in F\\Rightarrow\\lambda u+\\mu v\\in F",
+        "note": "Prouver le sous-espace"
+      },
+      {
+        "text": "On choisit y et z comme paramètres libres. L’équation impose x égal à moins y moins z, ce qui donne une écriture paramétrique.",
+        "equation": "(x,y,z)=(-s-t,s,t)",
+        "note": "Paramétrer"
+      },
+      {
+        "text": "On regroupe les termes de chaque paramètre. Tout élément s’écrit s fois un premier vecteur plus t fois un second. Ces deux vecteurs engendrent donc l’espace.",
+        "equation": "(-s-t,s,t)=s(-1,1,0)+t(-1,0,1)",
+        "note": "Trouver des générateurs"
+      },
+      {
+        "text": "Pour vérifier la liberté, on suppose que cette combinaison donne le vecteur nul. La deuxième coordonnée impose s nul et la troisième impose t nul.",
+        "equation": "s(-1,1,0)+t(-1,0,1)=0\\Rightarrow s=t=0",
+        "note": "Vérifier la liberté"
+      },
+      {
+        "text": "La famille est libre et génératrice, donc c’est une base. Elle contient deux vecteurs, la dimension est donc deux, même si les éléments possèdent trois coordonnées.",
+        "equation": "\\mathcal B=((-1,1,0),(-1,0,1)),\\quad\\dim F=2",
+        "note": "Conclure"
+      }
+    ]
+  },
+  {
+    "id": "theoremes-analyse-sm",
+    "courseTitle": "Rolle, TAF, IAF et arctangente",
+    "titleAr": "Rolle, TAF, IAF et arctangente",
+    "domain": "analyse",
+    "title": "Encadrer un logarithme avec le théorème des accroissements finis",
+    "segments": [
+      {
+        "text": "On veut encadrer le logarithme de un virgule un sans calculatrice. On étudie le logarithme sur le segment allant de un à un virgule un.",
+        "equation": "f(t)=\\ln t,\\quad t\\in[1,11/10]",
+        "note": "Choisir la fonction"
+      },
+      {
+        "text": "La fonction est continue sur le segment et dérivable à l’intérieur, car toutes ses valeurs sont positives. Les hypothèses du théorème des accroissements finis sont satisfaites.",
+        "equation": "f\\prime(t)=1/t",
+        "note": "Vérifier les hypothèses"
+      },
+      {
+        "text": "Sur ce segment, la dérivée est comprise entre dix onzièmes et un. La borne inférieure correspond au plus grand dénominateur et la borne supérieure au plus petit.",
+        "equation": "\\frac{10}{11}\\leq\\frac1t\\leq1",
+        "note": "Encadrer la dérivée"
+      },
+      {
+        "text": "Le théorème exprime la différence des logarithmes comme une dérivée en un point intérieur multipliée par la longueur du segment. Cette longueur vaut un dixième et est positive.",
+        "equation": "\\ln(11/10)-\\ln1=f\\prime(c)\\,\\frac1{10}",
+        "note": "Appliquer le TAF"
+      },
+      {
+        "text": "On multiplie les bornes de la dérivée par un dixième sans changer le sens des inégalités. On utilise ensuite le fait que le logarithme de un vaut zéro.",
+        "equation": "\\frac1{11}\\leq\\ln(11/10)\\leq\\frac1{10}",
+        "note": "Obtenir l’encadrement"
+      },
+      {
+        "text": "On obtient un encadrement justifié par le théorème. Il n’était pas nécessaire de connaître le point intérieur exact, car l’encadrement de la dérivée suffisait.",
+        "equation": "\\ln(1{,}1)\\in[1/11,1/10]",
+        "note": "Interpréter le résultat"
+      }
+    ]
+  },
+  {
+    "id": "suites-adjacentes",
+    "courseTitle": "Suites adjacentes et encadrements",
+    "titleAr": "Suites adjacentes et encadrements",
+    "domain": "analyse",
+    "title": "Démontrer simplement que deux suites sont adjacentes",
+    "segments": [
+      {
+        "text": "On étudie deux suites. La première vaut un moins l’inverse de n plus un, et la seconde un plus ce même inverse. Les indices commencent à zéro.",
+        "equation": "u_n=1-\\frac1{n+1},\\quad v_n=1+\\frac1{n+1},\\quad n\\geq0",
+        "note": "Définir les suites"
+      },
+      {
+        "text": "Lorsque l’indice augmente, le dénominateur augmente et son inverse diminue. Dans la première suite, on soustrait une quantité plus petite, donc la suite est croissante.",
+        "equation": "u_{n+1}-u_n=\\frac1{(n+1)(n+2)}>0",
+        "note": "Montrer la croissance"
+      },
+      {
+        "text": "Dans la seconde suite, on ajoute une quantité décroissante. Elle est donc décroissante. Les deux sens de variation sont établis, mais il reste à étudier leur différence.",
+        "equation": "v_{n+1}-v_n=-\\frac1{(n+1)(n+2)}<0",
+        "note": "Montrer la décroissance"
+      },
+      {
+        "text": "On soustrait le premier terme du second. Les constantes un se simplifient et il reste deux divisé par n plus un, une quantité qui tend vers zéro.",
+        "equation": "v_n-u_n=\\frac2{n+1}\\longrightarrow0",
+        "note": "Calculer l’écart"
+      },
+      {
+        "text": "Les trois conditions sont satisfaites. Les suites sont adjacentes et possèdent une limite commune. Le nombre un reste toujours entre les deux bornes.",
+        "equation": "u_n\\leq1\\leq v_n",
+        "note": "Appliquer le théorème"
+      },
+      {
+        "text": "On détermine la limite avec les expressions, ou avec la somme constante égale à deux. À la limite, cette somme vaut deux fois la limite commune, qui est donc un.",
+        "equation": "u_n+v_n=2\\Longrightarrow2\\ell=2\\Longrightarrow\\ell=1",
+        "note": "Identifier la limite"
+      }
+    ]
+  },
+  {
+    "id": "integration-sm",
+    "courseTitle": "Intégration, fonctions intégrales et sommes de Riemann",
+    "titleAr": "Intégration, fonctions intégrales et sommes de Riemann",
+    "domain": "analyse",
+    "title": "Changer de variable avec les bonnes bornes",
+    "segments": [
+      {
+        "text": "Calculons l’intégrale entre zéro et un de deux x divisé par un plus x au carré. Le dénominateur est positif, donc l’intégrale est bien définie.",
+        "equation": "I=\\int_0^1\\frac{2x}{1+x^2}\\,dx",
+        "note": "Vérifier le domaine"
+      },
+      {
+        "text": "La dérivée du dénominateur est deux x, exactement le numérateur. Cette observation suggère de prendre le dénominateur comme nouvelle variable.",
+        "equation": "t=1+x^2",
+        "note": "Choisir la substitution"
+      },
+      {
+        "text": "On dérive la relation et on obtient d t égal à deux x d x. Le numérateur accompagné de l’élément différentiel est donc entièrement remplacé par d t.",
+        "equation": "dt=2x\\,dx",
+        "note": "Transformer le différentiel"
+      },
+      {
+        "text": "Il faut aussi changer les bornes. Pour x égal à zéro, t vaut un. Pour x égal à un, t vaut deux. On ne conserve pas les anciennes bornes avec la nouvelle variable.",
+        "equation": "x=0\\Rightarrow t=1,\\qquad x=1\\Rightarrow t=2",
+        "note": "Transformer les bornes"
+      },
+      {
+        "text": "L’intégrale devient celle de un sur t entre un et deux. Sur cet intervalle, t est positif et une primitive est le logarithme.",
+        "equation": "I=\\int_1^2\\frac{dt}{t}=[\\ln t]_1^2",
+        "note": "Intégrer"
+      },
+      {
+        "text": "On évalue à la borne supérieure, puis on soustrait la valeur à la borne inférieure. Le logarithme de un étant nul, le résultat est le logarithme de deux, positif comme prévu.",
+        "equation": "I=\\ln2-\\ln1=\\ln2",
+        "note": "Calculer et contrôler"
+      }
+    ]
+  },
+  {
+    "id": "complexes-sm",
+    "courseTitle": "Nombres complexes, approfondissement SM",
+    "titleAr": "Nombres complexes, approfondissement SM",
+    "domain": "algebre",
+    "title": "Résoudre un trinôme à coefficients complexes",
+    "segments": [
+      {
+        "text": "On considère une équation du second degré à coefficients complexes. On commence par calculer le discriminant, sans avoir besoin de le classer comme positif ou négatif.",
+        "equation": "z^2-(2+i)z+1+i=0",
+        "note": "Lire les coefficients"
+      },
+      {
+        "text": "Le coefficient dominant vaut un. Pour le discriminant, on élève deux plus i au carré, puis on soustrait quatre fois le terme constant un plus i.",
+        "equation": "\\Delta=(2+i)^2-4(1+i)",
+        "note": "Former le discriminant"
+      },
+      {
+        "text": "On développe le carré en utilisant i au carré égal à moins un. Les termes imaginaires se simplifient lors de la soustraction et le discriminant vaut moins un.",
+        "equation": "\\Delta=3+4i-4-4i=-1",
+        "note": "Simplifier"
+      },
+      {
+        "text": "On cherche un nombre dont le carré est ce discriminant. Le nombre i convient. On peut donc l’utiliser dans la formule avec les signes plus et moins.",
+        "equation": "\\delta=i,\\qquad z=\\frac{2+i\\pm i}{2}",
+        "note": "Choisir une racine"
+      },
+      {
+        "text": "Avec le signe moins, les parties imaginaires s’annulent et on obtient un. Avec le signe plus, deux plus deux i divisé par deux donne un plus i.",
+        "equation": "z_1=1,\\qquad z_2=1+i",
+        "note": "Calculer les solutions"
+      },
+      {
+        "text": "On vérifie la somme et le produit des solutions. La somme vaut deux plus i et le produit un plus i, conformément aux coefficients de l’équation initiale.",
+        "equation": "z_1+z_2=2+i,\\qquad z_1z_2=1+i",
+        "note": "Vérifier"
+      }
+    ]
+  }
+]

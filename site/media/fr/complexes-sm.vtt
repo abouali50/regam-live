@@ -1,0 +1,39 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Lire les coefficients
+On considère une équation du second degré à coefficients complexes. On
+commence par calculer le discriminant, sans avoir besoin de le classer comme
+positif ou négatif.
+
+2
+00:00:14.818 --> 00:00:29.636
+Former le discriminant
+Le coefficient dominant vaut un. Pour le discriminant, on élève deux plus i au
+carré, puis on soustrait quatre fois le terme constant un plus i.
+
+3
+00:00:29.636 --> 00:00:45.364
+Simplifier
+On développe le carré en utilisant i au carré égal à moins un. Les termes
+imaginaires se simplifient lors de la soustraction et le discriminant vaut
+moins un.
+
+4
+00:00:45.364 --> 00:01:00.636
+Choisir une racine
+On cherche un nombre dont le carré est ce discriminant. Le nombre i convient.
+On peut donc l’utiliser dans la formule avec les signes plus et moins.
+
+5
+00:01:00.636 --> 00:01:15.909
+Calculer les solutions
+Avec le signe moins, les parties imaginaires s’annulent et on obtient un. Avec
+le signe plus, deux plus deux i divisé par deux donne un plus i.
+
+6
+00:01:15.909 --> 00:01:31.182
+Vérifier
+On vérifie la somme et le produit des solutions. La somme vaut deux plus i et
+le produit un plus i, conformément aux coefficients de l’équation initiale.

@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.909
+Read the operation
+A new operation on the real numbers adds the two numbers, then subtracts two.
+To understand it, determine its identity element and its inverses.
+
+2
+00:00:13.909 --> 00:00:26.455
+Check closure
+The result is a real number for any two real inputs. This simple but necessary
+check establishes closure of the set.
+
+3
+00:00:26.455 --> 00:00:39.000
+Find the identity
+The identity must leave x unchanged. Write the equation and cancel x on both
+sides. The identity is two, not zero.
+
+4
+00:00:39.000 --> 00:00:52.909
+Find the inverse
+To find the inverse of x, require the result to equal the identity, two.
+Solving gives four minus x, which is a real number.
+
+5
+00:00:52.909 --> 00:01:07.273
+Check associativity
+Associativity remains to be checked. Evaluate both parenthesizations to obtain
+the same expression, x plus y plus z minus four, for every three real numbers.
+
+6
+00:01:07.273 --> 00:01:21.182
+Conclude
+The operation is also commutative, since exchanging x and y changes nothing.
+Thus we have an abelian group, with every condition checked by calculation.

@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+Two draws without replacement
+A bag contains three red balls and two blue balls, each equally likely to be
+selected. Draw two successively without returning the first ball to the bag.
+
+2
+00:00:15.273 --> 00:00:29.182
+First draw
+We want both the first and second balls to be red. The first-draw probability
+is three fifths because there are five balls in total.
+
+3
+00:00:29.182 --> 00:00:44.455
+After a first red ball
+Now suppose the first ball was red. Two red balls remain, and the total has
+fallen to four. This information changes the probability on the second draw.
+
+4
+00:00:44.455 --> 00:00:57.909
+Multiply along the same branch
+For both events to occur, multiply the first probability by the second
+conditional probability. We do not multiply three fifths by itself here.
+
+5
+00:00:57.909 --> 00:01:11.364
+Simplify the result
+The product is six twentieths. Cancel a factor of two to obtain three tenths,
+equal to thirty percent of the equally likely cases.
+
+6
+00:01:11.364 --> 00:01:26.182
+The model depends on replacement
+This result depends on sampling without replacement, as the statement
+specifies. If the ball were replaced, the counts would not fall and the
+calculation would change.

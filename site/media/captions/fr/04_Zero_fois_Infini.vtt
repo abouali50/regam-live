@@ -1,0 +1,85 @@
+WEBVTT
+
+1
+00:00:00.197 --> 00:00:03.090
+Quatrième cas, zéro multiplié par l’infini.
+
+2
+00:00:03.183 --> 00:00:05.317
+Prenons x multiplié par le logarithme de un sur
+
+3
+00:00:05.317 --> 00:00:08.333
+x, lorsque x tend vers zéro par la droite.
+
+4
+00:00:08.507 --> 00:00:10.390
+La notation ln désigne le logarithme népérien.
+
+5
+00:00:10.555 --> 00:00:13.243
+x tend vers zéro, mais le logarithme de un
+
+6
+00:00:13.243 --> 00:00:15.640
+sur x tend vers plus l’infini.
+
+7
+00:00:15.791 --> 00:00:18.095
+Il faut donc transformer l’expression,
+
+8
+00:00:18.095 --> 00:00:20.064
+sans conclure directement que la limite est zéro.
+
+9
+00:00:20.314 --> 00:00:22.692
+On pose t égal à un sur x.
+
+10
+00:00:22.867 --> 00:00:24.616
+Alors t tend vers plus l’infini
+
+11
+00:00:24.616 --> 00:00:27.268
+et l’expression devient ln t divisé par t.
+
+12
+00:00:27.603 --> 00:00:29.707
+On utilise ici une limite usuelle.
+
+13
+00:00:29.736 --> 00:00:32.045
+Le quotient ln t sur t tend vers zéro.
+
+14
+00:00:32.195 --> 00:00:34.328
+Ce résultat provient du cours
+
+15
+00:00:34.328 --> 00:00:37.520
+sur le logarithme. Il ne signifie pas que tout produit
+
+16
+00:00:37.528 --> 00:00:39.099
+zéro fois l’infini a pour limite zéro.
+
+17
+00:00:39.320 --> 00:00:41.863
+Dans cet exemple, la limite est donc zéro.
+
+18
+00:00:41.991 --> 00:00:44.807
+Le même calcul montre que x multiplié par ln x
+
+19
+00:00:44.807 --> 00:00:46.292
+tend également vers zéro,
+
+20
+00:00:46.300 --> 00:00:49.756
+mais par valeurs négatives. Nous utiliserons ce résultat
+
+21
+00:00:49.756 --> 00:00:50.966
+dans le sixième cas.

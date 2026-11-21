@@ -1,0 +1,61 @@
+WEBVTT
+
+1
+00:00:00.143 --> 00:00:02.375
+The sixth case is zero to the power zero,
+
+2
+00:00:02.405 --> 00:00:05.277
+in limit calculations. Consider x to the power x
+
+3
+00:00:05.349 --> 00:00:07.602
+as x approaches zero from the right.
+
+4
+00:00:07.696 --> 00:00:10.396
+Both base and exponent approach zero.
+
+5
+00:00:10.574 --> 00:00:12.614
+Call x to the power x
+
+6
+00:00:12.665 --> 00:00:16.676
+y. Take logarithms to obtain ln y equal to
+
+7
+00:00:16.676 --> 00:00:18.269
+x multiplied by ln x.
+
+8
+00:00:18.451 --> 00:00:20.491
+We have already seen that x times ln x
+
+9
+00:00:20.499 --> 00:00:23.358
+tends to zero as x approaches zero
+
+10
+00:00:23.358 --> 00:00:26.208
+from the right. Thus ln y tends to zero.
+
+11
+00:00:26.430 --> 00:00:30.085
+Apply the exponential function. y tends to e to the power zero,
+
+12
+00:00:30.085 --> 00:00:32.176
+which is one. Therefore the limit
+
+13
+00:00:32.176 --> 00:00:33.598
+of x to the power x here is one.
+
+14
+00:00:33.755 --> 00:00:35.240
+This is the result of this limit,
+
+15
+00:00:35.291 --> 00:00:37.509
+not a general definition of zero to the power zero.

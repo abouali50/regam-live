@@ -1,0 +1,153 @@
+WEBVTT
+
+1
+00:00:00.299 --> 00:00:01.656
+Quand on calcule une limite
+
+2
+00:00:01.664 --> 00:00:03.299
+et que l’on obtient zéro sur zéro,
+
+3
+00:00:03.413 --> 00:00:04.771
+la réponse est-elle zéro ?
+
+4
+00:00:04.864 --> 00:00:07.253
+Non. C’est une forme indéterminée,
+
+5
+00:00:07.253 --> 00:00:09.380
+qui ne suffit pas à déterminer le résultat.
+
+6
+00:00:09.380 --> 00:00:10.695
+Voyons pourquoi.
+
+7
+00:00:11.002 --> 00:00:13.425
+Lorsque x tend vers zéro par la droite,
+
+8
+00:00:13.476 --> 00:00:15.196
+x divisé par x vaut un.
+
+9
+00:00:15.268 --> 00:00:17.564
+Et x au carré divisé par x vaut x,
+
+10
+00:00:17.615 --> 00:00:20.082
+dont la limite est zéro. Une même forme,
+
+11
+00:00:20.111 --> 00:00:22.236
+mais deux résultats différents.
+
+12
+00:00:22.458 --> 00:00:24.027
+Prenons maintenant un exemple précis.
+
+13
+00:00:24.205 --> 00:00:26.714
+On cherche la limite de x au carré moins quatre,
+
+14
+00:00:26.722 --> 00:00:28.143
+divisé par x moins deux,
+
+15
+00:00:28.215 --> 00:00:29.814
+lorsque x tend vers deux.
+
+16
+00:00:30.093 --> 00:00:32.192
+Première étape, essayons de substituer.
+
+17
+00:00:32.302 --> 00:00:35.302
+Au numérateur, deux au carré moins quatre donne zéro.
+
+18
+00:00:35.374 --> 00:00:38.118
+Au dénominateur, deux moins deux donne aussi zéro.
+
+19
+00:00:38.233 --> 00:00:40.059
+Cette substitution ne permet donc pas de conclure.
+
+20
+00:00:40.195 --> 00:00:42.205
+Deuxième étape, factorisons le numérateur.
+
+21
+00:00:42.268 --> 00:00:44.444
+x au carré moins quatre est une différence
+
+22
+00:00:44.444 --> 00:00:47.572
+de deux carrés. Elle vaut x moins deux,
+
+23
+00:00:47.687 --> 00:00:49.258
+multiplié par x plus deux.
+
+24
+00:00:49.479 --> 00:00:51.455
+On simplifie maintenant le facteur commun,
+
+25
+00:00:51.527 --> 00:00:54.235
+x moins deux, à condition que x
+
+26
+00:00:54.235 --> 00:00:56.531
+soit différent de deux. Cette condition convient,
+
+27
+00:00:56.539 --> 00:00:58.749
+car, dans la limite, x s’approche de deux.
+
+28
+00:00:58.757 --> 00:01:01.288
+La valeur exacte de la fonction en deux n’est pas nécessaire.
+
+29
+00:01:01.551 --> 00:01:03.847
+Il reste la limite de x plus deux.
+
+30
+00:01:03.983 --> 00:01:05.511
+On calcule deux plus deux
+
+31
+00:01:05.519 --> 00:01:08.071
+et on trouve quatre. La limite vaut quatre,
+
+32
+00:01:08.079 --> 00:01:10.512
+bien que la fonction initiale ne soit pas définie en deux.
+
+33
+00:01:10.751 --> 00:01:13.069
+Appliquons la même idée à cet exercice.
+
+34
+00:01:13.183 --> 00:01:14.925
+x au carré moins neuf,
+
+35
+00:01:14.975 --> 00:01:16.695
+divisé par x moins trois,
+
+36
+00:01:16.767 --> 00:01:18.701
+lorsque x tend vers trois.
+
+37
+00:01:18.773 --> 00:01:21.652
+Factoriser, simplifier, puis calculer.
+
+38
+00:01:21.817 --> 00:01:22.890
+La réponse est six.

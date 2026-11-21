@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:16.182
+Recognize a repeated expression
+This equation contains both e to the power x and e to the power two x.
+Simplify it by turning it into a quadratic equation in a new variable.
+
+2
+00:00:16.182 --> 00:00:32.818
+Substitute with t > 0
+Set t equal to e to the power x. Then t is strictly positive, and e to the
+power two x is the square of e to the power x.
+
+3
+00:00:32.818 --> 00:00:46.727
+Factor the quadratic
+Now factor the quadratic. Look for two numbers whose sum is three and product
+is two. They are one and two, giving this factorization.
+
+4
+00:00:46.727 --> 00:01:01.545
+Keep positive roots
+A product is zero when at least one factor is zero. Thus t equals one or two.
+Both values are positive and admissible for the substitution.
+
+5
+00:01:01.545 --> 00:01:14.545
+Return to the variable x
+Return to x. If e to the power x equals one, x is zero. If it equals two, x is
+ln two.
+
+6
+00:01:14.545 --> 00:01:29.364
+Check both solutions
+Substitution in the original equation gives zero for both values. These are
+the final solutions. The answer must be expressed in x, not left in t.

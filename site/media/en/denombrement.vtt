@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.455
+Choose a group of three
+There are eight people, and we want a committee of three. There is no chair or
+secretary, so the members have identical roles.
+
+2
+00:00:13.455 --> 00:00:26.455
+Without order or repetition
+Answer two questions. Order does not matter, and the same person cannot be
+chosen twice. This is an unordered selection without repetition.
+
+3
+00:00:26.455 --> 00:00:41.727
+Temporarily count with order
+If we temporarily count ordered choices, there are eight possibilities for the
+first person, seven for the second, and six for the third. Their product is
+336.
+
+4
+00:00:41.727 --> 00:00:53.364
+Remove repeated orders
+Each committee has been counted six times because three names have six
+possible orders. Correct this overcounting by division.
+
+5
+00:00:53.364 --> 00:01:03.182
+Find the number of committees
+Divide 336 by six to obtain 56 different committees. This agrees with the
+combination formula.
+
+6
+00:01:03.182 --> 00:01:16.636
+Interpret the result
+To choose a formula, always ask about order and repetition. Here the result
+counts committees. It is neither a probability nor a percentage.

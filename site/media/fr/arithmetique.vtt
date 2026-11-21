@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:11.182
+Identifier le domaine
+L’équation comporte deux inconnues, mais les solutions recherchées doivent
+être entières. Cette contrainte est au cœur de l’exercice.
+
+2
+00:00:11.182 --> 00:00:22.818
+Vérifier l’existence
+Le PGCD de dix-huit et de trente vaut six. Puisque six divise douze,
+l’équation admet bien des solutions entières.
+
+3
+00:00:22.818 --> 00:00:37.182
+Simplifier
+On divise toute l’équation par six pour simplifier les calculs. On obtient
+trois x plus cinq y égal à deux, sans changer l’ensemble des solutions.
+
+4
+00:00:37.182 --> 00:00:53.364
+Trouver un couple
+Essayons x égal à moins un et y égal à un. Moins trois plus cinq vaut deux. Ce
+couple est donc une solution particulière pour construire toutes les autres.
+
+5
+00:00:53.364 --> 00:01:09.091
+Utiliser Gauss
+On soustrait la solution particulière et on applique le théorème de Gauss. On
+déduit que x plus un est un multiple de cinq, que l’on écrit cinq t.
+
+6
+00:01:09.091 --> 00:01:23.455
+Écrire tous les couples
+En remplaçant x, on trouve y égal à un moins trois t. Le paramètre t parcourt
+tous les entiers. Une substitution finale vérifie l’équation initiale.

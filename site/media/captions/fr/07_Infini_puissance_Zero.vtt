@@ -1,0 +1,69 @@
+WEBVTT
+
+1
+00:00:00.161 --> 00:00:02.905
+Septième cas, l’infini puissance zéro.
+
+2
+00:00:03.020 --> 00:00:04.975
+Prenons x à la puissance un sur x,
+
+3
+00:00:05.025 --> 00:00:07.044
+lorsque x tend vers plus l’infini.
+
+4
+00:00:07.116 --> 00:00:09.803
+La base augmente et l’exposant tend vers zéro.
+
+5
+00:00:09.954 --> 00:00:12.634
+On note à nouveau l’expression y
+
+6
+00:00:12.684 --> 00:00:15.756
+et on prend son logarithme. Ln y vaut ln
+
+7
+00:00:15.756 --> 00:00:16.872
+x divisé par x.
+
+8
+00:00:17.122 --> 00:00:19.322
+Le quotient ln x sur x tend vers zéro.
+
+9
+00:00:19.491 --> 00:00:23.408
+On revient donc à l’exponentielle et la limite vaut un.
+
+10
+00:00:23.544 --> 00:00:25.427
+Ce résultat concerne cet exemple précis.
+
+11
+00:00:25.592 --> 00:00:27.090
+Vous connaissez maintenant les sept formes.
+
+12
+00:00:27.239 --> 00:00:30.432
+Pour les quotients, essayer la factorisation ou le terme dominant.
+
+13
+00:00:30.568 --> 00:00:33.034
+Pour une différence de racines, utiliser le conjugué.
+
+14
+00:00:33.170 --> 00:00:35.564
+Pour un produit, chercher un quotient adapté.
+
+15
+00:00:35.712 --> 00:00:38.371
+Pour une puissance, si la base est positive,
+
+16
+00:00:38.400 --> 00:00:41.400
+utiliser le logarithme. Commencer par reconnaître la forme,
+
+17
+00:00:41.429 --> 00:00:44.060
+transformer l’expression, puis calculer la limite.

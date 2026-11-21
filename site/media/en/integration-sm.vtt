@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Check the domain
+Calculate the integral from zero to one of two x divided by one plus x
+squared. The denominator is positive, so the integral is well defined.
+
+2
+00:00:14.818 --> 00:00:28.273
+Choose the substitution
+The derivative of the denominator is two x, which appears in the numerator.
+This suggests choosing the denominator itself as the new variable.
+
+3
+00:00:28.273 --> 00:00:42.182
+Transform the differential
+Differentiate the relation to obtain dt equal to two x dx. The numerator
+together with the differential can therefore be replaced entirely by dt.
+
+4
+00:00:42.182 --> 00:00:58.818
+Transform the limits
+Transform the limits as well. When x is zero, t is one, and when x is one, t
+is two. Do not keep the old limits with the new variable.
+
+5
+00:00:58.818 --> 00:01:13.182
+Integrate
+The integral becomes one over t, integrated from one to two. Since t is
+positive on this interval, the antiderivative we need is the logarithm.
+
+6
+00:01:13.182 --> 00:01:26.182
+Calculate and check
+Evaluate at the upper limit and subtract the lower-limit value. The logarithm
+of one is zero, leaving ln two, positive as expected.

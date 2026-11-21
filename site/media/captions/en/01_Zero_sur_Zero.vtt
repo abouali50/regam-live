@@ -1,0 +1,153 @@
+WEBVTT
+
+1
+00:00:00.299 --> 00:00:01.656
+When calculating a limit,
+
+2
+00:00:01.664 --> 00:00:03.299
+if you obtain zero over zero,
+
+3
+00:00:03.413 --> 00:00:04.771
+is the answer zero?
+
+4
+00:00:04.864 --> 00:00:07.253
+No. This is an indeterminate form,
+
+5
+00:00:07.253 --> 00:00:09.380
+a form that does not determine the result.
+
+6
+00:00:09.380 --> 00:00:10.695
+Let me show you why.
+
+7
+00:00:11.002 --> 00:00:13.425
+As x approaches zero from the right,
+
+8
+00:00:13.476 --> 00:00:15.196
+x divided by x equals one.
+
+9
+00:00:15.268 --> 00:00:17.564
+But x squared divided by x equals x,
+
+10
+00:00:17.615 --> 00:00:20.082
+whose limit is zero. The same form,
+
+11
+00:00:20.111 --> 00:00:22.236
+yet two different results.
+
+12
+00:00:22.458 --> 00:00:24.027
+Now take a clear example.
+
+13
+00:00:24.205 --> 00:00:26.714
+We want the limit of x squared minus four,
+
+14
+00:00:26.722 --> 00:00:28.143
+divided by x minus two,
+
+15
+00:00:28.215 --> 00:00:29.814
+as x approaches two.
+
+16
+00:00:30.093 --> 00:00:32.192
+First, try substitution.
+
+17
+00:00:32.302 --> 00:00:35.302
+The numerator is two squared minus four, or zero.
+
+18
+00:00:35.374 --> 00:00:38.118
+The denominator is two minus two, also zero.
+
+19
+00:00:38.233 --> 00:00:40.059
+This substitution cannot give the answer.
+
+20
+00:00:40.195 --> 00:00:42.205
+Second, factor the numerator.
+
+21
+00:00:42.268 --> 00:00:44.444
+x squared minus four is a difference
+
+22
+00:00:44.444 --> 00:00:47.572
+of two squares. It equals x minus two
+
+23
+00:00:47.687 --> 00:00:49.258
+multiplied by x plus two.
+
+24
+00:00:49.479 --> 00:00:51.455
+Now cancel the common factor,
+
+25
+00:00:51.527 --> 00:00:54.235
+x minus two, provided x
+
+26
+00:00:54.235 --> 00:00:56.531
+is not equal to two. This is valid
+
+27
+00:00:56.539 --> 00:00:58.749
+because in a limit, x approaches two.
+
+28
+00:00:58.757 --> 00:01:01.288
+We do not need the function's value at exactly two.
+
+29
+00:01:01.551 --> 00:01:03.847
+The remaining limit is that of x plus two.
+
+30
+00:01:03.983 --> 00:01:05.511
+Calculate two plus two,
+
+31
+00:01:05.519 --> 00:01:08.071
+which gives four. The limit is four,
+
+32
+00:01:08.079 --> 00:01:10.512
+although the original function is undefined at two.
+
+33
+00:01:10.751 --> 00:01:13.069
+Use the same idea for this exercise.
+
+34
+00:01:13.183 --> 00:01:14.925
+x squared minus nine,
+
+35
+00:01:14.975 --> 00:01:16.695
+divided by x minus three,
+
+36
+00:01:16.767 --> 00:01:18.701
+as x approaches three.
+
+37
+00:01:18.773 --> 00:01:21.652
+Factor, cancel, then calculate.
+
+38
+00:01:21.817 --> 00:01:22.890
+The answer is six.

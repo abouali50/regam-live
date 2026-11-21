@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.000
+Quatre essais indépendants
+On lance une pièce équilibrée quatre fois de manière indépendante. X compte
+les faces. On cherche la probabilité d’obtenir exactement deux faces.
+
+2
+00:00:13.000 --> 00:00:28.273
+Vérifier le modèle binomial
+Il y a quatre expériences et la probabilité de succès à chacune vaut un demi.
+L’indépendance et la constance de cette probabilité permettent d’utiliser la
+loi binomiale.
+
+3
+00:00:28.273 --> 00:00:42.636
+Choisir les positions des succès
+Il faut choisir les deux positions des succès parmi les quatre lancers. Le
+nombre de choix est la combinaison de deux parmi quatre, soit six.
+
+4
+00:00:42.636 --> 00:00:56.545
+Probabilité de chaque ordre
+Chaque ordre comportant deux succès et deux échecs a pour probabilité un demi
+au carré multiplié par un demi au carré, soit un seizième.
+
+5
+00:00:56.545 --> 00:01:09.091
+Additionner les six cas
+Les six ordres distincts ont la même probabilité. On multiplie six par un
+seizième et on simplifie pour obtenir trois huitièmes.
+
+6
+00:01:09.091 --> 00:01:22.545
+Exactement deux succès
+Il s’agit de la probabilité d’exactement deux faces, et non d’au moins deux.
+Si la formulation change, les événements à compter changent aussi.

@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.727
+Define the sequences
+Study two sequences. The first is one minus the reciprocal of n plus one, and
+the second is one plus that same reciprocal. The initial index is zero.
+
+2
+00:00:15.727 --> 00:00:29.636
+Prove increase
+As the index increases, the denominator grows and the reciprocal decreases.
+The first sequence subtracts a smaller amount, so it increases at each step.
+
+3
+00:00:29.636 --> 00:00:43.091
+Prove decrease
+The second sequence adds a decreasing amount, so it decreases. We now have the
+required directions, but still need to study the difference.
+
+4
+00:00:43.091 --> 00:00:56.091
+Calculate the gap
+Subtract the first term from the second. The ones cancel, leaving two divided
+by n plus one. This quantity tends to zero.
+
+5
+00:00:56.091 --> 00:01:10.455
+Apply the theorem
+All three conditions hold, so the sequences are adjacent and have a common
+limit. The number one always remains between the lower and upper bounds.
+
+6
+00:01:10.455 --> 00:01:25.727
+Identify the limit
+Find the limit from the formulas or from the sum, which is always two. Its
+limit is twice the common limit, so the common limit is one.

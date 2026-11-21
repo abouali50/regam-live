@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+A sphere and a plane
+A sphere is centred at the origin with radius five. Find its intersection with
+the plane z equal to three and calculate the radius of the intersection.
+
+2
+00:00:15.273 --> 00:00:29.182
+Project the centre
+The centre projects onto the plane at H, with coordinates zero, zero, three.
+The distance from the origin to this point is exactly three.
+
+3
+00:00:29.182 --> 00:00:43.545
+A circular intersection
+Three is less than five, so the plane cuts the sphere in a circle. This
+circle's centre is H, rather than the original sphere's centre.
+
+4
+00:00:43.545 --> 00:00:56.091
+Apply Pythagoras' theorem
+To find the radius, apply Pythagoras' theorem to the right triangle. The
+circle's squared radius equals five squared minus three squared.
+
+5
+00:00:56.091 --> 00:01:07.727
+Choose the positive root
+Twenty-five minus nine is sixteen. The radius is positive, so take the
+positive square root, which is exactly four.
+
+6
+00:01:07.727 --> 00:01:24.818
+A circle with centre H and radius 4
+The result is a circle in the plane z equal to three, centred at zero, zero,
+three, with radius four. We connected the relative position to distance and
+then to calculation.

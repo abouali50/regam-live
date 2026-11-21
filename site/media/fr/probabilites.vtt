@@ -1,0 +1,39 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.364
+Deux tirages sans remise
+Un sac contient trois boules rouges et deux bleues, toutes équiprobables au
+tirage. On tire deux boules successivement sans remettre la première dans le
+sac.
+
+2
+00:00:14.364 --> 00:00:30.091
+Premier tirage
+On veut une rouge au premier tirage et une rouge au second. La probabilité de
+la première rouge vaut trois cinquièmes, puisqu’il y a cinq boules au départ.
+
+3
+00:00:30.091 --> 00:00:42.636
+Après une première rouge
+Supposons que la première soit rouge. Il reste deux rouges parmi quatre
+boules. Cette information modifie la probabilité au deuxième tirage.
+
+4
+00:00:42.636 --> 00:00:57.455
+Multiplier sur la même branche
+Pour obtenir les deux événements, on multiplie la probabilité du premier par
+la probabilité conditionnelle du second. Ici, on ne multiplie pas trois
+cinquièmes par lui-même.
+
+5
+00:00:57.455 --> 00:01:09.091
+Simplifier le résultat
+Le produit vaut six vingtièmes. En simplifiant par deux, on obtient trois
+dixièmes, soit trente pour cent des cas.
+
+6
+00:01:09.091 --> 00:01:22.545
+Le modèle dépend de la remise
+Ce résultat repose sur le tirage sans remise indiqué dans l’énoncé. Avec
+remise, les effectifs ne diminueraient pas et le calcul serait différent.

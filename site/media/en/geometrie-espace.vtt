@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.727
+A point and a plane
+Find the distance from M, with coordinates one, one, one, to the plane whose
+equation is x plus two y plus two z minus six equal to zero.
+
+2
+00:00:15.727 --> 00:00:28.727
+Read the normal vector
+First read the normal vector from the coefficients of x, y, and z. It is one,
+two, two. This vector is nonzero.
+
+3
+00:00:28.727 --> 00:00:42.636
+Calculate the norm
+Its norm is the square root of one squared plus two squared plus two squared.
+The sum is nine, whose square root is three.
+
+4
+00:00:42.636 --> 00:00:55.636
+Evaluate at point M
+Substitute M's coordinates into the equation. One plus two plus two minus six
+gives minus one. This is not yet the distance.
+
+5
+00:00:55.636 --> 00:01:07.727
+Apply the formula
+Take the absolute value of minus one and divide by the normal vector's norm.
+One third is the required distance.
+
+6
+00:01:07.727 --> 00:01:23.909
+A distance is nonnegative
+The result is positive, which makes sense because M lies outside the plane.
+The absolute value is essential. Distance cannot be negative, even when
+substitution gives a negative value.

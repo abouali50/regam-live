@@ -2,7 +2,7 @@
 """Package the deployable site and editable sources, excluding build caches.
 
 Run from any directory: python3 scripts/package_release.py
-Outputs dist/REGAM_Academy_Bac_Maths_v1.zip and its SHA-256 digest.
+Outputs dist/REGAM_Academy_Bac_Maths_v1_1.zip and its SHA-256 digest.
 """
 from pathlib import Path
 import hashlib
@@ -35,10 +35,10 @@ def main():
     files.append(manifest)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / 'REGAM_Academy_Bac_Maths_v1.zip'
+    archive = dist / 'REGAM_Academy_Bac_Maths_v1_1.zip'
     with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         for path in files:
-            info = zipfile.ZipInfo('regam-bac-maths/' + path.relative_to(ROOT).as_posix(), (2026, 11, 20, 0, 0, 0))
+            info = zipfile.ZipInfo('regam-bac-maths/' + path.relative_to(ROOT).as_posix(), (2026, 11, 21, 0, 0, 0))
             info.create_system = 3
             mode = 0o755 if path.name == 'install.sh' else 0o644
             info.external_attr = (stat.S_IFREG | mode) << 16
@@ -49,7 +49,7 @@ def main():
             raise RuntimeError('ZIP checksum validation failed')
         assert len(zf.infolist()) == len(files)
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-    (dist / 'REGAM_Academy_Bac_Maths_v1.sha256').write_text(f'{digest}  {archive.name}\n')
+    (dist / 'REGAM_Academy_Bac_Maths_v1_1.sha256').write_text(f'{digest}  {archive.name}\n')
     print(json.dumps({'archive': str(archive), 'files': len(files), 'bytes': archive.stat().st_size, 'sha256': digest}))
 
 

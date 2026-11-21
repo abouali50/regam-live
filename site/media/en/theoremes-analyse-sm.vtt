@@ -1,0 +1,40 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:12.091
+Choose the function
+Bound the natural logarithm of 1.1 without a calculator. Use the logarithm
+function on the interval from one to 1.1.
+
+2
+00:00:12.091 --> 00:00:26.455
+Check the assumptions
+The function is continuous on this interval and differentiable inside it
+because every input is positive. All assumptions of the mean value theorem
+therefore hold.
+
+3
+00:00:26.455 --> 00:00:41.273
+Bound the derivative
+On this interval, the derivative lies between ten elevenths and one. The lower
+bound comes from the largest denominator and the upper bound from the
+smallest.
+
+4
+00:00:41.273 --> 00:00:56.545
+Apply the mean value theorem
+The theorem expresses the difference of logarithms as the derivative at an
+interior point times the interval's width. Here the width is one tenth, which
+is positive.
+
+5
+00:00:56.545 --> 00:01:09.091
+Obtain the bounds
+Multiply the derivative bounds by one tenth without changing the inequality
+directions. Then use the fact that ln one equals zero.
+
+6
+00:01:09.091 --> 00:01:23.000
+Interpret the result
+We have obtained rigorous bounds from the theorem. We did not need the exact
+interior point, because the derivative bounds were sufficient to finish.

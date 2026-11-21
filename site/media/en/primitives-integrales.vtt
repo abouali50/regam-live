@@ -1,0 +1,40 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+Identify the product
+Calculate the integral from zero to one of x times the exponential. Since the
+integrand is a product, try integration by parts, one step at a time.
+
+2
+00:00:15.273 --> 00:00:29.182
+Choose u and v
+Choose x as the function to differentiate, because its derivative is one. Take
+an antiderivative of the exponential, which remains the same exponential
+function.
+
+3
+00:00:29.182 --> 00:00:44.000
+Apply the formula
+Apply the formula. Evaluate the product at the limits, then subtract the
+integral of the exponential. Remember the minus sign, since omitting it
+changes the answer.
+
+4
+00:00:44.000 --> 00:00:57.000
+Calculate the first term
+For the first boundary term, substituting x equal to one gives e, and
+substituting zero gives zero. Their difference is therefore e.
+
+5
+00:00:57.000 --> 00:01:12.273
+Calculate the second term
+The remaining integral is the exponential from zero to one. Its antiderivative
+is the exponential, so the upper value minus the lower value gives e minus
+one.
+
+6
+00:01:12.273 --> 00:01:26.636
+Conclude and check
+Finally, subtract e minus one from e, retaining the parentheses. The e terms
+cancel and one remains. The positive result agrees with the integrand's sign.

@@ -1,0 +1,33 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Derivative of the inverse
+Let f of x be x cubed plus x. We want the derivative of the inverse at two,
+without finding an explicit formula for that inverse.
+
+2
+00:00:14.818 --> 00:00:31.455
+Justify the bijection
+The derivative of f is three x squared plus one, which is always positive.
+Together with continuity and the limits at infinity, this establishes a
+bijection on the real numbers.
+
+3
+00:00:31.455 --> 00:00:44.000
+Find the correct preimage
+Find the preimage of two. Try one. One cubed plus one equals two, so the
+inverse evaluated at two is one.
+
+4
+00:00:44.000 --> 00:00:57.455
+Check the denominator
+Calculate the derivative at one to obtain four, which is nonzero. We can now
+apply the inverse derivative formula by taking the reciprocal.
+
+5
+00:00:57.455 --> 00:01:13.182
+Conclude
+The inverse's derivative at two is one divided by the original derivative at
+one, or one quarter. Evaluate the original derivative at the preimage, not at
+the output.

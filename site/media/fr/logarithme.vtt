@@ -1,0 +1,39 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:12.091
+Commencer par le domaine
+Cette équation comporte deux logarithmes. Avant de transformer l’expression ou
+de calculer les solutions, on détermine son domaine de définition.
+
+2
+00:00:12.091 --> 00:00:27.364
+Domaine : ]1, +∞[
+L’argument de chaque logarithme doit être positif. On exige x moins un positif
+et x plus un positif. Ces deux conditions donnent x strictement supérieur à
+un.
+
+3
+00:00:27.364 --> 00:00:43.091
+ln a + ln b = ln(ab)
+Sur ce domaine, la somme des logarithmes devient le logarithme du produit. Le
+produit de x moins un par x plus un est une différence de deux carrés.
+
+4
+00:00:43.091 --> 00:00:59.727
+Utiliser l’injectivité
+Le logarithme est strictement croissant. Deux logarithmes égaux ont donc des
+arguments égaux. On obtient x au carré moins un égal à trois, puis x au carré
+égal à quatre.
+
+5
+00:00:59.727 --> 00:01:11.818
+Contrôler les candidats
+L’équation algébrique donne deux candidats, deux et moins deux. Il reste à
+vérifier pour chacun les conditions écrites au début.
+
+6
+00:01:11.818 --> 00:01:27.545
+Vérifier et conclure
+Moins deux n’est pas supérieur à un, on le rejette. Deux convient et donne le
+logarithme de un plus le logarithme de trois. L’unique solution est donc deux.

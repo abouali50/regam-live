@@ -1,0 +1,32 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.727
+Lire la récurrence
+Le premier terme u zéro vaut zéro. Chaque terme suivant vaut la moitié du
+précédent plus trois. On cherche une expression explicite et la limite de la
+suite.
+
+2
+00:00:15.727 --> 00:00:28.727
+Trouver le point fixe
+Cherchons d’abord le nombre qui reste inchangé. L’équation du point fixe, l
+égal à la moitié de l plus trois, donne six.
+
+3
+00:00:28.727 --> 00:00:44.000
+Obtenir une suite géométrique
+On pose v n égal à u n moins six. La relation de récurrence montre que chaque
+nouveau terme de v est exactement la moitié du précédent.
+
+4
+00:00:44.000 --> 00:00:59.727
+Revenir à u
+Le terme v zéro vaut moins six. Ainsi, v n vaut moins six multiplié par un
+demi à la puissance n. On revient à u en ajoutant six.
+
+5
+00:00:59.727 --> 00:01:15.455
+Conclure
+La puissance n de un demi tend vers zéro, donc u n tend vers six. L’expression
+montre aussi que la suite est croissante et reste inférieure à six.

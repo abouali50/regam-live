@@ -1,0 +1,33 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.909
+Dérivée de la réciproque
+La fonction f vaut x au cube plus x. On cherche la dérivée de sa réciproque en
+deux, sans déterminer l’expression de cette réciproque.
+
+2
+00:00:13.909 --> 00:00:32.364
+Justifier la bijection
+La dérivée de f vaut trois x au carré plus un et est toujours positive. Avec
+la continuité et les limites à l’infini, cela prouve que f réalise une
+bijection de R sur R.
+
+3
+00:00:32.364 --> 00:00:47.636
+Trouver le bon antécédent
+Il faut trouver l’antécédent de deux. En essayant un, on obtient un au cube
+plus un, soit deux. L’image de deux par la réciproque est donc un.
+
+4
+00:00:47.636 --> 00:01:00.182
+Vérifier le dénominateur
+La dérivée en un vaut quatre, un nombre non nul. On peut maintenant appliquer
+la formule de dérivation de la réciproque.
+
+5
+00:01:00.182 --> 00:01:17.273
+Conclure
+La dérivée de la réciproque en deux est l’inverse de la dérivée de f en un,
+soit un quart. On évalue bien la dérivée initiale à l’antécédent, et non à
+l’image.

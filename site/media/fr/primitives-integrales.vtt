@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.000
+Identifier le produit
+Calculons l’intégrale de zéro à un de x multiplié par son exponentielle. La
+présence de ce produit suggère une intégration par parties.
+
+2
+00:00:13.000 --> 00:00:25.091
+Choisir u et v
+On choisit de dériver x, puisque sa dérivée vaut un. On prend une primitive de
+l’exponentielle, qui est l’exponentielle elle-même.
+
+3
+00:00:25.091 --> 00:00:37.636
+Appliquer la formule
+On applique la formule en évaluant le produit aux bornes, puis en soustrayant
+l’intégrale de l’exponentielle. Le signe moins est indispensable.
+
+4
+00:00:37.636 --> 00:00:50.636
+Calculer le premier terme
+Dans le premier crochet, la valeur en un est e et celle en zéro est zéro. La
+différence donne donc simplement e.
+
+5
+00:00:50.636 --> 00:01:03.182
+Calculer le second terme
+Il reste l’intégrale de l’exponentielle entre zéro et un. Sa primitive est
+elle-même, donc l’évaluation aux bornes donne e moins un.
+
+6
+00:01:03.182 --> 00:01:20.273
+Conclure et vérifier
+On soustrait e moins un à e en conservant les parenthèses. Les termes e se
+simplifient et il reste un. Le résultat positif est cohérent avec le signe de
+la fonction.

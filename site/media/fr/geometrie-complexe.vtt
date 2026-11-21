@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.909
+Trois points du plan complexe
+On considère trois points du plan complexe. A a pour affixe un plus i, B trois
+plus i et C un plus trois i.
+
+2
+00:00:13.909 --> 00:00:29.182
+Calculer le vecteur AB
+Pour étudier le triangle à partir de A, on calcule l’affixe du vecteur AB. On
+soustrait l’affixe de A de celle de B et on obtient deux.
+
+3
+00:00:29.182 --> 00:00:43.091
+Calculer le vecteur AC
+De même, l’affixe du vecteur AC est celle de C moins celle de A. Les parties
+réelles se simplifient et il reste deux i.
+
+4
+00:00:43.091 --> 00:00:55.636
+Comparer les deux vecteurs
+On divise ensuite deux i par deux. Le quotient vaut i. Le dénominateur étant
+non nul, cette division est bien permise.
+
+5
+00:00:55.636 --> 00:01:10.000
+Angle droit et longueurs égales
+Le nombre i a pour argument pi sur deux et pour module un. L’angle entre les
+vecteurs est donc droit et leurs longueurs sont égales.
+
+6
+00:01:10.000 --> 00:01:25.273
+Triangle rectangle isocèle en A
+Le triangle ABC est rectangle isocèle en A. Le calcul justifie à la fois
+l’angle droit et l’égalité des longueurs, au-delà de ce que suggère le dessin.

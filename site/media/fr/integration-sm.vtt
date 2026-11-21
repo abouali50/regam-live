@@ -1,0 +1,39 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.364
+Vérifier le domaine
+Calculons l’intégrale entre zéro et un de deux x divisé par un plus x au
+carré. Le dénominateur est positif, donc l’intégrale est bien définie.
+
+2
+00:00:14.364 --> 00:00:26.455
+Choisir la substitution
+La dérivée du dénominateur est deux x, exactement le numérateur. Cette
+observation suggère de prendre le dénominateur comme nouvelle variable.
+
+3
+00:00:26.455 --> 00:00:42.182
+Transformer le différentiel
+On dérive la relation et on obtient d t égal à deux x d x. Le numérateur
+accompagné de l’élément différentiel est donc entièrement remplacé par d t.
+
+4
+00:00:42.182 --> 00:01:00.182
+Transformer les bornes
+Il faut aussi changer les bornes. Pour x égal à zéro, t vaut un. Pour x égal à
+un, t vaut deux. On ne conserve pas les anciennes bornes avec la nouvelle
+variable.
+
+5
+00:01:00.182 --> 00:01:13.636
+Intégrer
+L’intégrale devient celle de un sur t entre un et deux. Sur cet intervalle, t
+est positif et une primitive est le logarithme.
+
+6
+00:01:13.636 --> 00:01:30.727
+Calculer et contrôler
+On évalue à la borne supérieure, puis on soustrait la valeur à la borne
+inférieure. Le logarithme de un étant nul, le résultat est le logarithme de
+deux, positif comme prévu.

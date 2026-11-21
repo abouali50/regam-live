@@ -1,0 +1,32 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+Chercher la continuité en 1
+La fonction vaut x au carré moins un, divisé par x moins un, pour x différent
+de un. En un, on lui attribue une valeur inconnue a.
+
+2
+00:00:15.273 --> 00:00:29.182
+Écrire la condition
+Pour obtenir la continuité, la valeur en un doit être égale à la limite.
+Calculons cette limite avec l’expression définie au voisinage du point.
+
+3
+00:00:29.182 --> 00:00:46.273
+Simplifier pour x ≠ 1
+On factorise la différence de deux carrés. Le numérateur devient le produit de
+x moins un par x plus un. Le facteur commun se simplifie puisque x est
+différent de un.
+
+4
+00:00:46.273 --> 00:00:59.727
+Calculer la limite
+Lorsque x tend vers un, x plus un tend vers deux. La valeur donnée à la
+fonction doit donc coïncider avec cette limite.
+
+5
+00:00:59.727 --> 00:01:15.909
+Conclure
+Il faut choisir a égal à deux. On comble ainsi le point manquant par la bonne
+valeur. La continuité exige l’égalité entre la limite et la valeur au point.

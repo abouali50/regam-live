@@ -1,0 +1,40 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:12.545
+Lire la condition
+On considère les triplets dont la somme des coordonnées est nulle. Montrons
+qu’ils forment un sous-espace, puis déterminons une base explicite.
+
+2
+00:00:12.545 --> 00:00:26.000
+Prouver le sous-espace
+Le vecteur nul appartient à l’ensemble. Une combinaison linéaire de deux
+solutions conserve une somme des coordonnées nulle. La stabilité est donc
+vérifiée.
+
+3
+00:00:26.000 --> 00:00:39.455
+Paramétrer
+On choisit y et z comme paramètres libres. L’équation impose x égal à moins y
+moins z, ce qui donne une écriture paramétrique.
+
+4
+00:00:39.455 --> 00:00:54.273
+Trouver des générateurs
+On regroupe les termes de chaque paramètre. Tout élément s’écrit s fois un
+premier vecteur plus t fois un second. Ces deux vecteurs engendrent donc
+l’espace.
+
+5
+00:00:54.273 --> 00:01:08.636
+Vérifier la liberté
+Pour vérifier la liberté, on suppose que cette combinaison donne le vecteur
+nul. La deuxième coordonnée impose s nul et la troisième impose t nul.
+
+6
+00:01:08.636 --> 00:01:23.455
+Conclure
+La famille est libre et génératrice, donc c’est une base. Elle contient deux
+vecteurs, la dimension est donc deux, même si les éléments possèdent trois
+coordonnées.

@@ -1,0 +1,31 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:16.182
+Read the recurrence
+The initial term u zero is zero, and each new term is half the preceding term
+plus three. We want a clear method for the formula and the limit.
+
+2
+00:00:16.182 --> 00:00:30.091
+Find the fixed point
+First look for the number that remains unchanged. Solve ell equal to half ell
+plus three to obtain six. This is the fixed point.
+
+3
+00:00:30.091 --> 00:00:43.545
+Obtain a geometric sequence
+Set v n equal to u n minus six. Using the recurrence, each new term of v
+becomes exactly half the preceding term.
+
+4
+00:00:43.545 --> 00:00:58.818
+Return to u
+The initial value v zero is minus six. Thus v n is minus six times one half to
+the power n. Add six to return to u.
+
+5
+00:00:58.818 --> 00:01:14.545
+Conclude
+One half to the power n tends to zero, so u n tends to six. The formula also
+shows that the sequence is increasing and remains below six.

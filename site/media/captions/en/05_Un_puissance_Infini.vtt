@@ -1,0 +1,89 @@
+WEBVTT
+
+1
+00:00:00.149 --> 00:00:03.021
+The fifth case is one to the power infinity.
+
+2
+00:00:03.263 --> 00:00:06.178
+Remember, the base only approaches one.
+
+3
+00:00:06.250 --> 00:00:07.834
+It is not the constant one.
+
+4
+00:00:08.025 --> 00:00:10.492
+The example is one plus one over x,
+
+5
+00:00:10.543 --> 00:00:11.658
+all raised to x.
+
+6
+00:00:11.908 --> 00:00:15.143
+Call the expression y. The base is positive,
+
+7
+00:00:15.236 --> 00:00:18.459
+so we can take its logarithm. ln y equals x
+
+8
+00:00:18.459 --> 00:00:20.465
+multiplied by ln of one plus
+
+9
+00:00:20.465 --> 00:00:20.969
+one over x.
+
+10
+00:00:21.275 --> 00:00:23.379
+Set u equal to one divided by x.
+
+11
+00:00:23.451 --> 00:00:25.399
+Then u approaches zero from the right.
+
+12
+00:00:25.570 --> 00:00:28.101
+ln y becomes ln of one plus u,
+
+13
+00:00:28.173 --> 00:00:28.919
+divided by u.
+
+14
+00:00:29.197 --> 00:00:30.938
+This is another standard limit,
+
+15
+00:00:30.946 --> 00:00:34.299
+equal to one. Thus ln y tends to one.
+
+16
+00:00:34.469 --> 00:00:37.469
+To return to y, apply the exponential function.
+
+17
+00:00:37.669 --> 00:00:39.538
+The result is Euler's number e,
+
+18
+00:00:39.589 --> 00:00:42.093
+approximately 2.718.
+
+19
+00:00:42.218 --> 00:00:44.002
+It is this particular example that gives e.
+
+20
+00:00:44.138 --> 00:00:46.015
+Not every expression of the form one
+
+21
+00:00:46.015 --> 00:00:47.906
+to the power infinity has the same limit.
+
+22
+00:00:48.020 --> 00:00:50.084
+Each expression needs its own calculation.

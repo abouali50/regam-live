@@ -1,0 +1,89 @@
+WEBVTT
+
+1
+00:00:00.149 --> 00:00:03.021
+Cinquième cas, un puissance l’infini.
+
+2
+00:00:03.263 --> 00:00:06.178
+Attention, la base tend seulement vers un.
+
+3
+00:00:06.250 --> 00:00:07.834
+Ce n’est pas la constante un.
+
+4
+00:00:08.025 --> 00:00:10.492
+Prenons un plus un sur x,
+
+5
+00:00:10.543 --> 00:00:11.658
+le tout à la puissance x.
+
+6
+00:00:11.908 --> 00:00:15.143
+Notons l’expression y. La base étant positive,
+
+7
+00:00:15.236 --> 00:00:18.459
+on peut prendre son logarithme. Ln y vaut x
+
+8
+00:00:18.459 --> 00:00:20.465
+multiplié par le logarithme de un plus un sur
+
+9
+00:00:20.465 --> 00:00:20.969
+x.
+
+10
+00:00:21.275 --> 00:00:23.379
+On pose u égal à un sur x.
+
+11
+00:00:23.451 --> 00:00:25.399
+Alors u tend vers zéro par la droite.
+
+12
+00:00:25.570 --> 00:00:28.101
+Ln y devient le logarithme de un plus u,
+
+13
+00:00:28.173 --> 00:00:28.919
+divisé par u.
+
+14
+00:00:29.197 --> 00:00:30.938
+C’est une autre limite usuelle,
+
+15
+00:00:30.946 --> 00:00:34.299
+qui vaut un. Ainsi, ln y tend vers un.
+
+16
+00:00:34.469 --> 00:00:37.469
+Pour revenir à y, on applique l’exponentielle.
+
+17
+00:00:37.669 --> 00:00:39.538
+La limite est le nombre d’Euler e,
+
+18
+00:00:39.589 --> 00:00:42.093
+qui vaut environ deux virgule sept un huit.
+
+19
+00:00:42.218 --> 00:00:44.002
+C’est cet exemple qui donne e.
+
+20
+00:00:44.138 --> 00:00:46.015
+Toutes les expressions de la forme un puissance
+
+21
+00:00:46.015 --> 00:00:47.906
+l’infini ne donnent pas nécessairement ce nombre.
+
+22
+00:00:48.020 --> 00:00:50.084
+Chaque expression demande son propre calcul.

@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:13.455
+Résoudre dans C
+Résolvons z au carré moins deux z plus cinq égal à zéro. L’inconnue est
+complexe et nous suivons la méthode du second degré.
+
+2
+00:00:13.455 --> 00:00:28.273
+Identifier les coefficients
+On identifie les coefficients. Celui du carré vaut un, celui de z vaut moins
+deux et le terme constant vaut cinq. On peut calculer le discriminant.
+
+3
+00:00:28.273 --> 00:00:44.000
+Calculer le discriminant
+Le discriminant vaut b au carré moins quatre a c, soit quatre moins vingt. Il
+vaut donc moins seize, ce qui conduit à des solutions complexes non réelles.
+
+4
+00:00:44.000 --> 00:00:59.273
+Premier complexe
+La racine carrée de l’opposé du discriminant vaut quatre. La première solution
+est deux plus quatre i, divisé par deux. On divise les deux termes par deux.
+
+5
+00:00:59.273 --> 00:01:15.455
+Deuxième complexe
+Pour la seconde solution, on change le signe de la partie imaginaire. Deux
+moins quatre i, divisé par deux, donne un moins deux i, le conjugué de la
+première.
+
+6
+00:01:15.455 --> 00:01:28.909
+Vérifier somme et produit
+Les deux solutions sont conjuguées. Leur somme vaut deux et leur produit cinq,
+conformément aux coefficients de l’équation. Le calcul est ainsi vérifié.

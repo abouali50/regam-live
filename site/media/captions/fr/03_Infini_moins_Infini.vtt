@@ -1,0 +1,77 @@
+WEBVTT
+
+1
+00:00:00.223 --> 00:00:03.373
+Troisième cas, l’infini moins l’infini.
+
+2
+00:00:03.423 --> 00:00:06.305
+Le résultat n’est pas forcément zéro. Prenons la racine de
+
+3
+00:00:06.305 --> 00:00:07.918
+x au carré plus x,
+
+4
+00:00:07.969 --> 00:00:11.145
+moins x, lorsque x tend vers plus l’infini.
+
+5
+00:00:11.335 --> 00:00:13.417
+Pour transformer cette différence avec une racine,
+
+6
+00:00:13.511 --> 00:00:17.308
+on multiplie et on divise par son expression conjuguée.
+
+7
+00:00:17.308 --> 00:00:18.936
+C’est ici la même racine, plus x.
+
+8
+00:00:19.185 --> 00:00:22.088
+Au numérateur, on utilise la différence de deux carrés.
+
+9
+00:00:22.234 --> 00:00:24.444
+On obtient x au carré plus x,
+
+10
+00:00:24.495 --> 00:00:27.075
+moins x au carré. Il reste seulement x.
+
+11
+00:00:27.268 --> 00:00:29.138
+Puisque x tend vers plus l’infini,
+
+12
+00:00:29.146 --> 00:00:30.413
+il est finalement positif.
+
+13
+00:00:30.586 --> 00:00:32.690
+On divise le numérateur et le dénominateur par x.
+
+14
+00:00:32.720 --> 00:00:35.024
+On obtient un divisé par la racine de un plus
+
+15
+00:00:35.024 --> 00:00:36.907
+un sur x, puis plus un au dénominateur.
+
+16
+00:00:37.072 --> 00:00:39.079
+Un sur x tend vers zéro.
+
+17
+00:00:39.226 --> 00:00:41.905
+On obtient donc un divisé par un plus un,
+
+18
+00:00:41.913 --> 00:00:45.625
+soit un demi. L’infini moins l’infini donne
+
+19
+00:00:45.625 --> 00:00:47.149
+ici un demi, et non zéro.

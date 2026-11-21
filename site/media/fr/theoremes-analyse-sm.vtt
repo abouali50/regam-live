@@ -1,0 +1,41 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.364
+Choisir la fonction
+On veut encadrer le logarithme de un virgule un sans calculatrice. On étudie
+le logarithme sur le segment allant de un à un virgule un.
+
+2
+00:00:14.364 --> 00:00:29.182
+Vérifier les hypothèses
+La fonction est continue sur le segment et dérivable à l’intérieur, car toutes
+ses valeurs sont positives. Les hypothèses du théorème des accroissements
+finis sont satisfaites.
+
+3
+00:00:29.182 --> 00:00:44.455
+Encadrer la dérivée
+Sur ce segment, la dérivée est comprise entre dix onzièmes et un. La borne
+inférieure correspond au plus grand dénominateur et la borne supérieure au
+plus petit.
+
+4
+00:00:44.455 --> 00:01:00.182
+Appliquer le TAF
+Le théorème exprime la différence des logarithmes comme une dérivée en un
+point intérieur multipliée par la longueur du segment. Cette longueur vaut un
+dixième et est positive.
+
+5
+00:01:00.182 --> 00:01:15.909
+Obtenir l’encadrement
+On multiplie les bornes de la dérivée par un dixième sans changer le sens des
+inégalités. On utilise ensuite le fait que le logarithme de un vaut zéro.
+
+6
+00:01:15.909 --> 00:01:29.818
+Interpréter le résultat
+On obtient un encadrement justifié par le théorème. Il n’était pas nécessaire
+de connaître le point intérieur exact, car l’encadrement de la dérivée
+suffisait.

@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Three points in the complex plane
+There are three points in the complex plane. A has coordinate one plus i, B
+has three plus i, and C has one plus three i.
+
+2
+00:00:14.818 --> 00:00:27.364
+Calculate vector AB
+To study the triangle from A, calculate the complex coordinate of vector AB.
+Subtract A's coordinate from B's to obtain two.
+
+3
+00:00:27.364 --> 00:00:39.455
+Calculate vector AC
+Likewise, the complex coordinate of vector AC is C's coordinate minus A's. The
+real parts cancel and two i remains.
+
+4
+00:00:39.455 --> 00:00:51.091
+Compare the vectors
+Now divide two i by two. The quotient is i. The denominator is nonzero, so
+this division is valid.
+
+5
+00:00:51.091 --> 00:01:06.818
+A right angle and equal lengths
+The number i has argument pi over two and modulus one. The angle between the
+vectors is therefore a right angle, and their lengths from A are equal.
+
+6
+00:01:06.818 --> 00:01:20.727
+A right isosceles triangle at A
+The triangle ABC is right-angled and isosceles at A. The calculation
+established both the angle and the lengths, rather than relying on the sketch.

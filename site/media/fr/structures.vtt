@@ -1,0 +1,39 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:15.273
+Lire la loi
+Sur les réels, on définit une nouvelle opération en additionnant les deux
+nombres puis en retranchant deux. Déterminons son élément neutre et le
+symétrique de chaque élément.
+
+2
+00:00:15.273 --> 00:00:28.273
+Vérifier la stabilité
+Le résultat reste réel pour tous les couples de réels. Cette vérification
+simple est indispensable. Elle prouve que la loi est interne.
+
+3
+00:00:28.273 --> 00:00:43.091
+Calculer le neutre
+Le neutre doit laisser x inchangé. En écrivant l’équation puis en simplifiant
+x des deux côtés, on trouve que le neutre vaut deux, et non zéro.
+
+4
+00:00:43.091 --> 00:00:58.364
+Calculer le symétrique
+Pour trouver le symétrique de x, on impose un résultat égal au neutre, donc à
+deux. La résolution donne quatre moins x, qui appartient bien aux réels.
+
+5
+00:00:58.364 --> 00:01:14.091
+Vérifier l’associativité
+Il reste l’associativité. On calcule les deux expressions avec parenthèses et
+on obtient dans les deux cas x plus y plus z moins quatre, pour tous les
+réels.
+
+6
+00:01:14.091 --> 00:01:29.364
+Conclure
+La loi est aussi commutative, car échanger x et y ne modifie pas le résultat.
+On obtient donc un groupe abélien, après avoir vérifié toutes les conditions.

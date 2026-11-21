@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:11.636
+Four independent trials
+Toss a fair coin four times independently. X counts heads. We want the
+probability of obtaining heads exactly twice.
+
+2
+00:00:11.636 --> 00:00:26.000
+Check the binomial model
+There are four trials, and the success probability in each is one half.
+Independence and this constant probability allow us to use the binomial
+distribution.
+
+3
+00:00:26.000 --> 00:00:38.545
+Choose the success positions
+Choose which two of the four positions will contain successes. The number of
+choices is four choose two, equal to six.
+
+4
+00:00:38.545 --> 00:00:51.545
+Probability of each arrangement
+Each arrangement with two successes and two failures has probability one half
+squared times one half squared. The product is one sixteenth.
+
+5
+00:00:51.545 --> 00:01:03.636
+Add the six cases
+There are six distinct arrangements with the same probability. Multiply six by
+one sixteenth and simplify to obtain three eighths.
+
+6
+00:01:03.636 --> 00:01:18.000
+Exactly two successes
+This is the probability of exactly two heads, not at least two. If the wording
+changes, the events included in the calculation must also change.

@@ -1,0 +1,31 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.818
+Find continuity at 1
+The function equals x squared minus one divided by x minus one when x differs
+from one. At one, it has an unknown assigned value a.
+
+2
+00:00:14.818 --> 00:00:27.818
+Write the condition
+For continuity, the value at one must equal the limit. Start by calculating
+the limit using the expression defined near this point.
+
+3
+00:00:27.818 --> 00:00:41.727
+Simplify for x ≠ 1
+Factor the difference of squares. The numerator becomes x minus one times x
+plus one. Cancel the common factor because x differs from one.
+
+4
+00:00:41.727 --> 00:00:54.273
+Calculate the limit
+As x approaches one, x plus one tends to two. This is the limit that the
+function's assigned value must match.
+
+5
+00:00:54.273 --> 00:01:10.000
+Conclude
+Therefore a must be two. We have filled the gap with the appropriate value.
+Remember that the limit and the value at the point must agree for continuity.

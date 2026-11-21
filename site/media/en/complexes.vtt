@@ -1,0 +1,38 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:14.364
+Solve in C
+Solve z squared minus two z plus five equal to zero. Here the unknown is a
+complex number. We will work through an organized solution.
+
+2
+00:00:14.364 --> 00:00:29.182
+Identify the coefficients
+First identify the coefficients. The coefficient of the square is one, that of
+z is minus two, and the constant is five. Now calculate the discriminant.
+
+3
+00:00:29.182 --> 00:00:44.000
+Calculate the discriminant
+The discriminant is b squared minus four a c. Here it is four minus twenty, or
+minus sixteen. Its negative value leads to nonreal complex solutions.
+
+4
+00:00:44.000 --> 00:00:58.364
+First complex root
+The square root of minus delta is four. The first solution is two plus four i,
+divided by two. Divide both numerator terms by two.
+
+5
+00:00:58.364 --> 00:01:14.545
+Second complex root
+For the second solution, change the sign of the imaginary part. Two minus four
+i divided by two gives one minus two i, the conjugate of the first root.
+
+6
+00:01:14.545 --> 00:01:29.818
+Check the sum and product
+The solutions are conjugates. Check that their sum is two and their product is
+five, as required by the equation. This verifies the calculation before moving
+on.

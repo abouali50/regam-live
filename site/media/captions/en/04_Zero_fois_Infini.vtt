@@ -1,0 +1,85 @@
+WEBVTT
+
+1
+00:00:00.197 --> 00:00:03.090
+The fourth case is zero times infinity.
+
+2
+00:00:03.183 --> 00:00:05.317
+Take x multiplied by ln of one over
+
+3
+00:00:05.317 --> 00:00:08.333
+x, as x approaches zero from the right.
+
+4
+00:00:08.507 --> 00:00:10.390
+Here ln means the natural logarithm.
+
+5
+00:00:10.555 --> 00:00:13.243
+x tends to zero, but ln of one
+
+6
+00:00:13.243 --> 00:00:15.640
+over x tends to positive infinity.
+
+7
+00:00:15.791 --> 00:00:18.095
+We must rewrite the expression,
+
+8
+00:00:18.095 --> 00:00:20.064
+rather than immediately conclude zero.
+
+9
+00:00:20.314 --> 00:00:22.692
+Set t equal to one divided by x.
+
+10
+00:00:22.867 --> 00:00:24.616
+Then t tends to positive infinity,
+
+11
+00:00:24.616 --> 00:00:27.268
+and the expression becomes ln t divided by t.
+
+12
+00:00:27.603 --> 00:00:29.707
+We now use a standard limit.
+
+13
+00:00:29.736 --> 00:00:32.045
+ln t divided by t tends to zero.
+
+14
+00:00:32.195 --> 00:00:34.328
+This result comes from the lesson
+
+15
+00:00:34.328 --> 00:00:37.520
+on logarithms. It is not a rule that every
+
+16
+00:00:37.528 --> 00:00:39.099
+zero-times-infinity form equals zero.
+
+17
+00:00:39.320 --> 00:00:41.863
+The limit in this example is therefore zero.
+
+18
+00:00:41.991 --> 00:00:44.807
+The same calculation shows that x times ln x
+
+19
+00:00:44.807 --> 00:00:46.292
+also tends to zero,
+
+20
+00:00:46.300 --> 00:00:49.756
+but through negative values. We will need this result
+
+21
+00:00:49.756 --> 00:00:50.966
+in the sixth case.

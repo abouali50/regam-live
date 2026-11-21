@@ -1,0 +1,1172 @@
+{
+  "limites": [
+    {
+      "title": "The limit of a quotient at infinity",
+      "src": "media/en/limites.mp4",
+      "poster": "media/en/limites.jpg",
+      "duration": 70.0,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/limites.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Find the limit of two x cubed minus x, divided by x cubed plus four, as x tends to positive infinity. Begin by identifying the form.",
+          "equation": "\\lim_{x\\to+\\infty}\\frac{2x^3-x}{x^3+4}",
+          "note": "Identify the form"
+        },
+        {
+          "text": "Both the numerator and denominator tend to positive infinity. Direct substitution therefore does not determine the result. We need to rewrite the quotient.",
+          "equation": "\\frac{\\infty}{\\infty}",
+          "note": "An indeterminate form"
+        },
+        {
+          "text": "The highest power present is x cubed. Divide the entire numerator and denominator by it, including every term, to preserve the value of the quotient.",
+          "equation": "\\frac{2-1/x^2}{1+4/x^3}",
+          "note": "Divide numerator and denominator by x³"
+        },
+        {
+          "text": "One over x squared tends to zero, as does four over x cubed. The new denominator tends to one, which is nonzero.",
+          "equation": "\\frac{2-0}{1+0}",
+          "note": "Take the limit"
+        },
+        {
+          "text": "The result is two. We can check it because the degrees are equal and the ratio of the leading coefficients is two divided by one.",
+          "equation": "\\boxed{2}",
+          "note": "Conclude"
+        }
+      ]
+    }
+  ],
+  "continuite": [
+    {
+      "title": "Choosing a value that makes a function continuous",
+      "src": "media/en/continuite.mp4",
+      "poster": "media/en/continuite.jpg",
+      "duration": 70.0,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/continuite.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "The function equals x squared minus one divided by x minus one when x differs from one. At one, it has an unknown assigned value a.",
+          "equation": "f(x)=\\frac{x^2-1}{x-1}\\ (x\\ne1),\\quad f(1)=a",
+          "note": "Find continuity at 1"
+        },
+        {
+          "text": "For continuity, the value at one must equal the limit. Start by calculating the limit using the expression defined near this point.",
+          "equation": "\\lim_{x\\to1}f(x)=f(1)",
+          "note": "Write the condition"
+        },
+        {
+          "text": "Factor the difference of squares. The numerator becomes x minus one times x plus one. Cancel the common factor because x differs from one.",
+          "equation": "\\frac{(x-1)(x+1)}{x-1}=x+1",
+          "note": "Simplify for x ≠ 1"
+        },
+        {
+          "text": "As x approaches one, x plus one tends to two. This is the limit that the function's assigned value must match.",
+          "equation": "\\lim_{x\\to1}(x+1)=2",
+          "note": "Calculate the limit"
+        },
+        {
+          "text": "Therefore a must be two. We have filled the gap with the appropriate value. Remember that the limit and the value at the point must agree for continuity.",
+          "equation": "\\boxed{a=2}",
+          "note": "Conclude"
+        }
+      ]
+    }
+  ],
+  "derivation": [
+    {
+      "title": "Finding a tangent using both value and slope",
+      "src": "media/en/derivation.mp4",
+      "poster": "media/en/derivation.jpg",
+      "duration": 69.5,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/derivation.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Let f of x be x cubed minus three x. We want the tangent at the point whose x-coordinate is two.",
+          "equation": "f(x)=x^3-3x,\\quad a=2",
+          "note": "Find the tangent"
+        },
+        {
+          "text": "First find the point's height. Substitute x equal to two to get eight minus six, or two. The point therefore has coordinates two, two.",
+          "equation": "f(2)=2^3-3\\times2=2",
+          "note": "Find the point"
+        },
+        {
+          "text": "Now differentiate. The derivative of x cubed is three x squared, and the derivative of minus three x is minus three. This gives the slope function.",
+          "equation": "f^{\\prime}(x)=3x^2-3",
+          "note": "Calculate the derivative"
+        },
+        {
+          "text": "At two, the slope is three times four minus three, or nine. Use the tangent formula with the value and slope we have calculated.",
+          "equation": "f^{\\prime}(2)=9,\\quad y=2+9(x-2)",
+          "note": "Use the point and the slope"
+        },
+        {
+          "text": "Expand and simplify to get y equal to nine x minus sixteen. Check by substituting x equal to two. We recover two, the point's height.",
+          "equation": "\\boxed{y=9x-16}",
+          "note": "Check the result"
+        }
+      ]
+    }
+  ],
+  "etude-fonction": [
+    {
+      "title": "Studying the monotonicity of a cubic function",
+      "src": "media/en/etude-fonction.mp4",
+      "poster": "media/en/etude-fonction.jpg",
+      "duration": 71.333333,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/etude-fonction.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Study where x cubed minus three x increases and decreases. The function is defined on all real numbers, with limits negative and positive infinity at the two ends.",
+          "equation": "f(x)=x^3-3x,\\quad D_f=\\mathbb{R}",
+          "note": "Domain and limits"
+        },
+        {
+          "text": "The derivative is three x squared minus three. Factor it as three times x minus one times x plus one.",
+          "equation": "f^{\\prime}(x)=3(x-1)(x+1)",
+          "note": "Factor the derivative"
+        },
+        {
+          "text": "The derivative vanishes at minus one and one. The product is positive before minus one, negative between them, and positive after one.",
+          "equation": "f^{\\prime}>0\\ \\text{outside }[-1,1],\\quad f^{\\prime}<0\\ \\text{on }]-1,1[",
+          "note": "Study the sign"
+        },
+        {
+          "text": "The function therefore increases, then decreases, then increases again. Calculate the significant values to obtain two at minus one and minus two at one.",
+          "equation": "f(-1)=2,\\qquad f(1)=-2",
+          "note": "Calculate significant values"
+        },
+        {
+          "text": "There is a local maximum of two and a local minimum of minus two. The variation table combines these values with the limits so the sketch follows from the calculations.",
+          "equation": "-\\infty\\nearrow2\\searrow-2\\nearrow+\\infty",
+          "note": "Build the variation table"
+        }
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "title": "Transforming a sequence into a geometric sequence",
+      "src": "media/en/suites.mp4",
+      "poster": "media/en/suites.jpg",
+      "duration": 74.5,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/suites.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "The initial term u zero is zero, and each new term is half the preceding term plus three. We want a clear method for the formula and the limit.",
+          "equation": "u_0=0,\\qquad u_{n+1}=\\frac12u_n+3",
+          "note": "Read the recurrence"
+        },
+        {
+          "text": "First look for the number that remains unchanged. Solve ell equal to half ell plus three to obtain six. This is the fixed point.",
+          "equation": "\\ell=\\frac12\\ell+3\\ \\Longrightarrow\\ \\ell=6",
+          "note": "Find the fixed point"
+        },
+        {
+          "text": "Set v n equal to u n minus six. Using the recurrence, each new term of v becomes exactly half the preceding term.",
+          "equation": "v_n=u_n-6,\\qquad v_{n+1}=\\frac12v_n",
+          "note": "Obtain a geometric sequence"
+        },
+        {
+          "text": "The initial value v zero is minus six. Thus v n is minus six times one half to the power n. Add six to return to u.",
+          "equation": "u_n=6-6\\left(\\frac12\\right)^n",
+          "note": "Return to u"
+        },
+        {
+          "text": "One half to the power n tends to zero, so u n tends to six. The formula also shows that the sequence is increasing and remains below six.",
+          "equation": "\\boxed{\\lim u_n=6}",
+          "note": "Conclude"
+        }
+      ]
+    }
+  ],
+  "fonctions-reciproques": [
+    {
+      "title": "Differentiating an inverse without finding its formula",
+      "src": "media/en/fonctions-reciproques.mp4",
+      "poster": "media/en/fonctions-reciproques.jpg",
+      "duration": 73.166667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/fonctions-reciproques.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Let f of x be x cubed plus x. We want the derivative of the inverse at two, without finding an explicit formula for that inverse.",
+          "equation": "f(x)=x^3+x,\\quad (f^{-1})^{\\prime}(2)\\ ?",
+          "note": "Derivative of the inverse"
+        },
+        {
+          "text": "The derivative of f is three x squared plus one, which is always positive. Together with continuity and the limits at infinity, this establishes a bijection on the real numbers.",
+          "equation": "f^{\\prime}(x)=3x^2+1>0",
+          "note": "Justify the bijection"
+        },
+        {
+          "text": "Find the preimage of two. Try one. One cubed plus one equals two, so the inverse evaluated at two is one.",
+          "equation": "f(1)=2\\quad\\Longrightarrow\\quad f^{-1}(2)=1",
+          "note": "Find the correct preimage"
+        },
+        {
+          "text": "Calculate the derivative at one to obtain four, which is nonzero. We can now apply the inverse derivative formula by taking the reciprocal.",
+          "equation": "f^{\\prime}(1)=4\\ne0",
+          "note": "Check the denominator"
+        },
+        {
+          "text": "The inverse's derivative at two is one divided by the original derivative at one, or one quarter. Evaluate the original derivative at the preimage, not at the output.",
+          "equation": "\\boxed{(f^{-1})^{\\prime}(2)=\\frac14}",
+          "note": "Conclude"
+        }
+      ]
+    }
+  ],
+  "logarithme": [
+    {
+      "title": "Solving a logarithmic equation",
+      "src": "media/en/logarithme.mp4",
+      "poster": "media/en/logarithme.jpg",
+      "duration": 82.5,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/logarithme.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "We want to solve this equation involving two logarithms. First determine the domain, before changing the expression or calculating solutions.",
+          "equation": "\\ln(x-1)+\\ln(x+1)=\\ln3",
+          "note": "Start with the domain"
+        },
+        {
+          "text": "Each logarithm's argument must be positive. Both x minus one and x plus one must be positive, giving x greater than one.",
+          "equation": "x-1>0,\\quad x+1>0\\quad\\Rightarrow\\quad x>1",
+          "note": "Domain, ]1, +∞["
+        },
+        {
+          "text": "On this domain, combine the logarithms into the logarithm of a product. The product of x minus one and x plus one is a difference of squares.",
+          "equation": "\\ln(x^2-1)=\\ln3",
+          "note": "ln a + ln b = ln(ab)"
+        },
+        {
+          "text": "Because the logarithm is strictly increasing, equal logarithms have equal arguments. Thus x squared minus one equals three, and x squared equals four.",
+          "equation": "x^2-1=3\\quad\\Rightarrow\\quad x^2=4",
+          "note": "Use injectivity"
+        },
+        {
+          "text": "The algebraic equation gives two candidates, two and minus two. We are not finished. Check each candidate against the conditions established at the start.",
+          "equation": "x=2\\quad\\mathrm{or}\\quad x=-2",
+          "note": "Check the candidates"
+        },
+        {
+          "text": "Minus two is not greater than one, so reject it. Two is admissible, and substitution gives ln one plus ln three. The only solution is two.",
+          "equation": "S=\\{2\\}",
+          "note": "Verify and conclude"
+        }
+      ]
+    }
+  ],
+  "exponentielle": [
+    {
+      "title": "Solving an equation involving e to the power x",
+      "src": "media/en/exponentielle.mp4",
+      "poster": "media/en/exponentielle.jpg",
+      "duration": 89.333333,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/exponentielle.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "This equation contains both e to the power x and e to the power two x. Simplify it by turning it into a quadratic equation in a new variable.",
+          "equation": "e^{2x}-3e^x+2=0",
+          "note": "Recognize a repeated expression"
+        },
+        {
+          "text": "Set t equal to e to the power x. Then t is strictly positive, and e to the power two x is the square of e to the power x.",
+          "equation": "t=e^x>0,\\qquad t^2-3t+2=0",
+          "note": "Substitute with t > 0"
+        },
+        {
+          "text": "Now factor the quadratic. Look for two numbers whose sum is three and product is two. They are one and two, giving this factorization.",
+          "equation": "(t-1)(t-2)=0",
+          "note": "Factor the quadratic"
+        },
+        {
+          "text": "A product is zero when at least one factor is zero. Thus t equals one or two. Both values are positive and admissible for the substitution.",
+          "equation": "t=1\\quad\\mathrm{or}\\quad t=2",
+          "note": "Keep positive roots"
+        },
+        {
+          "text": "Return to x. If e to the power x equals one, x is zero. If it equals two, x is ln two.",
+          "equation": "x=0\\quad\\mathrm{or}\\quad x=\\ln2",
+          "note": "Return to the variable x"
+        },
+        {
+          "text": "Substitution in the original equation gives zero for both values. These are the final solutions. The answer must be expressed in x, not left in t.",
+          "equation": "S=\\{0,\\ln2\\}",
+          "note": "Check both solutions"
+        }
+      ]
+    }
+  ],
+  "primitives-integrales": [
+    {
+      "title": "Calculating an integral by parts",
+      "src": "media/en/primitives-integrales.mp4",
+      "poster": "media/en/primitives-integrales.jpg",
+      "duration": 86.666667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/primitives-integrales.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Calculate the integral from zero to one of x times the exponential. Since the integrand is a product, try integration by parts, one step at a time.",
+          "equation": "I=\\int_0^1 xe^x\\,dx",
+          "note": "Identify the product"
+        },
+        {
+          "text": "Choose x as the function to differentiate, because its derivative is one. Take an antiderivative of the exponential, which remains the same exponential function.",
+          "equation": "u=x,\\quad u^{\\prime}=1,\\quad v^{\\prime}=e^x,\\quad v=e^x",
+          "note": "Choose u and v"
+        },
+        {
+          "text": "Apply the formula. Evaluate the product at the limits, then subtract the integral of the exponential. Remember the minus sign, since omitting it changes the answer.",
+          "equation": "I=[xe^x]_0^1-\\int_0^1 e^x\\,dx",
+          "note": "Apply the formula"
+        },
+        {
+          "text": "For the first boundary term, substituting x equal to one gives e, and substituting zero gives zero. Their difference is therefore e.",
+          "equation": "[xe^x]_0^1=e-0=e",
+          "note": "Calculate the first term"
+        },
+        {
+          "text": "The remaining integral is the exponential from zero to one. Its antiderivative is the exponential, so the upper value minus the lower value gives e minus one.",
+          "equation": "\\int_0^1 e^x\\,dx=[e^x]_0^1=e-1",
+          "note": "Calculate the second term"
+        },
+        {
+          "text": "Finally, subtract e minus one from e, retaining the parentheses. The e terms cancel and one remains. The positive result agrees with the integrand's sign.",
+          "equation": "I=e-(e-1)=1",
+          "note": "Conclude and check"
+        }
+      ]
+    }
+  ],
+  "equations-differentielles": [
+    {
+      "title": "Solving an equation with an initial condition",
+      "src": "media/en/equations-differentielles.mp4",
+      "poster": "media/en/equations-differentielles.jpg",
+      "duration": 89.833333,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/equations-differentielles.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Solve the equation stating that the function's derivative equals minus twice the function plus six. There is also a condition that its value at zero is one.",
+          "equation": "y^{\\prime}=-2y+6,\\qquad y(0)=1",
+          "note": "Read the given information"
+        },
+        {
+          "text": "Start with the constant solution. A constant has derivative zero, so minus twice this constant plus six must be zero. The constant is three.",
+          "equation": "0=-2k+6\\quad\\Longrightarrow\\quad k=3",
+          "note": "Find the equilibrium"
+        },
+        {
+          "text": "The general solution is three plus a constant times e to the power minus two x. Determine this constant using the given initial condition.",
+          "equation": "y(x)=3+Ce^{-2x}",
+          "note": "Write the general solution"
+        },
+        {
+          "text": "Substitute x equal to zero. The exponential becomes one, so three plus the constant equals one. Subtract three from both sides to obtain minus two.",
+          "equation": "3+C=1\\quad\\Longrightarrow\\quad C=-2",
+          "note": "Use the condition"
+        },
+        {
+          "text": "Substitute the constant into the general formula. The solution is three minus twice e to the power minus two x. We still need to check the derivative and the condition.",
+          "equation": "y(x)=3-2e^{-2x}",
+          "note": "Obtain the function"
+        },
+        {
+          "text": "The derivative is four times the same exponential, which also equals minus twice the function plus six. At zero the value is one, so the solution is correct.",
+          "equation": "y^{\\prime}=4e^{-2x}=-2y+6,\\qquad y(0)=1",
+          "note": "Verify and conclude"
+        }
+      ]
+    }
+  ],
+  "complexes": [
+    {
+      "title": "Solving a quadratic equation in C",
+      "src": "media/en/complexes.mp4",
+      "poster": "media/en/complexes.jpg",
+      "duration": 89.833333,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/complexes.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Solve z squared minus two z plus five equal to zero. Here the unknown is a complex number. We will work through an organized solution.",
+          "equation": "z^2-2z+5=0",
+          "note": "Solve in C"
+        },
+        {
+          "text": "First identify the coefficients. The coefficient of the square is one, that of z is minus two, and the constant is five. Now calculate the discriminant.",
+          "equation": "a=1,\\quad b=-2,\\quad c=5",
+          "note": "Identify the coefficients"
+        },
+        {
+          "text": "The discriminant is b squared minus four a c. Here it is four minus twenty, or minus sixteen. Its negative value leads to nonreal complex solutions.",
+          "equation": "\\Delta=(-2)^2-4\\times1\\times5=-16",
+          "note": "Calculate the discriminant"
+        },
+        {
+          "text": "The square root of minus delta is four. The first solution is two plus four i, divided by two. Divide both numerator terms by two.",
+          "equation": "z_1=\\frac{2+4i}{2}=1+2i",
+          "note": "First complex root"
+        },
+        {
+          "text": "For the second solution, change the sign of the imaginary part. Two minus four i divided by two gives one minus two i, the conjugate of the first root.",
+          "equation": "z_2=\\frac{2-4i}{2}=1-2i",
+          "note": "Second complex root"
+        },
+        {
+          "text": "The solutions are conjugates. Check that their sum is two and their product is five, as required by the equation. This verifies the calculation before moving on.",
+          "equation": "z_1+z_2=2,\\quad z_1z_2=5",
+          "note": "Check the sum and product"
+        }
+      ]
+    }
+  ],
+  "geometrie-complexe": [
+    {
+      "title": "A right isosceles triangle using complex coordinates",
+      "src": "media/en/geometrie-complexe.mp4",
+      "poster": "media/en/geometrie-complexe.jpg",
+      "duration": 80.666667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/geometrie-complexe.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "There are three points in the complex plane. A has coordinate one plus i, B has three plus i, and C has one plus three i.",
+          "equation": "z_A=1+i,\\quad z_B=3+i,\\quad z_C=1+3i",
+          "note": "Three points in the complex plane"
+        },
+        {
+          "text": "To study the triangle from A, calculate the complex coordinate of vector AB. Subtract A's coordinate from B's to obtain two.",
+          "equation": "z_B-z_A=2",
+          "note": "Calculate vector AB"
+        },
+        {
+          "text": "Likewise, the complex coordinate of vector AC is C's coordinate minus A's. The real parts cancel and two i remains.",
+          "equation": "z_C-z_A=2i",
+          "note": "Calculate vector AC"
+        },
+        {
+          "text": "Now divide two i by two. The quotient is i. The denominator is nonzero, so this division is valid.",
+          "equation": "\\frac{z_C-z_A}{z_B-z_A}=i",
+          "note": "Compare the vectors"
+        },
+        {
+          "text": "The number i has argument pi over two and modulus one. The angle between the vectors is therefore a right angle, and their lengths from A are equal.",
+          "equation": "\\arg(i)=\\frac{\\pi}{2},\\quad |i|=1",
+          "note": "A right angle and equal lengths"
+        },
+        {
+          "text": "The triangle ABC is right-angled and isosceles at A. The calculation established both the angle and the lengths, rather than relying on the sketch.",
+          "equation": "AB=AC=2,\\qquad AB\\perp AC",
+          "note": "A right isosceles triangle at A"
+        }
+      ]
+    }
+  ],
+  "geometrie-espace": [
+    {
+      "title": "The distance between a point and a plane",
+      "src": "media/en/geometrie-espace.mp4",
+      "poster": "media/en/geometrie-espace.jpg",
+      "duration": 83.833333,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/geometrie-espace.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Find the distance from M, with coordinates one, one, one, to the plane whose equation is x plus two y plus two z minus six equal to zero.",
+          "equation": "M=(1,1,1),\\quad P:x+2y+2z-6=0",
+          "note": "A point and a plane"
+        },
+        {
+          "text": "First read the normal vector from the coefficients of x, y, and z. It is one, two, two. This vector is nonzero.",
+          "equation": "n=(1,2,2)",
+          "note": "Read the normal vector"
+        },
+        {
+          "text": "Its norm is the square root of one squared plus two squared plus two squared. The sum is nine, whose square root is three.",
+          "equation": "\\|n\\|=\\sqrt{1^2+2^2+2^2}=3",
+          "note": "Calculate the norm"
+        },
+        {
+          "text": "Substitute M's coordinates into the equation. One plus two plus two minus six gives minus one. This is not yet the distance.",
+          "equation": "1+2+2-6=-1",
+          "note": "Evaluate at point M"
+        },
+        {
+          "text": "Take the absolute value of minus one and divide by the normal vector's norm. One third is the required distance.",
+          "equation": "d(M,P)=\\frac{|-1|}{3}=\\frac{1}{3}",
+          "note": "Apply the formula"
+        },
+        {
+          "text": "The result is positive, which makes sense because M lies outside the plane. The absolute value is essential. Distance cannot be negative, even when substitution gives a negative value.",
+          "equation": "d(M,P)=\\frac{1}{3}>0",
+          "note": "A distance is nonnegative"
+        }
+      ]
+    }
+  ],
+  "spheres": [
+    {
+      "title": "The circle where a sphere and a plane meet",
+      "src": "media/en/spheres.mp4",
+      "poster": "media/en/spheres.jpg",
+      "duration": 84.833333,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/spheres.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "A sphere is centred at the origin with radius five. Find its intersection with the plane z equal to three and calculate the radius of the intersection.",
+          "equation": "x^2+y^2+z^2=25,\\quad P:z=3",
+          "note": "A sphere and a plane"
+        },
+        {
+          "text": "The centre projects onto the plane at H, with coordinates zero, zero, three. The distance from the origin to this point is exactly three.",
+          "equation": "H=(0,0,3),\\quad d=3",
+          "note": "Project the centre"
+        },
+        {
+          "text": "Three is less than five, so the plane cuts the sphere in a circle. This circle's centre is H, rather than the original sphere's centre.",
+          "equation": "d=3<5=R",
+          "note": "A circular intersection"
+        },
+        {
+          "text": "To find the radius, apply Pythagoras' theorem to the right triangle. The circle's squared radius equals five squared minus three squared.",
+          "equation": "r^2=R^2-d^2=25-9",
+          "note": "Apply Pythagoras' theorem"
+        },
+        {
+          "text": "Twenty-five minus nine is sixteen. The radius is positive, so take the positive square root, which is exactly four.",
+          "equation": "r=\\sqrt{16}=4",
+          "note": "Choose the positive root"
+        },
+        {
+          "text": "The result is a circle in the plane z equal to three, centred at zero, zero, three, with radius four. We connected the relative position to distance and then to calculation.",
+          "equation": "z=3,\\quad x^2+y^2=16",
+          "note": "A circle with centre H and radius 4"
+        }
+      ]
+    }
+  ],
+  "denombrement": [
+    {
+      "title": "Choosing a committee of three",
+      "src": "media/en/denombrement.mp4",
+      "poster": "media/en/denombrement.jpg",
+      "duration": 76.666667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/denombrement.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "There are eight people, and we want a committee of three. There is no chair or secretary, so the members have identical roles.",
+          "equation": "n=8,\\qquad p=3",
+          "note": "Choose a group of three"
+        },
+        {
+          "text": "Answer two questions. Order does not matter, and the same person cannot be chosen twice. This is an unordered selection without repetition.",
+          "equation": "\\binom{8}{3}",
+          "note": "Without order or repetition"
+        },
+        {
+          "text": "If we temporarily count ordered choices, there are eight possibilities for the first person, seven for the second, and six for the third. Their product is 336.",
+          "equation": "8\\times7\\times6=336",
+          "note": "Temporarily count with order"
+        },
+        {
+          "text": "Each committee has been counted six times because three names have six possible orders. Correct this overcounting by division.",
+          "equation": "3!=3\\times2\\times1=6",
+          "note": "Remove repeated orders"
+        },
+        {
+          "text": "Divide 336 by six to obtain 56 different committees. This agrees with the combination formula.",
+          "equation": "\\binom{8}{3}=\\frac{336}{6}=56",
+          "note": "Find the number of committees"
+        },
+        {
+          "text": "To choose a formula, always ask about order and repetition. Here the result counts committees. It is neither a probability nor a percentage.",
+          "equation": "56\\ \\mathrm{committees}",
+          "note": "Interpret the result"
+        }
+      ]
+    }
+  ],
+  "probabilites": [
+    {
+      "title": "Two red balls without replacement",
+      "src": "media/en/probabilites.mp4",
+      "poster": "media/en/probabilites.jpg",
+      "duration": 86.166667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/probabilites.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "A bag contains three red balls and two blue balls, each equally likely to be selected. Draw two successively without returning the first ball to the bag.",
+          "equation": "3\\ \\mathrm{red},\\quad2\\ \\mathrm{blue}",
+          "note": "Two draws without replacement"
+        },
+        {
+          "text": "We want both the first and second balls to be red. The first-draw probability is three fifths because there are five balls in total.",
+          "equation": "P(R_1)=\\frac{3}{5}",
+          "note": "First draw"
+        },
+        {
+          "text": "Now suppose the first ball was red. Two red balls remain, and the total has fallen to four. This information changes the probability on the second draw.",
+          "equation": "P(R_2\\mid R_1)=\\frac{2}{4}",
+          "note": "After a first red ball"
+        },
+        {
+          "text": "For both events to occur, multiply the first probability by the second conditional probability. We do not multiply three fifths by itself here.",
+          "equation": "P(R_1\\cap R_2)=\\frac{3}{5}\\times\\frac{2}{4}",
+          "note": "Multiply along the same branch"
+        },
+        {
+          "text": "The product is six twentieths. Cancel a factor of two to obtain three tenths, equal to thirty percent of the equally likely cases.",
+          "equation": "\\frac{6}{20}=\\frac{3}{10}=0.3",
+          "note": "Simplify the result"
+        },
+        {
+          "text": "This result depends on sampling without replacement, as the statement specifies. If the ball were replaced, the counts would not fall and the calculation would change.",
+          "equation": "P(R_1\\cap R_2)=\\frac{3}{10}",
+          "note": "The model depends on replacement"
+        }
+      ]
+    }
+  ],
+  "variables-aleatoires": [
+    {
+      "title": "The probability of two successes in four tosses",
+      "src": "media/en/variables-aleatoires.mp4",
+      "poster": "media/en/variables-aleatoires.jpg",
+      "duration": 78.0,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/variables-aleatoires.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Toss a fair coin four times independently. X counts heads. We want the probability of obtaining heads exactly twice.",
+          "equation": "X\\sim\\mathcal{B}\\left(4,\\frac{1}{2}\\right)",
+          "note": "Four independent trials"
+        },
+        {
+          "text": "There are four trials, and the success probability in each is one half. Independence and this constant probability allow us to use the binomial distribution.",
+          "equation": "n=4,\\quad p=\\frac{1}{2},\\quad k=2",
+          "note": "Check the binomial model"
+        },
+        {
+          "text": "Choose which two of the four positions will contain successes. The number of choices is four choose two, equal to six.",
+          "equation": "\\binom{4}{2}=6",
+          "note": "Choose the success positions"
+        },
+        {
+          "text": "Each arrangement with two successes and two failures has probability one half squared times one half squared. The product is one sixteenth.",
+          "equation": "\\left(\\frac{1}{2}\\right)^2\\left(\\frac{1}{2}\\right)^2=\\frac{1}{16}",
+          "note": "Probability of each arrangement"
+        },
+        {
+          "text": "There are six distinct arrangements with the same probability. Multiply six by one sixteenth and simplify to obtain three eighths.",
+          "equation": "P(X=2)=6\\times\\frac{1}{16}=\\frac{3}{8}",
+          "note": "Add the six cases"
+        },
+        {
+          "text": "This is the probability of exactly two heads, not at least two. If the wording changes, the events included in the calculation must also change.",
+          "equation": "P(X=2)=\\frac{3}{8}",
+          "note": "Exactly two successes"
+        }
+      ]
+    }
+  ],
+  "arithmetique": [
+    {
+      "title": "A Diophantine equation step by step",
+      "src": "media/en/arithmetique.mp4",
+      "poster": "media/en/arithmetique.jpg",
+      "duration": 82.5,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/arithmetique.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Solve an equation in two unknowns, with the requirement that both solutions be integers. This condition is central to the problem.",
+          "equation": "18x+30y=12,\\quad(x,y)\\in\\mathbb Z^2",
+          "note": "Identify the domain"
+        },
+        {
+          "text": "The greatest common divisor of eighteen and thirty is six. Since six divides twelve, the equation does have integer solutions.",
+          "equation": "\\gcd(18,30)=6\\mid12",
+          "note": "Check existence"
+        },
+        {
+          "text": "Divide the entire equation by six to simplify the calculation. We obtain three x plus five y equal to two, without changing the solutions.",
+          "equation": "3x+5y=2",
+          "note": "Simplify"
+        },
+        {
+          "text": "Try x equal to minus one and y equal to one. Minus three plus five is two, giving a particular solution from which to build the general family.",
+          "equation": "(x_0,y_0)=(-1,1)",
+          "note": "Find one pair"
+        },
+        {
+          "text": "Subtract the particular solution and apply Gauss's lemma. We deduce that x plus one is a multiple of five, represented using an integer t.",
+          "equation": "3(x+1)=-5(y-1),\\quad x=-1+5t",
+          "note": "Use Gauss's lemma"
+        },
+        {
+          "text": "Substitute x to obtain y equal to one minus three t. The parameter t may be any integer. A final substitution verifies the original equation.",
+          "equation": "(x,y)=(-1+5t,1-3t),\\quad t\\in\\mathbb Z",
+          "note": "Write all integer pairs"
+        }
+      ]
+    }
+  ],
+  "structures": [
+    {
+      "title": "Finding the identity and the inverse",
+      "src": "media/en/structures.mp4",
+      "poster": "media/en/structures.jpg",
+      "duration": 81.166667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/structures.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "A new operation on the real numbers adds the two numbers, then subtracts two. To understand it, determine its identity element and its inverses.",
+          "equation": "x*y=x+y-2",
+          "note": "Read the operation"
+        },
+        {
+          "text": "The result is a real number for any two real inputs. This simple but necessary check establishes closure of the set.",
+          "equation": "x,y\\in\\mathbb R\\Longrightarrow x*y\\in\\mathbb R",
+          "note": "Check closure"
+        },
+        {
+          "text": "The identity must leave x unchanged. Write the equation and cancel x on both sides. The identity is two, not zero.",
+          "equation": "x*e=x\\iff x+e-2=x\\iff e=2",
+          "note": "Find the identity"
+        },
+        {
+          "text": "To find the inverse of x, require the result to equal the identity, two. Solving gives four minus x, which is a real number.",
+          "equation": "x*y=2\\iff y=4-x",
+          "note": "Find the inverse"
+        },
+        {
+          "text": "Associativity remains to be checked. Evaluate both parenthesizations to obtain the same expression, x plus y plus z minus four, for every three real numbers.",
+          "equation": "(x*y)*z=x+y+z-4=x*(y*z)",
+          "note": "Check associativity"
+        },
+        {
+          "text": "The operation is also commutative, since exchanging x and y changes nothing. Thus we have an abelian group, with every condition checked by calculation.",
+          "equation": "x*y=y*x,\\qquad(\\mathbb R,*)\\text{ Abelian group}",
+          "note": "Conclude"
+        }
+      ]
+    }
+  ],
+  "espaces-vectoriels": [
+    {
+      "title": "Finding a basis of a vector plane",
+      "src": "media/en/espaces-vectoriels.mp4",
+      "poster": "media/en/espaces-vectoriels.jpg",
+      "duration": 84.833333,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/espaces-vectoriels.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Consider the set of triples whose coordinates sum to zero. We will prove that it is a subspace, then find an explicit basis.",
+          "equation": "F=\\{(x,y,z)\\in\\mathbb R^3:x+y+z=0\\}",
+          "note": "Read the condition"
+        },
+        {
+          "text": "The zero vector belongs to the set. A real linear combination of two solutions still has coordinate sum zero, so closure under linear combinations holds.",
+          "equation": "0\\in F,\\quad u,v\\in F\\Rightarrow\\lambda u+\\mu v\\in F",
+          "note": "Prove the subspace property"
+        },
+        {
+          "text": "Choose y and z as free parameters. The equation forces x to equal minus y minus z, giving a parametric representation.",
+          "equation": "(x,y,z)=(-s-t,s,t)",
+          "note": "Parametrize"
+        },
+        {
+          "text": "Collect the terms for each parameter separately. Every element becomes s times one vector plus t times another, so these vectors span the space.",
+          "equation": "(-s-t,s,t)=s(-1,1,0)+t(-1,0,1)",
+          "note": "Find spanning vectors"
+        },
+        {
+          "text": "To check independence, suppose the combination is the zero vector. The second coordinate forces s to be zero, and the third forces t to be zero as well.",
+          "equation": "s(-1,1,0)+t(-1,0,1)=0\\Rightarrow s=t=0",
+          "note": "Check linear independence"
+        },
+        {
+          "text": "The family is spanning and linearly independent, so it is a basis. It contains two vectors, giving dimension two, even though the elements have three coordinates.",
+          "equation": "\\mathcal B=((-1,1,0),(-1,0,1)),\\quad\\dim F=2",
+          "note": "Conclude"
+        }
+      ]
+    }
+  ],
+  "theoremes-analyse-sm": [
+    {
+      "title": "Bounding a logarithm with the mean value theorem",
+      "src": "media/en/theoremes-analyse-sm.mp4",
+      "poster": "media/en/theoremes-analyse-sm.jpg",
+      "duration": 83.0,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/theoremes-analyse-sm.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Bound the natural logarithm of 1.1 without a calculator. Use the logarithm function on the interval from one to 1.1.",
+          "equation": "f(t)=\\ln t,\\quad t\\in[1,11/10]",
+          "note": "Choose the function"
+        },
+        {
+          "text": "The function is continuous on this interval and differentiable inside it because every input is positive. All assumptions of the mean value theorem therefore hold.",
+          "equation": "f\\prime(t)=1/t",
+          "note": "Check the assumptions"
+        },
+        {
+          "text": "On this interval, the derivative lies between ten elevenths and one. The lower bound comes from the largest denominator and the upper bound from the smallest.",
+          "equation": "\\frac{10}{11}\\leq\\frac1t\\leq1",
+          "note": "Bound the derivative"
+        },
+        {
+          "text": "The theorem expresses the difference of logarithms as the derivative at an interior point times the interval's width. Here the width is one tenth, which is positive.",
+          "equation": "\\ln(11/10)-\\ln1=f\\prime(c)\\,\\frac1{10}",
+          "note": "Apply the mean value theorem"
+        },
+        {
+          "text": "Multiply the derivative bounds by one tenth without changing the inequality directions. Then use the fact that ln one equals zero.",
+          "equation": "\\frac1{11}\\leq\\ln(11/10)\\leq\\frac1{10}",
+          "note": "Obtain the bounds"
+        },
+        {
+          "text": "We have obtained rigorous bounds from the theorem. We did not need the exact interior point, because the derivative bounds were sufficient to finish.",
+          "equation": "\\ln(1{,}1)\\in[1/11,1/10]",
+          "note": "Interpret the result"
+        }
+      ]
+    }
+  ],
+  "suites-adjacentes": [
+    {
+      "title": "A straightforward proof of adjacency",
+      "src": "media/en/suites-adjacentes.mp4",
+      "poster": "media/en/suites-adjacentes.jpg",
+      "duration": 85.666667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/suites-adjacentes.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Study two sequences. The first is one minus the reciprocal of n plus one, and the second is one plus that same reciprocal. The initial index is zero.",
+          "equation": "u_n=1-\\frac1{n+1},\\quad v_n=1+\\frac1{n+1},\\quad n\\geq0",
+          "note": "Define the sequences"
+        },
+        {
+          "text": "As the index increases, the denominator grows and the reciprocal decreases. The first sequence subtracts a smaller amount, so it increases at each step.",
+          "equation": "u_{n+1}-u_n=\\frac1{(n+1)(n+2)}>0",
+          "note": "Prove increase"
+        },
+        {
+          "text": "The second sequence adds a decreasing amount, so it decreases. We now have the required directions, but still need to study the difference.",
+          "equation": "v_{n+1}-v_n=-\\frac1{(n+1)(n+2)}<0",
+          "note": "Prove decrease"
+        },
+        {
+          "text": "Subtract the first term from the second. The ones cancel, leaving two divided by n plus one. This quantity tends to zero.",
+          "equation": "v_n-u_n=\\frac2{n+1}\\longrightarrow0",
+          "note": "Calculate the gap"
+        },
+        {
+          "text": "All three conditions hold, so the sequences are adjacent and have a common limit. The number one always remains between the lower and upper bounds.",
+          "equation": "u_n\\leq1\\leq v_n",
+          "note": "Apply the theorem"
+        },
+        {
+          "text": "Find the limit from the formulas or from the sum, which is always two. Its limit is twice the common limit, so the common limit is one.",
+          "equation": "u_n+v_n=2\\Longrightarrow2\\ell=2\\Longrightarrow\\ell=1",
+          "note": "Identify the limit"
+        }
+      ]
+    }
+  ],
+  "integration-sm": [
+    {
+      "title": "Changing variables and keeping the correct limits",
+      "src": "media/en/integration-sm.mp4",
+      "poster": "media/en/integration-sm.jpg",
+      "duration": 86.166667,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/integration-sm.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "Calculate the integral from zero to one of two x divided by one plus x squared. The denominator is positive, so the integral is well defined.",
+          "equation": "I=\\int_0^1\\frac{2x}{1+x^2}\\,dx",
+          "note": "Check the domain"
+        },
+        {
+          "text": "The derivative of the denominator is two x, which appears in the numerator. This suggests choosing the denominator itself as the new variable.",
+          "equation": "t=1+x^2",
+          "note": "Choose the substitution"
+        },
+        {
+          "text": "Differentiate the relation to obtain dt equal to two x dx. The numerator together with the differential can therefore be replaced entirely by dt.",
+          "equation": "dt=2x\\,dx",
+          "note": "Transform the differential"
+        },
+        {
+          "text": "Transform the limits as well. When x is zero, t is one, and when x is one, t is two. Do not keep the old limits with the new variable.",
+          "equation": "x=0\\Rightarrow t=1,\\qquad x=1\\Rightarrow t=2",
+          "note": "Transform the limits"
+        },
+        {
+          "text": "The integral becomes one over t, integrated from one to two. Since t is positive on this interval, the antiderivative we need is the logarithm.",
+          "equation": "I=\\int_1^2\\frac{dt}{t}=[\\ln t]_1^2",
+          "note": "Integrate"
+        },
+        {
+          "text": "Evaluate at the upper limit and subtract the lower-limit value. The logarithm of one is zero, leaving ln two, positive as expected.",
+          "equation": "I=\\ln2-\\ln1=\\ln2",
+          "note": "Calculate and check"
+        }
+      ]
+    }
+  ],
+  "complexes-sm": [
+    {
+      "title": "Solving a quadratic with complex coefficients",
+      "src": "media/en/complexes-sm.mp4",
+      "poster": "media/en/complexes-sm.jpg",
+      "duration": 87.5,
+      "silent": true,
+      "textLanguage": "en",
+      "description": "Visual explanation without narration",
+      "tracks": [
+        {
+          "src": "media/en/complexes-sm.vtt",
+          "language": "en",
+          "label": "English"
+        }
+      ],
+      "transcript": [
+        {
+          "text": "This quadratic equation has complex coefficients. Begin by calculating delta. There is no need to classify a general complex discriminant as positive or negative.",
+          "equation": "z^2-(2+i)z+1+i=0",
+          "note": "Read the coefficients"
+        },
+        {
+          "text": "The leading coefficient is one. To find delta, square two plus i, then subtract four times the constant term, one plus i.",
+          "equation": "\\Delta=(2+i)^2-4(1+i)",
+          "note": "Form the discriminant"
+        },
+        {
+          "text": "Expand the square using i squared equal to minus one. The imaginary terms cancel on subtraction, leaving delta equal to minus one.",
+          "equation": "\\Delta=3+4i-4-4i=-1",
+          "note": "Simplify"
+        },
+        {
+          "text": "We need a number whose square is delta. The number i works because i squared is minus one. Use i in the formula with both the plus and minus signs.",
+          "equation": "\\delta=i,\\qquad z=\\frac{2+i\\pm i}{2}",
+          "note": "Choose a square root"
+        },
+        {
+          "text": "With the minus sign, the imaginary parts cancel and the result is one. With the plus sign, two plus two i divided by two gives one plus i.",
+          "equation": "z_1=1,\\qquad z_2=1+i",
+          "note": "Calculate the solutions"
+        },
+        {
+          "text": "Finally, check the sum and product of the roots. The sum is two plus i, and the product is one plus i, matching the original equation's coefficients.",
+          "equation": "z_1+z_2=2+i,\\qquad z_1z_2=1+i",
+          "note": "Verify"
+        }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,7 @@
   const ERR = {
     'login already used': 'هاد اسم الدخول مستعمل.', 'password too short': 'كلمة السر خاصها 8 حروف ولا أكثر.',
     'bad name or login': 'اسم الدخول: 3 حروف ولا أكثر، حروف لاتينية وأرقام.', 'teacher still has rooms': 'هاد الأستاذ باقي عندو قاعات. بدل الأستاذ ديالها ولا حذفها أولا.',
+    'sender required': 'مع Brevo خاصك تكتب عنوان المرسل ديالك (مثلا contact@amicale-anouar.online) اللي مفعل ف Brevo، ماشي المعرف smtp-brevo.',
     'bad mail settings': 'عمر السيرفر، العنوان وكلمة السر ديال الإيميل أولا.',
     'the last room cannot be deleted': 'ما يمكنش تحذف آخر قاعة.', 'title and teacher are required': 'خاص اسم القاعة والأستاذ.',
   };

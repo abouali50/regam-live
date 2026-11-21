@@ -230,6 +230,8 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
       const host = String(b.mail.host || '').trim().toLowerCase(), user = String(b.mail.user || '').trim(), from = String(b.mail.from || '').trim();
       if (host && !/^[a-z0-9.-]{3,100}$/.test(host)) return 'bad mail settings';
       if ((user && user.length > 120) || (from && !emailOf(from))) return 'bad mail settings';
+      // Brevo only delivers for a validated sender: its own login address is not one, so a message sent from it is accepted and then lost
+      if (/brevo\.com$/.test(host) && (!from || /@smtp-brevo\.com$/i.test(from))) return 'sender required';
       db.mail.host = host; db.mail.port = Math.min(65535, Math.max(1, Number(b.mail.port) || 465)); db.mail.user = user; db.mail.from = from;
       if (typeof b.mail.pass === 'string' && b.mail.pass) db.mail.pass = b.mail.pass.slice(0, 200);
     }
@@ -241,6 +243,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
   async function adminTest(to) {
     const email = emailOf(to);
     if (!email || !mailReady()) return 'bad mail settings';
+    if (/brevo\.com$/i.test(db.mail.host) && (!db.mail.from || /@smtp-brevo\.com$/i.test(db.mail.from))) return 'sender required';
     try {
       await deliver(email, siteTitle + ' - test', 'OK. ' + siteTitle);
       // the mailbox works: from now on people must have an account, unless the administrator already chose otherwise

@@ -161,6 +161,7 @@ const DICT = {
   'كنصيفطو…': ['Envoi…', 'Sending…'],
   'تصيفطات الرسالة. شوف الإيميل ديالك (وحتى Spam).': ['Message envoyé. Regardez vos e-mails (et le dossier Spam).', 'Message sent. Check your e-mail (and the Spam folder).'],
   'ما تصيفطاتش الرسالة. تأكد من العنوان وكلمة السر ديال الإيميل.': ['Le message n’est pas parti. Vérifiez l’adresse et le mot de passe.', 'The message was not sent. Check the address and the password.'],
+  'مع Brevo خاصك تكتب عنوان المرسل ديالك (مثلا contact@amicale-anouar.online) اللي مفعل ف Brevo، ماشي المعرف smtp-brevo.': ['Avec Brevo, indiquez votre adresse d’expéditeur (par exemple contact@amicale-anouar.online), validée dans Brevo, et non l’identifiant smtp-brevo.', 'With Brevo, enter your own sender address (for example contact@amicale-anouar.online), validated in Brevo, not the smtp-brevo login.'],
   'عمر السيرفر، العنوان وكلمة السر ديال الإيميل أولا.': ['Remplissez d’abord le serveur, l’adresse et le mot de passe.', 'Fill in the server, the address and the password first.'],
   '⏺ سجل اللايف': ['⏺ Enregistrer le live', '⏺ Record the live'],
   '⏹ وقف التسجيل': ['⏹ Arrêter l’enregistrement', '⏹ Stop recording'],

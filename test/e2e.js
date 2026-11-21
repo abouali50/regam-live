@@ -374,6 +374,11 @@ async function until(fn, ms = 15000, step = 250) {
       const lockEarly = await adminSet({ access: 'watch' });
       const still = (await (await fetch(BASE + '/api/site')).json()).access;
       check('without a mailbox to send codes, sign-up is closed and the site cannot be locked', closed.status === 503 && lockEarly.status === 200 && still === 'open');
+      {
+        const noFrom = await adminSet({ mail: { host: 'smtp-relay.brevo.com', port: 587, user: 'c1@smtp-brevo.com', from: '', pass: 'k' } });
+        const loginFrom = await adminSet({ mail: { host: 'smtp-relay.brevo.com', port: 587, user: 'c1@smtp-brevo.com', from: 'c1@smtp-brevo.com', pass: 'k' } });
+        check('Brevo is refused without a real sender address (its own login is not one)', noFrom.status === 400 && loginFrom.status === 400 && (await noFrom.json()).error === 'sender required');
+      }
       const mailSet = await adminSet({ mail: { host: 'smtp.test.local', port: 465, user: 'live@test.local', from: 'live@test.local', pass: 'secret-pass' } });
       check('once the mailbox is set, the front address becomes the site\'s home page', mailSet.status === 200 && /hero/.test(await (await fetch(BASE + '/')).text()));
       await a.goto(BASE + '/');

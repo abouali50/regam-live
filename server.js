@@ -1098,6 +1098,12 @@ const server = http.createServer(async (req, res) => {
       return void fs.createReadStream(path.join(APPS_DIR, file)).on('error', () => res.destroy()).pipe(res);
     }
     // The opening played to the audience when a live starts: the flag, the anthem, and (when they were added) the photo and the video
+    if (/^\/api\/tts\/[0-9a-f]{24}$/.test(p)) {
+      const hit = ttsKept.get(p.slice(9));
+      if (!hit) return send(res, 404, { error: 'gone' });
+      let wav; try { wav = await hit.job; } catch { return send(res, 503, { error: 'voice unavailable' }); }
+      return send(res, 200, wav, { 'Content-Type': 'audio/wav', 'Cache-Control': 'private, max-age=600' });
+    }
     if (p === '/api/opening') {
       const has = (f) => fs.existsSync(path.join(PUBLIC_DIR, 'opening', f));
       return send(res, 200, { on: !db.openingOff && env.OPENING_OFF !== '1' && has('hymne.mp3'), king: has('king.jpg') ? 'king.jpg' : '', video: has('maroc.mp4') ? 'maroc.mp4' : '' }, { 'Cache-Control': 'no-cache' });
@@ -1521,7 +1527,9 @@ wss.on('connection', (ws, req) => {
         room.capChain = (room.capChain || Promise.resolve()).then(async () => {
           const missing = ['ar', 'fr', 'en'].filter((l) => !words[l]);
           if (TRANSLATE_URL) await Promise.all(missing.map(async (l) => { try { const v = await translate(words[src], src, l); if (v) words[l] = v; } catch { /* that language is left out */ } }));
-          broadcast(room, { t: 'cap', src, tx: words });
+          const voice = {};      // the sentence read aloud, for the languages that are a translation
+          if (TTS_URL) for (const l of ['ar', 'fr', 'en']) if (l !== src && words[l]) voice[l] = ttsStart(l, words[l]);
+          broadcast(room, { t: 'cap', src, tx: words, voice });
           minute(room, ownerName(room), words[src]);
           room.capLog = [...(room.capLog || []), words[src]].slice(-15);          // what the host said lately, for the assistant
           tx(ws, { t: 'capinfo', tx: words });
@@ -1693,6 +1701,32 @@ async function translate(q, source, target) {
   });
   if (!r.ok) throw new Error('translate ' + r.status);
   return clean((await r.json()).translatedText, 400);
+}
+
+// The translated sentences read aloud by the free voice service on this server (Piper). Each sentence is made once per language and kept
+// a few minutes under a key nobody can guess, so any number of viewers fetch the same file. Without the service, viewers' own devices read instead.
+const TTS_URL = (env.TTS_URL || '').replace(/\/$/, ''), TTS_SALT = crypto.randomBytes(12).toString('hex');
+const ttsKept = new Map();
+let ttsBusy = 0; const ttsWait = [];
+async function ttsSlot() { if (ttsBusy >= 2) await new Promise((r) => ttsWait.push(r)); ttsBusy++; }
+function ttsFree() { ttsBusy--; const n = ttsWait.shift(); if (n) n(); }
+function ttsStart(lang, text) {
+  const key = crypto.createHash('sha1').update(TTS_SALT + lang + '\n' + text).digest('hex').slice(0, 24);
+  if (ttsKept.has(key)) return key;
+  const now = Date.now();
+  for (const [k, v] of ttsKept) if (now - v.at > 10 * 60e3) ttsKept.delete(k);
+  if (ttsKept.size >= 300) ttsKept.delete(ttsKept.keys().next().value);
+  const job = (async () => {
+    await ttsSlot();
+    try {
+      const r = await fetch(TTS_URL + '/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lang, text }), signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('tts ' + r.status);
+      return Buffer.from(await r.arrayBuffer());
+    } finally { ttsFree(); }
+  })();
+  job.catch(() => {});
+  ttsKept.set(key, { at: now, job });
+  return key;
 }
 
 // ---- words the host does not want to read in the comments: they are replaced by stars

@@ -139,7 +139,13 @@ if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
 fi
 
 say "Building and starting REGAM Live (a few minutes the first time)"
-docker compose "${PROFILE[@]}" up -d --build --remove-orphans --force-recreate
+# The free voice service is a bonus: if it cannot be built, the site is installed without it (viewers' own devices read the translation).
+if docker compose "${PROFILE[@]}" build tts >/dev/null 2>&1; then
+  docker compose "${PROFILE[@]}" up -d --build --remove-orphans --force-recreate
+else
+  warn "The voice service could not be built; the site is installed without it. Run this script again later."
+  docker compose "${PROFILE[@]}" up -d --build --remove-orphans --force-recreate $(docker compose "${PROFILE[@]}" config --services | grep -vx tts)
+fi
 
 # ------------------------------------------------------ reverse proxy (opt) --
 if [ "$MODE" = "proxy" ]; then

@@ -12,6 +12,7 @@ services:
       MTX_HLS: http://mediamtx:8888
       MTX_API: http://mediamtx:9997
       TRANSLATE_URL: http://translate:5000
+      TTS_URL: http://tts:5002
     volumes:
       - ./data:/app/data
       - ./recordings:/app/recordings
@@ -41,6 +42,13 @@ services:
     volumes:
       - lt_models:/home/libretranslate/.local
 
+  # The free voice that reads the translation aloud (Piper). Nothing leaves the server; if it is down, viewers' own phones read instead.
+  tts:
+    build: ./tts
+    restart: unless-stopped
+    volumes:
+      - tts_models:/models
+
   # Only used when nothing else on the server owns ports 80/443 ("direct" mode).
   caddy:
     image: caddy:2
@@ -55,3 +63,4 @@ services:
 volumes:
   caddy_data:
   lt_models:
+  tts_models:

@@ -458,7 +458,36 @@
   let capLang = capAuto ? LANG : store.get('regam.cap'), capVoice = store.get('regam.capVoice') === '1', capHide = null;
   const VOICE = { ar: 'ar-SA', fr: 'fr-FR', en: 'en-US' };
   $('#capLang').value = capLang; $('#capVoice').checked = capVoice;
-  const paintCap = () => { capBtn.classList.toggle('on', !!capLang); if (!capLang) { capLine.hidden = true; if (window.speechSynthesis) speechSynthesis.cancel(); video.volume = 1; } };
+  // The translation is read aloud by the free voice of the server when it has one (one sentence after the other); else by the device's own voice.
+  const voiceEl = new Audio(); let voiceChain = Promise.resolve(), voiceGen = 0;
+  const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+  const stopVoice = () => { voiceGen++; voiceChain = Promise.resolve(); try { voiceEl.pause(); } catch {} };
+  function speakDevice(text, lang) {
+    if (!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = VOICE[lang]; u.rate = 1.05;
+    u.onstart = () => { video.volume = 0.2; };                    // the host's own voice goes quiet under the translation
+    u.onend = u.onerror = () => { if (!speechSynthesis.pending) video.volume = 1; };
+    speechSynthesis.speak(u);
+  }
+  function speakServer(key, text, lang) {
+    const gen = voiceGen;
+    voiceChain = voiceChain.then(async () => {
+      if (gen !== voiceGen) return;
+      try {
+        const r = await fetch('/api/tts/' + key);
+        if (!r.ok) throw new Error('no voice');
+        const url = URL.createObjectURL(await r.blob());
+        if (gen !== voiceGen) { URL.revokeObjectURL(url); return; }
+        video.volume = 0.2;
+        voiceEl.src = url;
+        await new Promise((ok, no) => { voiceEl.onended = ok; voiceEl.onerror = no; voiceEl.play().catch(no); });
+        URL.revokeObjectURL(url);
+        if (gen === voiceGen) video.volume = 1;
+      } catch { if (gen === voiceGen) { video.volume = 1; speakDevice(text, lang); } }
+    });
+  }
+  const paintCap = () => { capBtn.classList.toggle('on', !!capLang); if (!capLang) { capLine.hidden = true; stopVoice(); if (window.speechSynthesis) speechSynthesis.cancel(); video.volume = 1; } };
   paintCap();
   capBtn.onclick = () => { capMenu.classList.remove('from-bar'); capMenu.hidden = !capMenu.hidden; capBtn.setAttribute('aria-expanded', capMenu.hidden ? 'false' : 'true'); };
   document.addEventListener('pointerdown', (e) => { if (!capMenu.hidden && !e.target.closest('.cap-wrap') && !e.target.closest('#barCap')) { capMenu.hidden = true; capBtn.setAttribute('aria-expanded', 'false'); } });
@@ -466,8 +495,9 @@
   $('#capVoice').onchange = () => {
     capVoice = $('#capVoice').checked; store.set('regam.capVoice', capVoice ? '1' : '0');
     // phones let a page speak only after a tap: this tap is the one
+    if (capVoice) { voiceEl.src = SILENCE; voiceEl.play().catch(() => {}); }      // the same tap unlocks the sound of the server's voice
     if (capVoice && window.speechSynthesis) speechSynthesis.speak(new SpeechSynthesisUtterance(' '));
-    if (!capVoice && window.speechSynthesis) { speechSynthesis.cancel(); video.volume = 1; }
+    if (!capVoice) { stopVoice(); if (window.speechSynthesis) speechSynthesis.cancel(); video.volume = 1; }
   };
   function showCap(d) {
     if (!capLang || !live) return;
@@ -475,12 +505,9 @@
     const text = d.tx[capLang] || d.tx[d.src];
     capLine.textContent = text; capLine.hidden = false;
     clearTimeout(capHide); capHide = setTimeout(() => { capLine.hidden = true; }, Math.min(12000, 3500 + text.length * 70));
-    if (capVoice && window.speechSynthesis && d.tx[capLang] && d.src !== capLang) {       // spoken only when it really is a translation
-      const u = new SpeechSynthesisUtterance(d.tx[capLang]);
-      u.lang = VOICE[capLang]; u.rate = 1.05;
-      u.onstart = () => { video.volume = 0.2; };                    // the host's own voice goes quiet under the translation
-      u.onend = u.onerror = () => { if (!speechSynthesis.pending) video.volume = 1; };
-      speechSynthesis.speak(u);
+    if (capVoice && (window.speechSynthesis || (d.voice && d.voice[capLang])) && d.tx[capLang] && d.src !== capLang) {       // spoken only when it really is a translation
+      if (d.voice && d.voice[capLang]) speakServer(d.voice[capLang], d.tx[capLang], capLang);
+      else speakDevice(d.tx[capLang], capLang);
     }
   }
   // The audience sees the picture a few seconds late; the words wait the same time so they land on the right moment.

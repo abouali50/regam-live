@@ -1471,6 +1471,23 @@ async function until(fn, ms = 15000, step = 250) {
         check('the link of a planned live serves for that live only: once the live was held and stopped, the same link opens nothing', !!uniq && linkBefore.early > 0 && !!linkDuring && linkDuring.slug === slug && !!linkAfter && goneFromAgenda === true, `${JSON.stringify(linkBefore)} ${JSON.stringify(linkDuring)} ${JSON.stringify(linkAfter)} ${goneFromAgenda}`);
         const trial = await (await post('/api/apply', { planId: freePlan.id, name: 'Hind Essai', contact: 'hind@example.com', roomTitle: 'Coaching Hind', topic: 'Coaching', login: 'hindessai', password: 'hind-pass-12' })).json();
         const trialIn = await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'hindessai', password: 'hind-pass-12' }) });
+        {   // a teacher who forgot the password gets a code by e-mail and chooses a new one
+          const mailNow = () => { const l = fs.readFileSync(path.join(OUT, 'outbox.jsonl'), 'utf8').trim().split('\n'); return JSON.parse(l[l.length - 1]); };
+          const asked = await post('/api/login/forgot', { who: 'Hind@Example.com' });
+          await sleep(300);
+          const m = mailNow(), code = (m.text.match(/\b(\d{6})\b/) || [])[1];
+          const unknown = await post('/api/login/forgot', { who: 'nobody-here' });
+          const wrong = await post('/api/login/reset', { who: 'hindessai', code: code === '000000' ? '111111' : '000000', password: 'hind-new-pass-1' });
+          const short = await post('/api/login/reset', { who: 'hindessai', code, password: 'abc' });
+          const done = await post('/api/login/reset', { who: 'hind@example.com', code, password: 'hind-new-pass-1' });
+          const again = await post('/api/login/reset', { who: 'hindessai', code, password: 'hind-new-pass-2' });
+          const oldIn = await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'hindessai', password: 'hind-pass-12' }) });
+          const newIn = await fetch(BASE + '/api/login', { method: 'POST', headers: JH, body: JSON.stringify({ login: 'hindessai', password: 'hind-new-pass-1' }) });
+          const sp = await browser.newPage(); await sp.goto(BASE + '/studio?lang=fr'); await sp.click('#forgotLink');
+          const ui = await sp.locator('#forgotForm').isVisible() && await sp.locator('#loginForm').isHidden();
+          await sp.close();
+          check('a teacher who forgot the password gets a 6-digit code at the e-mail of the account, sets a new password with it (once), the old one stops working; unknown names get the same answer', asked.status === 200 && unknown.status === 200 && m.to === 'hind@example.com' && !!code && wrong.status === 400 && short.status === 400 && done.status === 200 && again.status === 400 && oldIn.status === 401 && newIn.status === 200 && ui, JSON.stringify([asked.status, m.to, !!code, wrong.status, short.status, done.status, again.status, oldIn.status, newIn.status, ui]));
+        }
         const yearPlan = listed.find((x) => x.name === 'Annuel');
         await post('/api/apply', { planId: yearPlan.id, name: 'Sara Annuel', contact: 'sara@example.com', roomTitle: 'Salle Sara', topic: 'Coaching', login: 'saraannuel', password: 'sara-pass-123' });
         const yStart = await (await post('/api/pay/start', { login: 'saraannuel', password: 'sara-pass-123', months: 1 })).json();

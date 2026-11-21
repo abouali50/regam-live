@@ -13,6 +13,7 @@
   $('#loginForm').onsubmit = async (e) => {
     e.preventDefault();
     const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: $('#lg').value.trim(), password: $('#pw').value }) });
+    $('#loginErr').classList.remove('ok');
     if (!r.ok) {
       $('#loginErr').hidden = false;
       $('#loginErr').textContent = T(r.status === 429 ? 'محاولات بزاف. تسنى ربع ساعة وعاود.' : 'اسم الدخول ولا كلمة السر غالطين.');
@@ -23,6 +24,36 @@
     start();
   };
   if (token) start();
+
+  // ---- forgotten password: a code by e-mail, then a new password
+  {
+    const lf = $('#loginForm'), ff = $('#forgotForm');
+    const say = (msg, err) => { $('#fgMsg').hidden = !msg || err; $('#fgErr').hidden = !msg || !err; (err ? $('#fgErr') : $('#fgMsg')).textContent = msg || ''; };
+    const step = (two) => { $('#fgStep2').hidden = !two; $('#fgCode').required = two; $('#fgPass').required = two; $('#fgBtn').textContent = T(two ? 'بدل كلمة السر' : 'صيفط ليا الكود'); };
+    $('#forgotLink').onclick = () => { lf.hidden = true; ff.hidden = false; step(false); say(''); $('#fgWho').value = $('#lg').value.trim(); $('#fgWho').focus(); };
+    $('#fgBack').onclick = () => { ff.hidden = true; lf.hidden = false; };
+    const post = (what, body) => fetch('/api/login/' + what, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    ff.onsubmit = async (e) => {
+      e.preventDefault();
+      const who = $('#fgWho').value.trim();
+      $('#fgBtn').disabled = true;
+      try {
+        if ($('#fgStep2').hidden) {
+          const r = await post('forgot', { who });
+          if (r.status === 429) return say(T('محاولات بزاف. تسنى ربع ساعة وعاود.'), true);
+          step(true); $('#fgCode').focus();
+          say(T('إلا كان هاد الحساب عندو إيميل، راه وصلو كود فيه 6 أرقام (شوف حتى فالسبام). إلا ما عندوش إيميل، طلب من المدير كلمة سر جديدة.'));
+        } else {
+          const r = await post('reset', { who, code: $('#fgCode').value, password: $('#fgPass').value });
+          if (!r.ok) return say(T(r.status === 429 ? 'محاولات بزاف. تسنى ربع ساعة وعاود.' : r.status === 400 && $('#fgPass').value.length < 8 ? 'كلمة السر خاصها 8 حروف على الأقل.' : 'الكود غالط ولا سالا. طلب كود جديد.'), true);
+          const d = await r.json();
+          ff.hidden = true; lf.hidden = false;
+          $('#lg').value = d.login || who; $('#pw').value = ''; $('#pw').focus();
+          $('#loginErr').hidden = false; $('#loginErr').classList.add('ok'); $('#loginErr').textContent = T('تبدلات كلمة السر. دخل دابا بكلمة السر الجديدة.');
+        }
+      } finally { $('#fgBtn').disabled = false; }
+    };
+  }
 
   function logout() {
     sessionStorage.removeItem(TOKEN_KEY);

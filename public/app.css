@@ -1019,3 +1019,6 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 }
 @media (max-width: 360px) { .top .brand { font-size: 15px; } .top .brand .badge, .top .brand b { font-size: 11px; } }
 .btn.big { max-width: 100%; white-space: normal; }      /* a long label wraps instead of pushing the page wider */
+.linkish { background: none; border: 0; padding: 8px 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; opacity: .85; justify-self: center; }
+.linkish:hover { opacity: 1; }
+.err.ok { color: #7ee2a8; }

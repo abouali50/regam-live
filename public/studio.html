@@ -32,7 +32,24 @@
     <input id="pw" type="password" autocomplete="current-password" required>
     <p id="loginErr" class="err" hidden></p>
     <button class="btn primary" type="submit">دخل</button>
+    <button id="forgotLink" class="linkish" type="button">نسيتي كلمة السر؟</button>
     <a class="card-link" href="/teach">بغيتي تولي أستاذ عندنا؟ سجل هنا</a>
+  </form>
+  <form id="forgotForm" class="card" hidden>
+    <h1>نسيتي كلمة السر؟</h1>
+    <p class="muted" id="forgotHelp">كتب اسم الدخول ديالك ولا الإيميل ديالك، ونصيفطو ليك كود فالإيميل.</p>
+    <label for="fgWho">اسم الدخول ولا الإيميل</label>
+    <input id="fgWho" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+    <div id="fgStep2" hidden>
+      <label for="fgCode">الكود اللي وصلك فالإيميل</label>
+      <input id="fgCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
+      <label for="fgPass">كلمة السر الجديدة (8 حروف على الأقل)</label>
+      <input id="fgPass" type="password" autocomplete="new-password" minlength="8">
+    </div>
+    <p id="fgMsg" class="muted" hidden></p>
+    <p id="fgErr" class="err" hidden></p>
+    <button id="fgBtn" class="btn primary" type="submit">صيفط ليا الكود</button>
+    <button id="fgBack" class="linkish" type="button">رجع للدخول</button>
   </form>
 </section>
 

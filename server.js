@@ -105,6 +105,8 @@ function verify(token, kind) {
 // approved by the administrator, and (when the account has an end date) still paid for
 const isActive = (u) => !!u.active && (!u.paidUntil || u.paidUntil > Date.now());
 const USER_TTL = 12 * 3600e3;               // how long a studio session lasts
+// the e-mail address of a teacher: the one written in the request, when it is an e-mail address
+const teacherMail = (u) => { const c = String((u && (u.email || u.contact)) || '').trim().toLowerCase(); return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c) ? c : ''; };
 const hashPass = (password, salt) => crypto.scryptSync(String(password), salt, 32).toString('hex');
 // Who holds this token: the administrator, an active teacher, or nobody.
 function whoIs(token) {
@@ -1019,6 +1021,41 @@ const server = http.createServer(async (req, res) => {
       const me = whoIs(sign('user', id, USER_TTL));
       sec.audit(id === 'admin' ? 'login.admin' : 'login.teacher', ip, { login: id === 'admin' ? '' : login });
       return send(res, 200, { token: sign('user', id, USER_TTL), role: me.role, name: me.name });
+    }
+    // A teacher who forgot the password: a 6-digit code goes to the e-mail address on the account, then a new password.
+    // Same answer whether the account exists or not, so nobody can find out who teaches here.
+    if (p === '/api/login/forgot' && req.method === 'POST') {
+      const ip = clientIp(req);
+      if (!sec.allowed('tforgot:' + ip, 5, 15 * 60e3)) return send(res, 429, { error: 'too many attempts' });
+      const who = clean((await readJson(req)).who, 80).toLowerCase();
+      const u = who && db.users.find((x) => x.login === who || teacherMail(x) === who);
+      const to = u && isActive(u) && teacherMail(u);
+      if (to && acct.mailReady() && sec.allowed('tforgot:u:' + u.id, 3, 60 * 60e3)) {
+        const code = String(crypto.randomInt(0, 1e6)).padStart(6, '0');
+        u.reset = { code: hmac('reset:' + u.id + ':' + code), exp: Date.now() + 15 * 60e3, tries: 0 }; save();
+        acct.mail(to, 'Votre code REGAM Live', `Bonjour ${u.name},\n\nVotre code pour choisir un nouveau mot de passe du studio : ${code}\nIl est valable 15 minutes.\nVotre identifiant : ${u.login}\n\nSi vous n'avez rien demandé, ignorez ce message.`)
+          .catch((e) => console.error('teacher reset e-mail failed', String((e && e.message) || e).slice(0, 200)));
+        sec.audit('teacher.reset.asked', ip, { login: u.login });
+      }
+      return send(res, 200, { ok: true });
+    }
+    if (p === '/api/login/reset' && req.method === 'POST') {
+      const ip = clientIp(req);
+      if (!loginAllowed(ip)) return send(res, 429, { error: 'too many attempts' });
+      const b = await readJson(req);
+      const who = clean(b.who, 80).toLowerCase(), code = String(b.code || '').replace(/\D/g, ''), password = String(b.password || '');
+      if (password.length < 8) return send(res, 400, { error: 'password too short' });
+      const u = who && db.users.find((x) => x.login === who || teacherMail(x) === who);
+      const r = u && u.reset;
+      if (!r || r.exp < Date.now() || r.tries >= 5 || code.length !== 6 || !safeEq(hmac('reset:' + u.id + ':' + code), r.code)) {
+        if (r) { r.tries += 1; save(); }
+        loginFailed(ip); sec.audit('teacher.reset.fail', ip, { login: u ? u.login : '' });
+        return send(res, 400, { error: 'bad code' });
+      }
+      u.salt = crypto.randomBytes(12).toString('hex'); u.hash = hashPass(password, u.salt); delete u.reset; save();
+      sec.forget('fail:u:' + u.login);
+      sec.audit('teacher.reset.done', ip, { login: u.login });
+      return send(res, 200, { ok: true, login: u.login });
     }
     if (p === '/api/me') {
       const me = whoIs(bearer(req));

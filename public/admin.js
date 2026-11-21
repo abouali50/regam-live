@@ -62,6 +62,7 @@
     showAi(data.ai);
     showBackup(data.backup);
     showPay(data.pay);
+    if (!$('#openingForm').contains(document.activeElement)) $('#openingForm').elements.opening.checked = data.opening !== false;
     if (!$('#uplinkForm').contains(document.activeElement)) $('#uplinkForm').elements.uplink.value = data.uplink;
     $('#uplinkNote').textContent = T('بهاد السرعة: حتى ل {a} متابع بجودة عالية، {b} بجودة متوسطة، و {c} كحد أقصى بجودة خفيفة.', { a: Math.floor((data.uplink * 0.8) / 3.1), b: Math.floor((data.uplink * 0.8) / 1.6), c: Math.floor((data.uplink * 0.8) / 0.8) });
     if (!$('#legalForm').contains(document.activeElement)) { $('#legalForm').elements.owner.value = data.legal.owner; $('#legalForm').elements.contact.value = data.legal.contact; }
@@ -220,6 +221,10 @@
     $('#vbgUp').value = '';
     if (last) showVbg(last);
     $('#vbgUpNote').textContent = T(bad ? 'شي ملفات ما تسجلوش: النوع ولا الحجم ما مقبولش.' : 'تزادو. الأساتذة كيلقاوهم فزر «الخلفية».');
+  };
+  $('#openingForm').onsubmit = (e) => {
+    e.preventDefault();
+    api('/settings', { method: 'POST', body: JSON.stringify({ opening: e.target.elements.opening.checked }) }).then((r) => { document.activeElement.blur(); return done(r, T('تحفظ.')); });
   };
   $('#uplinkForm').onsubmit = (e) => {
     e.preventDefault();

@@ -152,6 +152,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
+  '.mp3': 'audio/mpeg', '.jpg': 'image/jpeg', '.mp4': 'video/mp4',
   '.wasm': 'application/wasm', '.tflite': 'application/octet-stream', '.binarypb': 'application/octet-stream', '.data': 'application/octet-stream',
 };
 function send(res, code, body, headers = {}) {
@@ -714,7 +715,7 @@ async function handleAdmin(req, res, url, what) {
   if (!what && req.method === 'GET') {
     return send(res, 200, {
       users: db.users.filter((u) => !awaitingPayment(u)).map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
-      plans: db.plans, payInfo: db.payInfo, legal: db.legal || { owner: '', contact: '' }, uplink: db.uplink || 400, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(), stats: cls.stats(), security: { ...sec.view(), warnings: ENV_WARNINGS },
+      plans: db.plans, payInfo: db.payInfo, legal: db.legal || { owner: '', contact: '' }, uplink: db.uplink || 400, opening: !db.openingOff, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(), stats: cls.stats(), security: { ...sec.view(), warnings: ENV_WARNINGS },
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
       tickets: (db.tickets || []).slice().reverse(),
     });
@@ -790,6 +791,7 @@ async function handleAdmin(req, res, url, what) {
     if (b.ai) for (const r of rooms.values()) toMods(r, { t: 'aichat', ready: ai.inChat(), on: !r.cfg.aiOff });
     const bad = acct.adminSet(b);                              // who must have an account, and the mailbox that sends the codes
     if (bad) return send(res, 400, { error: bad });
+    if (typeof b.opening === 'boolean') db.openingOff = !b.opening;           // the anthem and flag shown to the audience when a live starts
     if (Number(b.uplink) >= 20 && Number(b.uplink) <= 100000) db.uplink = Math.round(Number(b.uplink));     // what the server can send, in Mbit/s (measured): the picture's rate is fitted to it
     if (b.legal && typeof b.legal === 'object') db.legal = { owner: clean(b.legal.owner, 120), contact: clean(b.legal.contact, 160) };     // who runs the site, for the legal pages
     if (typeof b.payInfo === 'string') db.payInfo = b.payInfo.replace(/[\u0000-\u0008\u000b-\u001f]/g, '').slice(0, 1500);
@@ -1094,6 +1096,15 @@ const server = http.createServer(async (req, res) => {
       let st; try { st = fs.statSync(path.join(APPS_DIR, file)); } catch { return send(res, 404, 'Not found'); }
       res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Length': st.size, 'Content-Disposition': `attachment; filename="${file}"`, 'Cache-Control': 'no-cache' });
       return void fs.createReadStream(path.join(APPS_DIR, file)).on('error', () => res.destroy()).pipe(res);
+    }
+    // The opening played to the audience when a live starts: the flag, the anthem, and (when they were added) the photo and the video
+    if (p === '/api/opening') {
+      const has = (f) => fs.existsSync(path.join(PUBLIC_DIR, 'opening', f));
+      return send(res, 200, { on: !db.openingOff && env.OPENING_OFF !== '1' && has('hymne.mp3'), king: has('king.jpg') ? 'king.jpg' : '', video: has('maroc.mp4') ? 'maroc.mp4' : '' }, { 'Cache-Control': 'no-cache' });
+    }
+    {
+      const om = /^\/opening\/(flag\.webp|hymne\.mp3|king\.jpg|maroc\.mp4)$/.exec(p);
+      if (om) return serveRanged(req, res, path.join(PUBLIC_DIR, 'opening', om[1]), { 'Content-Type': MIME[path.extname(om[1])] });
     }
     if (p === '/vendor/hls.min.js') return serveFile(res, path.join(__dirname, 'node_modules/hls.js/dist/hls.min.js'), 'public, max-age=86400');
     const file = path.join(PUBLIC_DIR, path.normalize(p));
@@ -1820,6 +1831,8 @@ async function pollLive() {
     const on = !room.limitHit && (seen || (room.live && answered && room.missed < 3));
     if (on === room.live) continue;
     room.live = on;
+    const fresh = on && !(room.offAt && Date.now() - room.offAt < 5 * 60e3);      // a live that came back within five minutes is the same live: no new opening
+    if (!on) room.offAt = Date.now();
     if (on) { room.liveSince = Date.now(); room.limitWarned = false; }
     if (on) { room.likes = 0; room.cheered = 0; room.totals = zeros(); room.likesDirty = true; pushLive(room).catch(() => {}); }
     if (on) {                                                                       // going on air ahead of a planned live starts that live: its code, its link and its "open" setting count from now
@@ -1831,7 +1844,7 @@ async function pollLive() {
         for (const c of [...room.clients]) if (!c.mod && !c.helper && !slotOf(room, c.uid) && c.sessCode && !safeEq(c.sessCode, s.code || '')) c.close();      // who came in with the link of another live comes back through the code
       } else if (room.cfg.active) { delete room.cfg.active; save(); }
     }      // a new live starts its reactions from zero
-    broadcast(room, { t: 'live', on });
+    broadcast(room, { t: 'live', on, fresh });
     if (on) {                                                                       // the minutes: carried on if the live just dropped for a moment, else new
       if (room.reportTimer) { clearTimeout(room.reportTimer); room.reportTimer = null; }
       else room.minutes = null;

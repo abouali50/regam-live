@@ -10,7 +10,8 @@
     "start": "node server.js",
     "test": "node test/e2e.js",
     "test:chat": "node --test test/chat.test.js",
-    "test:security": "node --test test/security.test.js"
+    "test:security": "node --test test/security.test.js",
+    "test:opening": "node --test test/opening.test.js"
   },
   "license": "UNLICENSED",
   "dependencies": {

@@ -646,7 +646,7 @@
     showGuests(d.guests); setHand(!!d.hand);
     if (onStage && !(d.guests || []).some((g) => g.uid === link.uid)) leaveStage(false);
   })
-    .on('live', (d) => setLive(d.on))
+    .on('live', (d) => { const starting = d.on && !live && d.fresh !== false; setLive(d.on); if (starting && window.RegamOpening) { video.pause(); RegamOpening.play().then(() => { if (live) video.play().catch(() => {}); }); } })
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guests', (d) => showGuests(d.guests))

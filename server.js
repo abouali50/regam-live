@@ -679,6 +679,9 @@ function addMonths(u, months) {
   u.paidUntil = Math.max(Date.now(), u.paidUntil || 0) + months * 30 * 24 * 3600e3;
   u.active = true;
 }
+// With online payment set up, a request for a paid plan needs no decision from the administrator: the payment itself opens the account
+// and the room. Until then it is only someone who has not paid.
+const awaitingPayment = (u) => !!u.pending && !u.active && pay.ready() && (db.plans.find((x) => x.id === u.planId) || {}).price > 0;
 function openIfApproved(u) {                     // first approval: open the room they asked for
   if (!u.active || !u.pending) return;
   u.pending = false;
@@ -710,7 +713,7 @@ async function handleAdmin(req, res, url, what) {
 
   if (!what && req.method === 'GET') {
     return send(res, 200, {
-      users: db.users.map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
+      users: db.users.filter((u) => !awaitingPayment(u)).map((u) => ({ id: u.id, name: u.name, login: u.login, active: u.active, expired: !!u.active && !isActive(u), pending: !!u.pending, contact: u.contact || '', paidUntil: u.paidUntil || 0, planId: u.planId || '', wantRoom: u.wantRoom || '', wantTopic: u.wantTopic || '' })),
       plans: db.plans, payInfo: db.payInfo, legal: db.legal || { owner: '', contact: '' }, uplink: db.uplink || 400, accounts: acct.adminView(), ai: ai.adminView(), backup: bak.adminView(), pay: pay.adminView(), stats: cls.stats(), security: { ...sec.view(), warnings: ENV_WARNINGS },
       rooms: [...rooms.values()].map((r) => ({ ...publicRoom(r), ownerId: r.cfg.ownerId })),
       tickets: (db.tickets || []).slice().reverse(),
@@ -995,6 +998,7 @@ const server = http.createServer(async (req, res) => {
       if (!/^[a-z0-9._-]{3,30}$/.test(login) || login === 'admin') return send(res, 400, { error: 'bad name or login' });
       if (password.length < 8) return send(res, 400, { error: 'password too short' });
       if (db.users.some((x) => x.login === login)) return send(res, 409, { error: 'login already used' });
+      db.users = db.users.filter((x) => !(awaitingPayment(x) && Date.now() - (x.askedAt || 0) > 7 * 24 * 3600e3));      // never paid, forgotten after a week
       if (db.users.filter((x) => x.pending).length >= 300) return send(res, 429, { error: 'too many requests' });
       const salt = crypto.randomBytes(12).toString('hex');
       db.users.push({ id: 'u' + crypto.randomBytes(6).toString('hex'), name, login, active: false, pending: true, salt, hash: hashPass(password, salt), contact, wantRoom, wantTopic, planId: plan.id, askedAt: Date.now() });

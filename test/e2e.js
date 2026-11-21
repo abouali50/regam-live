@@ -1277,7 +1277,7 @@ async function until(fn, ms = 15000, step = 250) {
         && ord.unit.amount.value === (plan.price * 3).toFixed(2) && ord.unit.amount.currency_code === 'USD' && ord.returnUrl === BASE + '/pay/return', JSON.stringify(started));
       const early = await fetch(BASE + '/pay/return?token=' + oid, { redirect: 'manual' });
       const stillPending = (await (await fetch(BASE + '/api/admin', { headers: H })).json()).users.find((u) => u.login === 'youssef');
-      check('coming back without having paid opens nothing', early.status === 302 && early.headers.get('location') === '/teach?paid=0' && stillPending.pending && !stillPending.active
+      check('coming back without having paid opens nothing', early.status === 302 && early.headers.get('location') === '/teach?paid=0' && !stillPending
         && (await fetch(BASE + '/api/login', { method: 'POST', body: '{"login":"youssef","password":"youssef-pass-1"}' })).status === 401);
       ord.approved = true;
       const paidBack = await fetch(BASE + '/pay/return?token=' + oid, { redirect: 'manual' });
@@ -1498,6 +1498,10 @@ async function until(fn, ms = 15000, step = 250) {
         const yStart = await (await post('/api/pay/start', { login: 'saraannuel', password: 'sara-pass-123', months: 1 })).json();
         const yOrd = yStart.url ? pp.orders[new URL(yStart.url).searchParams.get('token')] : null;
         check('a plan priced by the year is paid at once, at its own price, for twelve months', !!yOrd && yOrd.unit.amount.value === '500.00' && /:12$/.test(yOrd.unit.custom_id), JSON.stringify(yStart).slice(0, 200) + ' ' + JSON.stringify(yOrd && yOrd.unit));
+        {
+          const view = await (await fetch(BASE + '/api/admin', { headers: H })).json();
+          check('with online payment set up, a request that has not paid is not put to the administrator: the payment opens it by itself', !view.users.some((u) => u.login === 'saraannuel'));
+        }
         {   // payment with a crypto wallet: the site reads the transfer on the chain before opening anything
           const SITE = '0x' + '1a'.repeat(20), PAYER = '0x' + '2b'.repeat(20), THIEF = '0x' + '3c'.repeat(20), USDT = '0x55d398326f99059ff775485246999027b3197955';
           const badAddr = await post('/api/admin/settings', { pay: { wallet: 'not-an-address' } }, H);

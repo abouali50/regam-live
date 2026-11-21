@@ -1663,7 +1663,12 @@ setInterval(() => {
     room.reacts = zeros();
     // a celebration on every screen at each step: every 100 likes, with the lion at 500 and 1000; then the lion every 500
     const n = room.likes, mark = n >= 2 * CHEER_BIG ? Math.floor(n / CHEER_BIG) * CHEER_BIG : Math.floor(n / CHEER_STEP) * CHEER_STEP;
-    if (mark > 0 && mark > (room.cheered || 0)) { room.cheered = mark; broadcast(room, { t: 'cheer', n: mark, big: mark % CHEER_BIG === 0 }); }
+    if (mark > 0 && mark > (room.cheered || 0)) {
+      room.cheered = mark;
+      // 500: one lion, 1000: two, 1500 and after: three; 2000, 4000, 6000…: the diamond
+      const big = mark % CHEER_BIG === 0, step = mark / CHEER_BIG, diamond = big && step % 4 === 0;
+      broadcast(room, { t: 'cheer', n: mark, big, lions: big && !diamond ? Math.min(3, step) : 0, diamond });
+    }
   }
 }, 700);
 setInterval(() => {

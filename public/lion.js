@@ -154,3 +154,72 @@ function makeLion() {
   };
   return { node: box, play };
 }
+
+// ---- the diamond (2000 likes, then every 2000): a big brilliant that drops in, turns in the light, sparkles and flashes
+function makeDiamond() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const s = (tag, attrs = {}, ...kids) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); n.append(...kids); return n; };
+  const P = (pts) => pts.map((p) => p.join(',')).join(' ');
+  // the cut: a flat table on top, the crown down to the girdle, the pavilion down to the point
+  const G = [[40, 200], [145, 200], [250, 200], [355, 200], [460, 200]], T = [[150, 110], [250, 110], [350, 110]], C = [250, 470];
+  const svg = s('svg', { viewBox: '0 0 500 520', class: 'gem-svg', 'aria-hidden': 'true' });
+  svg.append(s('defs', {},
+    s('radialGradient', { id: 'gm-glow' }, s('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': 0.95 }), s('stop', { offset: '.35', 'stop-color': '#9fe8ff', 'stop-opacity': 0.55 }), s('stop', { offset: '1', 'stop-color': '#6a4cff', 'stop-opacity': 0 })),
+    s('linearGradient', { id: 'gm-body', x1: 0, y1: 0, x2: 1, y2: 1 }, s('stop', { offset: '0', 'stop-color': '#e9fdff' }), s('stop', { offset: '.45', 'stop-color': '#7fdcff' }), s('stop', { offset: '1', 'stop-color': '#7a5cff' })),
+    s('linearGradient', { id: 'gm-shine', x1: 0, y1: 0, x2: 1, y2: 0 }, s('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': 0 }), s('stop', { offset: '.5', 'stop-color': '#fff', 'stop-opacity': 0.95 }), s('stop', { offset: '1', 'stop-color': '#fff', 'stop-opacity': 0 })),
+    s('clipPath', { id: 'gm-clip' }, s('polygon', { points: P([G[0], T[0], T[2], G[4], C]) })),
+  ));
+  const rays = s('g', { class: 'gem-rays', opacity: 0.6 });
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, w = 0.07; rays.append(s('path', { d: `M250,260 L${250 + Math.cos(a - w) * 330},${260 + Math.sin(a - w) * 330} L${250 + Math.cos(a + w) * 330},${260 + Math.sin(a + w) * 330} Z`, fill: i % 2 ? '#bff3ff' : '#ffffff', opacity: i % 2 ? 0.25 : 0.4 })); }
+  const halo = s('circle', { class: 'gem-halo', cx: 250, cy: 260, r: 250, fill: 'url(#gm-glow)' });
+  svg.append(halo, rays);
+  const stone = s('g', { class: 'gem-stone' });
+  stone.append(s('polygon', { points: P([G[0], T[0], T[2], G[4], C]), fill: 'url(#gm-body)' }));
+  // the facets, light and dark in turn, so it reads as cut glass
+  const facets = [
+    [[G[0], T[0], G[1]], '#ffffff', 0.55], [[T[0], G[2], G[1]], '#bdf1ff', 0.6], [[T[0], T[1], G[2]], '#ffffff', 0.35], [[T[1], T[2], G[2]], '#d7f8ff', 0.45],
+    [[T[2], G[3], G[2]], '#8fe0ff', 0.55], [[T[2], G[4], G[3]], '#c9b8ff', 0.55],
+    [[G[0], G[1], C], '#5fc7ff', 0.65], [[G[1], G[2], C], '#e8fcff', 0.6], [[G[2], G[3], C], '#7b8cff', 0.55], [[G[3], G[4], C], '#b59cff', 0.6],
+  ];
+  const faceEls = facets.map(([pts, fill, op]) => { const f = s('polygon', { class: 'gem-face', points: P(pts), fill, opacity: op }); stone.append(f); return f; });
+  // the edges of the cut
+  stone.append(s('polyline', { points: P([G[0], T[0], T[2], G[4], C, G[0], G[4]]), fill: 'none', stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round', opacity: 0.9 }));
+  for (const [a, b] of [[T[0], G[1]], [T[0], G[2]], [T[1], G[2]], [T[2], G[2]], [T[2], G[3]], [G[1], C], [G[2], C], [G[3], C], [T[0], T[2]]]) stone.append(s('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#ffffff', 'stroke-width': 2, opacity: 0.7 }));
+  // the flash that sweeps across the stone
+  const shine = s('rect', { class: 'gem-shine', x: -160, y: 60, width: 120, height: 460, fill: 'url(#gm-shine)', transform: 'skewX(-20)' });
+  stone.append(s('g', { 'clip-path': 'url(#gm-clip)' }, shine));
+  svg.append(stone);
+  // the twinkles: four-pointed stars on the corners of the cut and around it
+  const sparkles = s('g', { class: 'gem-sparkles' });
+  const star = (x, y, r) => s('path', { class: 'gem-star', d: `M${x},${y - r} Q${x + r * 0.16},${y - r * 0.16} ${x + r},${y} Q${x + r * 0.16},${y + r * 0.16} ${x},${y + r} Q${x - r * 0.16},${y + r * 0.16} ${x - r},${y} Q${x - r * 0.16},${y - r * 0.16} ${x},${y - r} Z`, fill: '#ffffff', style: `transform-origin:${x}px ${y}px` });
+  const spots = [[150, 110, 34], [350, 110, 28], [40, 200, 30], [460, 200, 34], [250, 470, 30], [250, 110, 22], [300, 300, 26], [190, 250, 20], [400, 60, 24], [90, 90, 22], [430, 360, 20], [70, 330, 18]];
+  const starEls = spots.map(([x, y, r]) => { const e = star(x, y, r); sparkles.append(e); return e; });
+  svg.append(sparkles);
+
+  const box = document.createElement('div');
+  box.className = 'cheer-gem';
+  box.append(svg);
+
+  const play = () => {
+    const anim = (node, frames, o) => (node.animate ? node.animate(frames.map((f) => ({ easing: o.easing || 'ease-in-out', ...f })), { ...o, easing: 'linear' }) : null);
+    const L = 6600;
+    // drops in from above with a bounce, turns in the light, lifts away
+    anim(box, [
+      { transform: 'translateY(-70vh) scale(.4) rotate(-20deg)', opacity: 0 },
+      { transform: 'translateY(4vh) scale(1.08) rotate(4deg)', opacity: 1, offset: 0.12 },
+      { transform: 'translateY(-2vh) scale(.98) rotate(-2deg)', opacity: 1, offset: 0.18 },
+      { transform: 'translateY(0) scale(1) rotate(0)', opacity: 1, offset: 0.23 },
+      { transform: 'translateY(-1vh) scale(1.04) rotate(0)', opacity: 1, offset: 0.6 },
+      { transform: 'translateY(0) scale(1) rotate(0)', opacity: 1, offset: 0.84 },
+      { transform: 'translateY(-30vh) scale(.5) rotate(10deg)', opacity: 0 },
+    ], { duration: L, fill: 'both', easing: 'cubic-bezier(.3,.9,.3,1)' });
+    // the stone turns: it narrows and widens as if seen from another side, and the facets swap their light
+    anim(stone, [{ transform: 'scaleX(1)' }, { transform: 'scaleX(1)', offset: 0.24 }, { transform: 'scaleX(.15)', offset: 0.32 }, { transform: 'scaleX(1)', offset: 0.4 }, { transform: 'scaleX(.15)', offset: 0.48 }, { transform: 'scaleX(1)', offset: 0.56 }, { transform: 'scaleX(1)' }], { duration: L, fill: 'both' });
+    faceEls.forEach((f, i) => anim(f, [{ opacity: facets[i][2] }, { opacity: i % 2 ? 0.95 : 0.2 }, { opacity: facets[i][2] }], { duration: 700 + (i % 4) * 160, delay: 1400 + i * 60, iterations: 5, fill: 'both' }));
+    anim(shine, [{ transform: 'skewX(-20) translateX(0)' }, { transform: 'skewX(-20) translateX(820px)' }], { duration: 1100, delay: 1500, iterations: 4, endDelay: 0, fill: 'both', easing: 'ease-in-out' });
+    anim(rays, [{ transform: 'rotate(0deg)' }, { transform: 'rotate(120deg)' }], { duration: L, fill: 'both' });
+    anim(halo, [{ opacity: 0.6, transform: 'scale(.8)' }, { opacity: 1, transform: 'scale(1.08)' }, { opacity: 0.6, transform: 'scale(.8)' }], { duration: 1300, iterations: 5, fill: 'both' });
+    starEls.forEach((e, i) => anim(e, [{ transform: 'scale(0) rotate(0deg)', opacity: 0 }, { transform: 'scale(1.25) rotate(45deg)', opacity: 1, offset: 0.4 }, { transform: 'scale(0) rotate(90deg)', opacity: 0 }], { duration: 900, delay: 900 + ((i * 370) % 1700), iterations: 4, fill: 'both' }));
+  };
+  return { node: box, play };
+}

@@ -255,8 +255,22 @@ async function until(fn, ms = 15000, step = 250) {
     await viewer.evaluate(() => { const w = new WebSocket(`ws://${location.host}/ws`); w.onopen = () => { w.send(JSON.stringify({ t: 'hello', uid: 'badreactccccccc1', name: 'x' })); for (const k of [7, -1, 'a', 2.5, null]) w.send(JSON.stringify({ t: 'react', k })); }; });
     const perKind = (page) => page.evaluate(() => [...document.querySelectorAll('#reactions .react-n')].map((n) => n.textContent).join(','));
     check('each reaction has its own counter, shown to viewers and in the studio', (await until(async () => (await perKind(studio)) === '1,0,1,1,0,0,1' && (await perKind(viewer)) === '1,0,1,1,0,0,1', 6000)) !== null, 'studio ' + await perKind(studio) + ' viewer ' + await perKind(viewer));
-    const cheerV = await until(() => viewer.evaluate(() => (window.__cheers.length ? window.__cheers : null)), 6000), cheerS = await studio.evaluate(() => window.__cheers);
+    const cheerV = await until(() => viewer.evaluate(() => (window.__cheers.some((c) => c.big) ? window.__cheers : null)), 8000), cheerS = await until(() => studio.evaluate(() => (window.__cheers.some((c) => c.big) ? window.__cheers : null)), 3000);
     check('a like milestone sets off a celebration on every screen: confetti and "Bravo", and the lion at the big one', !!cheerV && cheerV.some((c) => c.big && c.lion && /4/.test(c.text)) && cheerS.some((c) => c.big && c.lion), JSON.stringify({ cheerV, cheerS }));
+    {
+      const shapes = await viewer.evaluate(async () => {
+        const seen = [];
+        for (const o of [{ lions: 2 }, { lions: 3 }, { diamond: true }]) {
+          celebrate(2000, true, { quiet: true, ...o });
+          const l = document.querySelector('.cheer-layer');
+          seen.push({ lions: l.querySelectorAll('.lion-pride .cheer-lion').length, gem: !!l.querySelector('.cheer-gem svg .gem-stone'), stars: l.querySelectorAll('.gem-star').length });
+          await new Promise((r) => setTimeout(r, 150));
+          l.remove();
+        }
+        return seen;
+      });
+      check('two lions at 1000 likes, three at 1500, and a sparkling diamond at 2000', shapes[0].lions === 2 && shapes[1].lions === 3 && shapes[2].lions === 0 && shapes[2].gem && shapes[2].stars >= 8, JSON.stringify(shapes));
+    }
     const floated = [];
     await studio.exposeFunction('sawFloat', (e) => floated.push(e));
     await studio.evaluate(() => new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => window.sawFloat(n.textContent)))).observe(document.querySelector('#hearts'), { childList: true }));

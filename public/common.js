@@ -745,7 +745,7 @@ function mountReactions(row, floatBox, link, { canSend = false, totalEl = null }
       (d.c || []).forEach((c, k) => { counts[k] = c; });
       paint();
     })
-    .on('cheer', (d) => celebrate(d.n, d.big, { quiet: !canSend }));
+    .on('cheer', (d) => celebrate(d.n, d.big, { quiet: !canSend, lions: d.lions, diamond: d.diamond }));
 }
 
 // ------------------------------------------------------------- celebrations --
@@ -754,7 +754,7 @@ function mountReactions(row, floatBox, link, { canSend = false, totalEl = null }
 let cheerAudio = null;
 const cheerCtx = () => { try { cheerAudio = cheerAudio || new (window.AudioContext || window.webkitAudioContext)(); if (cheerAudio.state === 'suspended') cheerAudio.resume().catch(() => {}); return cheerAudio; } catch { return null; } };
 document.addEventListener('pointerdown', () => { if (cheerAudio) cheerAudio.resume().catch(() => {}); }, { capture: true });
-function cheerSounds(big, volume) {
+function cheerSounds(big, volume, { diamond = false, lions = 1 } = {}) {
   const ac = cheerCtx();
   if (!ac || ac.state !== 'running') return;
   const out = ac.createGain(); out.gain.value = volume; out.connect(ac.destination);
@@ -797,24 +797,52 @@ function cheerSounds(big, volume) {
     const g = ac.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(0.55, at + 0.35); g.gain.setValueAtTime(0.55, at + 1.1); g.gain.exponentialRampToValueAtTime(0.0001, at + 2.1);
     lp.connect(g); g.connect(out);
   };
+  const chimes = (at) => {                                      // the diamond: bright bells climbing, then a shimmer
+    [1318.5, 1568, 1975.5, 2637, 3136, 3951].forEach((f, i) => {
+      for (const [mul, vol] of [[1, 0.16], [2.01, 0.05], [3.02, 0.025]]) {
+        const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f * mul;
+        const when = at + i * 0.12; env(o, when, vol, 0.004, 0.02, 1.6).connect(out); o.start(when); o.stop(when + 1.8);
+      }
+    });
+    for (let i = 0; i < 26; i++) {
+      const when = at + 0.8 + Math.random() * 3, o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = 2400 + Math.random() * 3200;
+      env(o, when, 0.03 + Math.random() * 0.03, 0.002, 0.01, 0.35).connect(out); o.start(when); o.stop(when + 0.45);
+    }
+  };
   pop(t0); pop(t0 + 0.12);
-  if (big) { roar(t0 + 0.4); crowd(t0 + 2.2, 4); claps(t0 + 2.3, 3.5, 140); }
+  if (big && diamond) { chimes(t0 + 0.3); crowd(t0 + 1.8, 4.5); claps(t0 + 1.9, 4, 170); }
+  else if (big) { for (let i = 0; i < Math.max(1, Math.min(3, lions)); i++) roar(t0 + 0.4 + (i ? 0.25 + i * 0.3 : 0)); crowd(t0 + 2.2, 4); claps(t0 + 2.3, 3.5, 140 + 30 * (lions - 1)); }
   else { claps(t0 + 0.2, 2.6, 90); crowd(t0 + 0.3, 2.6); }
 }
-function celebrate(n, big, { quiet = false } = {}) {
+function celebrate(n, big, { quiet = false, lions = 1, diamond = false } = {}) {
   if (document.querySelector('.cheer-layer')) document.querySelector('.cheer-layer').remove();
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const layer = el('div', { class: 'cheer-layer' + (big ? ' big' : ''), 'aria-live': 'polite' });
   const cv = el('canvas', { class: 'cheer-canvas', 'aria-hidden': 'true' });
   const text = el('div', { class: 'cheer-text' }, el('strong', {}, T('برافو!')), el('span', {}, T('{n} لايك', { n: n.toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG) })));
   layer.append(cv);
-  let lion = null;
-  if (big) { lion = typeof makeLion === 'function' ? makeLion() : { node: el('div', { class: 'cheer-lion', 'aria-hidden': 'true' }, '🦁'), play() {} }; layer.append(lion.node); }
+  const shows = [];         // what plays in the middle: one to three lions, or the diamond
+  if (big && diamond && typeof makeDiamond === 'function') {
+    const d = makeDiamond(); shows.push([d, 0]); layer.append(d.node); layer.classList.add('gem');
+  } else if (big) {
+    const count = Math.max(1, Math.min(3, lions || 1));
+    const pride = el('div', { class: 'lion-pride n' + count, 'aria-hidden': 'true' });
+    for (let i = 0; i < count; i++) {
+      const lion = typeof makeLion === 'function' ? makeLion() : { node: el('div', { class: 'cheer-lion', 'aria-hidden': 'true' }, '🦁'), play() {} };
+      // the middle one first and biggest, the others a beat later on each side
+      const order = count === 3 ? [1, 0, 2][i] : i;
+      if (count === 3 && i === 1) lion.node.classList.add('lead');
+      shows.push([lion, count === 3 ? [260, 0, 520][i] : i * 300]);
+      lion.node.style.order = order;
+      pride.append(lion.node);
+    }
+    layer.append(pride);
+  }
   layer.append(text);
   document.body.append(layer);
-  cheerSounds(big, quiet ? 0.35 : 0.9);
-  if (lion && !calm) lion.play();
-  const life = big ? 6500 : 4200;
+  cheerSounds(big, quiet ? 0.35 : 0.9, { diamond: big && diamond, lions });
+  if (!calm) for (const [show, delay] of shows) setTimeout(() => show.play(), delay);
+  const life = big ? (diamond ? 7500 : 6500 + Math.max(0, (lions || 1) - 1) * 300) : 4200;
   setTimeout(() => layer.classList.add('out'), life - 600);
   setTimeout(() => layer.remove(), life);
   if (calm) return;

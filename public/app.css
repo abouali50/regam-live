@@ -1022,3 +1022,17 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .linkish { background: none; border: 0; padding: 8px 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; opacity: .85; justify-self: center; }
 .linkish:hover { opacity: 1; }
 .err.ok { color: #7ee2a8; }
+
+/* ---- celebrations: one to three lions side by side, or the diamond ---- */
+.lion-pride { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0; pointer-events: none; }
+.lion-pride .cheer-lion.lion-live { position: relative; flex: none; }
+.lion-pride.n2 .cheer-lion.lion-live { width: min(48vw, 56vh); margin-inline: -2vw; }
+.lion-pride.n3 .cheer-lion.lion-live { width: min(34vw, 44vh); margin-inline: -2.5vw; }
+.lion-pride.n3 .cheer-lion.lion-live.lead { width: min(42vw, 54vh); z-index: 1; }
+.cheer-gem { position: absolute; width: min(80vw, 70vh); aspect-ratio: 500 / 520; filter: drop-shadow(0 0 30px rgba(140, 220, 255, .75)) drop-shadow(0 22px 40px rgba(0, 0, 0, .45)); }
+.gem-svg { width: 100%; height: 100%; overflow: visible; }
+.gem-svg .gem-rays, .gem-svg .gem-halo { transform-box: view-box; transform-origin: 250px 260px; }
+.gem-svg .gem-stone { transform-box: view-box; transform-origin: 250px 290px; }
+.gem-svg .gem-star { transform-box: view-box; }
+.cheer-layer.gem .cheer-text { align-self: end; margin-bottom: 7vh; animation-delay: 2.4s; background: linear-gradient(180deg, rgba(235, 252, 255, .97), rgba(160, 225, 255, .97)); }
+@media (prefers-reduced-motion: reduce) { .cheer-gem { filter: drop-shadow(0 0 20px rgba(140, 220, 255, .6)); } }

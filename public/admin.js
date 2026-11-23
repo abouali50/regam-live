@@ -203,6 +203,38 @@
   };
   addPasswordEyes($('#payKeys'));
 
+  // ---- celebration videos: the lion and the diamond
+  function showCheer(view) {
+    const slots = [['lion', T('الأسد (500، 1000، 1500 لايك)')], ['diamond', T('الماسة (2000 لايك)')]];
+    $('#cheerSlots').replaceChildren(...slots.map(([slot, label]) => {
+      const v = view[slot];
+      const up = el('input', { type: 'file', accept: 'video/webm,video/mp4,video/quicktime,.mov', multiple: '' });
+      up.onchange = async () => {
+        let bad = 0, last = null;
+        for (const f of [...up.files]) {
+          $('#cheerNote').textContent = T('كنصيفطو الملف…');
+          const type = f.type || (/\.mov$/i.test(f.name) ? 'video/quicktime' : '');
+          const r = await fetch('/api/cheervids?slot=' + slot, { method: 'POST', headers: { Authorization: 'Bearer ' + tokenNow(), 'Content-Type': type }, body: f }).catch(() => null);
+          if (r && r.ok) last = await r.json(); else bad++;
+        }
+        if (last) showCheer(last);
+        $('#cheerNote').textContent = T(bad ? 'شي ملفات ما تسجلوش: النوع ولا الحجم ما مقبولش.' : 'تزاد. جربو بالزر «شوف».');
+      };
+      const send = (q, method = 'POST') => fetch('/api/cheervids?slot=' + slot + q, { method, headers: { Authorization: 'Bearer ' + tokenNow() } }).then((r) => (r.ok ? r.json() : null)).then((d) => d && showCheer(d));
+      const black = el('input', { type: 'checkbox' }); black.checked = !!(v && v.black);
+      black.onchange = () => send('&black=' + (black.checked ? 1 : 0));
+      return el('div', { class: 'cheer-slot' },
+        el('strong', {}, label),
+        v ? el('video', { class: 'vbg-thumb', src: v.sources[0].url, muted: '', preload: 'metadata', playsinline: '' }) : el('span', { class: 'muted' }, T('ما زال ما كاين فيديو: كيبان الرسم.')),
+        el('label', {}, T('زيد فيديو'), up),
+        el('label', { class: 'check' }, black, ' ', T('الفيديو فوق خلفية كحلة: خلي الكحل شفاف')),
+        v ? el('button', { class: 'btn', type: 'button', onclick: () => celebrate(slot === 'diamond' ? 2000 : 1000, true, { lions: 2, diamond: slot === 'diamond' }) }, T('شوف')) : null,
+        v ? el('button', { class: 'btn danger', type: 'button', onclick: () => send('', 'DELETE') }, T('حذف')) : null);
+    }));
+    window.__cheerVids = view;
+  }
+  fetch('/api/cheervids').then((r) => r.json()).then(showCheer).catch(() => {});
+
   // ---- camera backgrounds offered to every teacher
   const tokenNow = () => sessionStorage.getItem('regam.studio') || '';
   function showVbg(list) {

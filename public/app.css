@@ -1037,3 +1037,12 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .cheer-layer.gem .cheer-text { align-self: end; margin-bottom: 7vh; animation-delay: 2.4s; background: linear-gradient(180deg, rgba(235, 252, 255, .97), rgba(160, 225, 255, .97)); }
 @media (prefers-reduced-motion: reduce) { .cheer-gem { filter: drop-shadow(0 0 20px rgba(140, 220, 255, .6)); } }
 .opening-note { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 95; max-width: min(92vw, 640px); padding: 12px 18px; border-radius: 14px; background: linear-gradient(180deg, #8e1b1b, #5a0000); color: #fff; font-weight: 700; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.4); border: 2px solid #d8b24c; cursor: pointer; }
+
+/* ---- celebration videos added in the administration ---- */
+.cheer-layer.clip { place-items: center; }
+.cheer-video { position: fixed; inset: 0; z-index: 89; width: 100%; height: 100%; object-fit: contain; pointer-events: none; transition: opacity .6s; }
+.cheer-video.out { opacity: 0; }
+.cheer-video.black { mix-blend-mode: screen; }      /* a clip on black: the black disappears, the lion stays */
+.cheer-layer.clip .cheer-text { align-self: end; margin-bottom: 6vh; z-index: 1; }
+.cheer-slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.12); }
+.cheer-slot .vbg-thumb { max-width: 220px; background: #000; border-radius: 10px; }

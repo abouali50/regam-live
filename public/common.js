@@ -814,6 +814,33 @@ function cheerSounds(big, volume, { diamond = false, lions = 1 } = {}) {
   else if (big) { for (let i = 0; i < Math.max(1, Math.min(3, lions)); i++) roar(t0 + 0.4 + (i ? 0.25 + i * 0.3 : 0)); crowd(t0 + 2.2, 4); claps(t0 + 2.3, 3.5, 140 + 30 * (lions - 1)); }
   else { claps(t0 + 0.2, 2.6, 90); crowd(t0 + 0.3, 2.6); }
 }
+// the celebration videos added in the administration (a lion, a diamond), asked once per page
+let cheerVidsAsked = null;
+function cheerVids() {
+  if (window.__cheerVids) return window.__cheerVids;
+  if (!cheerVidsAsked) cheerVidsAsked = fetch('/api/cheervids').then((r) => r.json()).then((d) => (window.__cheerVids = d)).catch(() => (window.__cheerVids = {}));
+  return null;
+}
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => { setTimeout(cheerVids, 1500); });
+// play a celebration video over everything; resolves when it ends (or could not play)
+function cheerVideo(layer, v, quiet) {
+  const vid = el('video', { class: 'cheer-video' + (v.black ? ' black' : ''), playsinline: '', preload: 'auto', 'aria-hidden': 'true' });
+  vid.playsInline = true;
+  for (const s of v.sources) vid.append(el('source', { src: s.url, type: s.type === 'video/quicktime' ? 'video/mp4' : s.type }));
+  vid.volume = quiet ? 0.4 : 1;
+  // straight on the page, not inside the layer: a clip on black can then melt its black into the live behind it
+  document.body.append(vid);
+  new MutationObserver((_, mo) => { if (!layer.isConnected) { vid.remove(); mo.disconnect(); } }).observe(document.body, { childList: true });
+  layer.addEventListener('transitionstart', () => vid.classList.add('out'));
+  return new Promise((done) => {
+    let over = false;
+    const end = (sound) => { if (!over) { over = true; done(sound); } };
+    vid.onended = () => end(true);
+    vid.onerror = () => end(false);
+    setTimeout(() => end(true), 14000);           // never longer than 14 seconds
+    vid.play().then(() => layer.dataset.sound = '1', () => { vid.muted = true; vid.play().catch(() => end(false)); });
+  });
+}
 function celebrate(n, big, { quiet = false, lions = 1, diamond = false } = {}) {
   if (document.querySelector('.cheer-layer')) document.querySelector('.cheer-layer').remove();
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -822,6 +849,15 @@ function celebrate(n, big, { quiet = false, lions = 1, diamond = false } = {}) {
   const text = el('div', { class: 'cheer-text' }, el('strong', {}, T('برافو!')), el('span', {}, T('{n} لايك', { n: n.toLocaleString(LANG === 'ar' ? 'ar-MA' : LANG) })));
   layer.append(cv);
   const shows = [];         // what plays in the middle: one to three lions, or the diamond
+  const vids = big ? (cheerVids() || {}) : {}, clip = big && (diamond ? vids.diamond : vids.lion);
+  if (clip) {
+    // a real video was added in the administration: it plays instead of the drawing, with its own sound
+    layer.append(text); document.body.append(layer); layer.classList.add('clip');
+    cheerSounds(false, quiet ? 0.35 : 0.9);
+    cheerVideo(layer, clip, quiet).then(() => { layer.classList.add('out'); setTimeout(() => layer.remove(), 600); });
+    setTimeout(() => { if (!layer.dataset.sound) cheerSounds(true, quiet ? 0.35 : 0.9, { diamond: !!diamond, lions }); }, 700);      // the browser kept the video silent: the drawn sounds instead
+    return;
+  }
   if (big && diamond && typeof makeDiamond === 'function') {
     const d = makeDiamond(); shows.push([d, 0]); layer.append(d.node); layer.classList.add('gem');
   } else if (big) {

@@ -278,6 +278,20 @@ async function until(fn, ms = 15000, step = 250) {
         return seen;
       });
       check('two lions at 1000 likes, three at 1500, and a sparkling diamond at 2000', shapes[0].lions === 2 && shapes[1].lions === 3 && shapes[2].lions === 0 && shapes[2].gem && shapes[2].stars >= 8, JSON.stringify(shapes));
+      // a real lion video added in the administration plays instead of the drawing
+      const atok = await studio.evaluate(() => sessionStorage.getItem('regam.studio'));
+      const AH = { Authorization: 'Bearer ' + atok };
+      const anonUp = await fetch(BASE + '/api/cheervids?slot=lion', { method: 'POST', headers: { 'Content-Type': 'video/webm' }, body: Buffer.alloc(2000, 1) });
+      const badUp = await fetch(BASE + '/api/cheervids?slot=lion', { method: 'POST', headers: { ...AH, 'Content-Type': 'text/html' }, body: '<b>x</b>' });
+      const up = await fetch(BASE + '/api/cheervids?slot=lion', { method: 'POST', headers: { ...AH, 'Content-Type': 'video/webm' }, body: Buffer.alloc(4000, 1) });
+      await fetch(BASE + '/api/cheervids?slot=lion&black=1', { method: 'POST', headers: AH });
+      const view = await (await fetch(BASE + '/api/cheervids')).json();
+      const media = await fetch(BASE + view.lion.sources[0].url);
+      const played = await viewer.evaluate(() => { window.__cheerVids = null; return fetch('/api/cheervids').then((r) => r.json()).then((d) => { window.__cheerVids = d; celebrate(1000, true, { quiet: true, lions: 2 }); const l = document.querySelector('.cheer-layer'); const r = { video: !!document.querySelector('video.cheer-video.black source'), lions: l.querySelectorAll('.cheer-lion').length }; l.remove(); return r; }); });
+      await fetch(BASE + '/api/cheervids?slot=lion', { method: 'DELETE', headers: AH });
+      const gone = await (await fetch(BASE + '/api/cheervids')).json();
+      await viewer.evaluate(() => { window.__cheerVids = {}; });
+      check('the administrator can add a lion video (only a video, only the administrator); it then plays instead of the drawn lions, and can be removed', anonUp.status === 401 && badUp.status === 415 && up.status === 200 && view.lion && view.lion.black && media.status === 200 && media.headers.get('content-type') === 'video/webm' && played.video && played.lions === 0 && !gone.lion, JSON.stringify([anonUp.status, badUp.status, up.status, view, media.status, played, gone]));
     }
     const floated = [];
     await studio.exposeFunction('sawFloat', (e) => floated.push(e));

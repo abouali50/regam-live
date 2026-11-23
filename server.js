@@ -584,6 +584,46 @@ function handleAvatar(req, res) {
     send(res, 200, { av: m.av });
   });
 }
+// Celebration videos the administrator adds (a lion that roars, a diamond): bought or made elsewhere, played over the live
+// at the big like milestones instead of the drawn ones. Two files per slot are allowed: WebM (with transparency, read by
+// Chrome and Android) and MP4/MOV (read by every phone; HEVC with transparency on the iPhone). "black" = the clip sits on a
+// black background, which the page then makes see-through.
+const CHEER_SLOTS = ['lion', 'diamond'], CHEER_TYPES = { 'video/webm': 'webm', 'video/mp4': 'mp4', 'video/quicktime': 'mp4' };
+const cheerFile = (slot, fmt) => path.join(DATA_DIR, `cheer_${slot}_${fmt}`);
+const cheerView = () => {
+  const out = {};
+  for (const slot of CHEER_SLOTS) {
+    const c = (db.cheerVids || {})[slot];
+    if (!c || !(c.mp4 || c.webm)) continue;
+    const v = c.v || 1, sources = [];
+    if (c.mp4) sources.push({ url: `/media/cheer/${slot}.mp4?v=${v}`, type: c.mp4 });
+    if (c.webm) sources.push({ url: `/media/cheer/${slot}.webm?v=${v}`, type: 'video/webm' });
+    out[slot] = { sources, black: !!c.black };
+  }
+  return out;
+};
+function handleCheerVids(req, res, url) {
+  if (req.method === 'GET') return send(res, 200, cheerView(), { 'Cache-Control': 'no-cache' });
+  const me = whoIs(bearer(req));
+  if (!me || me.role !== 'admin') return send(res, me ? 403 : 401, { error: 'administrator only' });
+  const slot = String(url.searchParams.get('slot') || '');
+  if (!CHEER_SLOTS.includes(slot)) return send(res, 400, { error: 'bad slot' });
+  db.cheerVids = db.cheerVids || {};
+  const c = db.cheerVids[slot] = db.cheerVids[slot] || {};
+  if (req.method === 'DELETE') {
+    for (const f of ['mp4', 'webm']) fs.unlink(cheerFile(slot, f), () => {});
+    delete db.cheerVids[slot]; save();
+    return send(res, 200, cheerView());
+  }
+  if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+  if (url.searchParams.has('black')) { c.black = url.searchParams.get('black') === '1'; save(); return send(res, 200, cheerView()); }
+  const type = String(req.headers['content-type'] || '').split(';')[0], fmt = CHEER_TYPES[type];
+  if (!fmt) return send(res, 415, { error: 'bad type' });
+  receiveFile(req, res, cheerFile(slot, fmt), 40 * 1024 * 1024, () => {
+    c[fmt] = fmt === 'webm' ? 'video/webm' : type; c.v = (c.v || 0) + 1; save();
+    send(res, 200, cheerView());
+  });
+}
 // Virtual backgrounds the administrator adds for every teacher: pictures and short videos.
 const VBG_TYPES = { 'image/jpeg': 'image', 'image/png': 'image', 'image/webp': 'image', 'video/mp4': 'video', 'video/webm': 'video' };
 const vbgFile = (id) => path.join(DATA_DIR, `vbg_${id}`);
@@ -889,6 +929,12 @@ const server = http.createServer(async (req, res) => {
       return serveRanged(req, res, avatarFile(id), { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=31536000, immutable' });
     }
     if (p === '/api/vbg') return handleVbg(req, res, url);
+    if (p === '/api/cheervids') return handleCheerVids(req, res, url);
+    {
+      const cm = /^\/media\/cheer\/(lion|diamond)\.(mp4|webm)$/.exec(p);
+      const c = cm && (db.cheerVids || {})[cm[1]];
+      if (cm) return c && c[cm[2]] ? serveRanged(req, res, cheerFile(cm[1], cm[2]), { 'Content-Type': c[cm[2]], 'Cache-Control': 'public, max-age=604800' }) : send(res, 404, 'Not found');
+    }
     if (p.startsWith('/media/vbg/')) {
       const v = (db.vbgs || []).find((x) => x.id === p.slice(11));
       return v ? serveRanged(req, res, vbgFile(v.id), { 'Content-Type': v.type, 'Cache-Control': 'public, max-age=86400' }) : send(res, 404, 'Not found');

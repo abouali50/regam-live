@@ -686,6 +686,7 @@
     if (onStage && !(d.guests || []).some((g) => g.uid === link.uid)) leaveStage(false);
   })
     .on('live', (d) => { setLive(d.on); if (d.on) opening(d.openingAt, 0); })
+    .on('opening', (d) => { if (live) opening(d.at, 0); })
     .on('viewers', (d) => { $('#viewers').textContent = d.n; })
     .on('title', (d) => { $('#title').textContent = d.text || cfg.title; })
     .on('guests', (d) => showGuests(d.guests))

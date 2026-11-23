@@ -109,6 +109,7 @@
     }
     const recUrl = (extra = '') => `/api/recordings?room=${mine.slug}${extra}`;
     const link = createLink({ token, room: mine.slug });
+    $('#anthemBtn').onclick = () => link.send({ t: 'opening' });      // the flag and the anthem for the audience, whenever the host wants during the live
     mountChat($('#chat'), link);
     mountReactions($('#reactions'), $('#hearts'), link, { totalEl: $('#likes') });
 
@@ -1170,6 +1171,7 @@
       .on('anyone', (d) => { $('#anyoneChk').checked = !!d.on; })
       .on('waiting', (d) => showWaiting(d.gate, d.list))
       .on('live', (d) => { setBadge(d.on); if (d.on && d.openingAt) openingNote(); })
+      .on('opening', () => openingNote())
       .on('viewers', (d) => { $('#viewers').textContent = d.n; fitBitrate(d.n); })
       .on('hands', (d) => showHands(d.list))
       .on('guests', (d) => showGuests(d.guests))
@@ -1237,6 +1239,7 @@
       $('#liveBadge').textContent = T(on ? 'مباشر' : 'غير مباشر');
       $('#liveBadge').className = 'badge ' + (on ? 'on' : 'off');
       airOn = on; if (!on) recOn = false;
+      $('#anthemBtn').disabled = !on;
       $('#dashState').textContent = T(on ? 'مباشر' : 'غير مباشر'); $('#dashState').className = 'badge ' + (on ? 'on' : 'off');
       showRec();
     }

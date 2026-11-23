@@ -1541,6 +1541,10 @@ wss.on('connection', (ws, req) => {
       }
       case 'slow': cfg.slow = Math.max(0, Math.min(120, Number(d.sec) || 0)); save(); return broadcast(room, { t: 'slow', sec: cfg.slow });
       case 'pin': cfg.pinned = clean(d.text, 200); save(); return broadcast(room, { t: 'pin', text: cfg.pinned });
+      case 'opening':                     // the host plays the flag and the anthem for everyone now
+        if (!room.live) return;
+        room.openingAt = Date.now();
+        return broadcast(room, { t: 'opening', at: room.openingAt });
       case 'title': cfg.liveTitle = clean(d.text, 80); save(); return broadcast(room, { t: 'title', text: cfg.liveTitle });
       case 'stage': {
         const uid = String(d.uid || '');

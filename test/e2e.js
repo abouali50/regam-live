@@ -222,6 +222,10 @@ async function until(fn, ms = 15000, step = 250) {
       const late = await lctx.newPage(); await late.goto(BASE + '/');
       const op = await until(() => late.evaluate(() => window.__opening || null), 8000);
       check('a viewer arriving just after the live started gets the opening (flag and anthem), joined at the point it has reached', !!op && op.from > 0 && op.from < 62, JSON.stringify(op));
+      await late.evaluate(() => { window.__opening = null; });
+      await studio.click('#anthemBtn');
+      const again = await until(() => late.evaluate(() => window.__opening || null), 6000);
+      check('the host can play the flag and the anthem again for everyone with the studio button', !!again && again.from === 0, JSON.stringify(again));
       await lctx.close();
     }
     check('relay receives mixed video + audio from the studio', (await until(() => sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v && v.videoWidth === 1280 && window.paths.studio_main.getAudioTracks().length === 1; }))) !== null, await sfu.evaluate(() => { const v = document.getElementById('v_studio_main'); return v ? v.videoWidth + 'x' + v.videoHeight + ' audio=' + window.paths.studio_main.getAudioTracks().length : 'none'; }));

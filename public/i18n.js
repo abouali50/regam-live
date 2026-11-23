@@ -643,6 +643,8 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  '🇲🇦 النشيد الوطني': ['🇲🇦 Hymne national', '🇲🇦 National anthem'],
+  'العلم المغربي والنشيد الوطني للمتابعين': ['Le drapeau marocain et l\'hymne national pour les spectateurs', 'The Moroccan flag and the national anthem for the audience'],
   'فيديوهات الاحتفال': ["Vidéos de célébration", "Celebration videos"],
   'فيديو أسد كيزأر (500 و1000 و1500 لايك) ولا ماسة (2000 لايك) شريتيه ولا صاوبتيه: كيتلعب فوق اللايف بلاصة الرسم. WebM بالشفافية (Chrome وAndroid) و/ولا MP4 ولا MOV (iPhone)، حتى ل 40 ميغا.': ["Une vidéo de lion qui rugit (500, 1 000 et 1 500 likes) ou de diamant (2 000 likes), achetée ou faite ailleurs : elle passe par-dessus le live à la place du dessin. WebM avec transparence (Chrome et Android) et/ou MP4 ou MOV (iPhone), 40 Mo maximum.", "A video of a roaring lion (500, 1,000 and 1,500 likes) or a diamond (2,000 likes), bought or made elsewhere: it plays over the live instead of the drawing. WebM with transparency (Chrome and Android) and/or MP4 or MOV (iPhone), up to 40 MB."],
   'الأسد (500، 1000، 1500 لايك)': ["Le lion (500, 1 000, 1 500 likes)", "The lion (500, 1,000, 1,500 likes)"],

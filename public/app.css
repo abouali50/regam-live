@@ -1046,3 +1046,32 @@ input[type="text"], input[type="password"], input[type="email"], input[type="num
 .cheer-layer.clip .cheer-text { align-self: end; margin-bottom: 6vh; z-index: 1; }
 .cheer-slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.12); }
 .cheer-slot .vbg-thumb { max-width: 220px; background: #000; border-radius: 10px; }
+/* forgotten password: every label above its field, also on a phone */
+#fgStep2 { display: grid; gap: 10px; }
+#fgStep2[hidden] { display: none; }
+
+/* ---- phones: studio sections as two even columns, feature cards with the icon beside the title ---- */
+.studio .side { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.studio .side button, .studio .side-link { min-width: 0; }
+@media (max-width: 600px) {
+  .studio .side { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .studio .side button, .studio .side-link { justify-content: flex-start; padding: 10px 12px; min-height: 48px; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .studio .side .ico { flex: none; }
+  .site-card { grid-template-columns: 44px minmax(0, 1fr); column-gap: 12px; row-gap: 4px; padding: 14px 16px; }
+  .site-card > .site-ico { grid-row: 1 / span 2; align-self: start; font-size: 28px; padding-top: 2px; text-align: center; }
+  .site-card > :not(.site-ico) { grid-column: 2; }
+  .site-card h3 { font-size: 17px; }
+}
+
+/* ---- iPhone / iPad ---- */
+html.ios input, html.ios select, html.ios textarea { font-size: max(16px, 1em); }       /* Safari zooms into smaller fields */
+html.ios body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+html.ios .top { padding-top: max(6px, env(safe-area-inset-top)); }
+html.ios .btn, html.ios button { -webkit-tap-highlight-color: transparent; }
+
+/* ---- Android ---- */
+html.android .btn, html.android button { -webkit-tap-highlight-color: rgba(255, 223, 128, .25); }
+html.android input, html.android select, html.android textarea { font-size: max(16px, 1em); }
+html.android body { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }      /* keeps the layout when the phone's text size is raised */
+/* the language menu keeps its whole name on phones (the header row slides when space is short) */
+@media (max-width: 600px) { .top .lang, .site-nav .lang { max-width: none; width: auto; flex: none; } }

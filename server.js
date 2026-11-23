@@ -1080,8 +1080,9 @@ const server = http.createServer(async (req, res) => {
       const ip = clientIp(req);
       if (!sec.allowed('tforgot:' + ip, 5, 15 * 60e3)) return send(res, 429, { error: 'too many attempts' });
       const who = clean((await readJson(req)).who, 80).toLowerCase();
-      const u = who && db.users.find((x) => x.login === who || teacherMail(x) === who);
-      const to = u && isActive(u) && teacherMail(u);
+      const hits = who ? db.users.filter((x) => x.login === who || teacherMail(x) === who) : [];
+      const u = hits.find((x) => isActive(x) && teacherMail(x));
+      const to = u && teacherMail(u);
       if (to && acct.mailReady() && sec.allowed('tforgot:u:' + u.id, 3, 60 * 60e3)) {
         const code = String(crypto.randomInt(0, 1e6)).padStart(6, '0');
         u.reset = { code: hmac('reset:' + u.id + ':' + code), exp: Date.now() + 15 * 60e3, tries: 0 }; save();
@@ -1093,15 +1094,16 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/login/reset' && req.method === 'POST') {
       const ip = clientIp(req);
-      if (!loginAllowed(ip)) return send(res, 429, { error: 'too many attempts' });
+      if (!sec.allowed('treset:' + ip, 12, 15 * 60e3)) return send(res, 429, { error: 'too many attempts' });      // its own counter: earlier wrong passwords do not block the code
       const b = await readJson(req);
       const who = clean(b.who, 80).toLowerCase(), code = String(b.code || '').replace(/\D/g, ''), password = String(b.password || '');
       if (password.length < 8) return send(res, 400, { error: 'password too short' });
-      const u = who && db.users.find((x) => x.login === who || teacherMail(x) === who);
+      const hits = who ? db.users.filter((x) => x.login === who || teacherMail(x) === who) : [];
+      const u = hits.find((x) => x.reset) || hits[0];
       const r = u && u.reset;
       if (!r || r.exp < Date.now() || r.tries >= 5 || code.length !== 6 || !safeEq(hmac('reset:' + u.id + ':' + code), r.code)) {
         if (r) { r.tries += 1; save(); }
-        loginFailed(ip); sec.audit('teacher.reset.fail', ip, { login: u ? u.login : '' });
+        sec.audit('teacher.reset.fail', ip, { login: u ? u.login : '' });
         return send(res, 400, { error: 'bad code' });
       }
       u.salt = crypto.randomBytes(12).toString('hex'); u.hash = hashPass(password, u.salt); delete u.reset; save();

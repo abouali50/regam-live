@@ -643,6 +643,9 @@ const DICT = {
   "فجر على الشاطئ": ["Aube sur la plage", "Dawn on the beach"],
   "كثبان على المحيط": ["Dunes sur l'océan", "Dunes over the ocean"],
   'ابدا اللايف': ['Démarrer', 'Start'],
+  'غير اللي ما مفعلينش': ['Seulement les comptes non activés', 'Only accounts not activated'],
+  'غير اللي ما مفعلينش ({n})': ['Seulement les comptes non activés ({n})', 'Only accounts not activated ({n})'],
+  'كيبانو {s} من {n}': ['{s} affichés sur {n}', '{s} shown out of {n}'],
   '🇲🇦 النشيد الوطني': ['🇲🇦 Hymne national', '🇲🇦 National anthem'],
   'العلم المغربي والنشيد الوطني للمتابعين': ['Le drapeau marocain et l\'hymne national pour les spectateurs', 'The Moroccan flag and the national anthem for the audience'],
   'فيديوهات الاحتفال': ["Vidéos de célébration", "Celebration videos"],
@@ -926,6 +929,7 @@ const LANG = (() => {
 function T(text, vars) {
   let out = text;
   if (LANG !== 'ar' && DICT[text]) out = DICT[text][LANG === 'fr' ? 0 : 1];
+  if (LANG === 'fr') out = out.replace(/« /g, '«\u00a0').replace(/ ([»:;?!])/g, '\u00a0$1');      // French spacing that never leaves « or : alone at the start of a line
   return vars ? out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : out;
 }
 

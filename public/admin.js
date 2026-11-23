@@ -142,7 +142,12 @@
     $('#memberCount').textContent = T('المسجلين: {n} (منهم {v} مفعلين)', { n: a.members.total, v: a.members.verified });
     const find = $('#memberFind').value.trim().toLowerCase();
     $('#memberFind').oninput = () => showAccounts(a);
-    $('#members').replaceChildren(...a.members.list.filter((m) => !find || m.name.toLowerCase().includes(find) || m.email.includes(find)).slice(0, 100).map((m) => el('li', { class: m.verified ? '' : 'is-off' },
+    $('#memberOff').onchange = () => showAccounts(a);
+    const offOnly = $('#memberOff').checked, off = a.members.total - a.members.verified;
+    $('#memberOffLabel').textContent = T('غير اللي ما مفعلينش ({n})', { n: off });
+    const found = a.members.list.filter((m) => (!offOnly || !m.verified) && (!find || m.name.toLowerCase().includes(find) || m.email.toLowerCase().includes(find)));
+    $('#memberShown').textContent = T('كيبانو {s} من {n}', { s: Math.min(found.length, 200), n: found.length });
+    $('#members').replaceChildren(...found.slice(0, 200).map((m) => el('li', { class: m.verified ? '' : 'is-off' },
       el('span', { class: 'admin-main-cell' }, el('strong', {}, m.name), el('span', { class: 'muted', dir: 'ltr' }, m.email), m.verified ? null : el('span', { class: 'badge off' }, T('ما مفعلش'))),
       el('span', { class: 'rec-actions' }, m.verified ? null : el('button', { class: 'btn primary', type: 'button', onclick: () => api('/member?activate=1&id=' + m.id, { method: 'POST' }).then((r) => done(r, T('تفعل الحساب: يقدر يدخل دابا بالإيميل وكلمة السر ديالو.'))) }, T('فعل الحساب')), el('button', { class: 'btn', type: 'button', onclick: () => { if (confirm(T('تحذف الحساب ديال "{name}"؟', { name: m.name }))) api('/member?id=' + m.id, { method: 'DELETE' }).then((r) => done(r, T('تحذف الحساب.'))); } }, T('حذف'))))));
   }

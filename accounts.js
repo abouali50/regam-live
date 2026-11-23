@@ -221,7 +221,7 @@ module.exports = function accounts({ db, save, send, readJson, sign, verify, cle
     access: db.access, mailReady: mailReady(),
     mail: { host: db.mail.host || '', port: db.mail.port || 465, user: db.mail.user || '', from: db.mail.from || '', hasPass: !!db.mail.pass },
     members: { total: db.members.length, verified: db.members.filter((m) => m.verified).length,
-      list: db.members.slice(-300).reverse().map((m) => ({ id: m.id, name: m.name, email: m.email, verified: m.verified, created: m.created })) },
+      list: db.members.slice(-5000).reverse().sort((a, b) => (a.verified ? 1 : 0) - (b.verified ? 1 : 0)).map((m) => ({ id: m.id, name: m.name, email: m.email, verified: m.verified, created: m.created })) },
   });
   function adminSet(b) {
     const asked = ['open', 'join', 'watch'].includes(b.access) ? b.access : '';

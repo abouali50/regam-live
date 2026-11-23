@@ -414,6 +414,13 @@ function mountAssistant() {
   };
 }
 // The account corner of the page header: "sign in / sign up", or the person's name and "sign out".
+// ---- which phone: iPhone/iPad or Android, for the few adjustments each one needs (see the end of app.css)
+(() => {
+  const ua = navigator.userAgent || '', ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const cls = ios ? 'ios' : /Android/.test(ua) ? 'android' : '';
+  if (cls) document.documentElement.classList.add(cls, 'touch');
+})();
+
 // ---- a row of buttons wider than the screen: it slides sideways under the finger, with a soft fade on the side
 // where more buttons wait, and a small nudge the first time so people see it moves. Works right-to-left too.
 function scrollHint(box) {

@@ -1129,7 +1129,7 @@ async function until(fn, ms = 15000, step = 250) {
     check('plans with a wrong size or price are refused', (await post('/api/admin/settings', { plans: [{ name: 'x', price: -1, capacity: 10 }] })).status === 400 && (await post('/api/admin/settings', { plans: [{ name: 'x', price: 5, capacity: 0 }] })).status === 400);
     await apply.goto(BASE + '/teach');
     await apply.waitForSelector('#plans .plan');
-    check('the sign-up page shows the plans, in French for a French browser', (await apply.locator('#plans .plan').first().textContent()) === "Classe 2 : jusqu'à 2 spectateurs, 500 $ par mois · durée du live illimitée" && (await apply.locator('#plans .plan').count()) === 2);
+    check('the sign-up page shows the plans, in French for a French browser', (await apply.locator('#plans .plan').first().textContent()).replace(/\u00a0/g, ' ') === "Classe 2 : jusqu'à 2 spectateurs, 500 $ par mois · durée du live illimitée" && (await apply.locator('#plans .plan').count()) === 2);
     await apply.fill('[name=name]', 'Karim Bennani'); await apply.fill('[name=contact]', '+212 600 000 000'); await apply.fill('[name=roomTitle]', 'Crypto Débutants'); await apply.fill('[name=topic]', 'Crypto');
     await apply.fill('[name=login]', 'karim'); await apply.fill('[name=password]', 'karim-pass-7');
     await apply.screenshot({ path: path.join(OUT, 'teach.png'), fullPage: true });

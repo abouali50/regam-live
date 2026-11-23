@@ -38,8 +38,11 @@
     filter: 'all', filterRoute: '', route: null,
   };
 
+  const functionLessonIds = ['limites', 'continuite', 'derivation', 'fonctions-reciproques', 'logarithme', 'exponentielle', 'etude-fonction', 'primitives-integrales'];
+  const workedFunctionIds = ['etude-rationnelle', 'etude-logarithmique', 'etude-exponentielle'];
   const paths = {
     home: '/', book: '/search', star: '/favorites', sources: '/sources', videos: '/videos',
+    functionPath: '/parcours/etude-fonctions',
     track: track => `/track/${slug(track)}`,
     domain: (track, domain) => `/track/${slug(track)}/domain/${slug(domain)}`,
     lesson: (track, lesson, tab = 'cours') => `/track/${slug(track)}/lesson/${slug(lesson)}/${tab}`,
@@ -62,6 +65,14 @@
     const desired = state.route?.track || state.last?.track;
     return arr(lesson.tracks).includes(desired) ? desired : arr(lesson.tracks)[0] || DATA.tracks[0]?.id;
   };
+  const functionTrack = desired => trackById(desired)?.id || trackById(state.last?.track)?.id || trackById('pc')?.id || DATA.tracks[0]?.id;
+  const functionLessons = track => functionLessonIds.map(lessonById).filter(lesson => lesson && arr(lesson.tracks).includes(track));
+  const functionPathURL = track => paths.functionPath + (trackById(track) ? '?track=' + slug(track) : '');
+  function functionPathStats(track) {
+    const lessons = functionLessons(track);
+    const done = lessons.filter(lesson => completed(track, lesson.id)).length;
+    return { lessons, done, total: lessons.length, videos: countVideos(lessons) };
+  }
 
   function persist() {
     try {
@@ -86,6 +97,7 @@
     pen: '<path d="m15 4 5 5M4 20l5-1L21 7a2.1 2.1 0 0 0-4-4L5 15z"/>',
     sheet: '<path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6"/>',
     sources: '<path d="M8 3H4v18h16V7h-4M8 3h8v6H8zM8 13h8M8 17h5"/>',
+    path: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h7a4 4 0 0 1 0 8H9a4 4 0 0 0 0 8h3M17 18h-3"/>',
     moon: '<path d="M21 13.2A9 9 0 0 1 10.8 3 9 9 0 1 0 21 13.2z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
@@ -135,7 +147,7 @@
   function renderSidebar() {
     const current = state.route || {};
     const done = DATA.lessons.filter(l => arr(l.tracks).some(track => completed(track, l.id))).length;
-    const nav = [['home','/','grid','myLibrary',null],['search','/search','book','allLessons',DATA.lessons.length],['videos','/videos','video','videoLibrary',countVideos(DATA.lessons)],['favorites','/favorites','star','myFavorites',state.favorites.size]];
+    const nav = [['home','/','grid','myLibrary',null],['search','/search','book','allLessons',DATA.lessons.length],['videos','/videos','video','videoLibrary',countVideos(DATA.lessons)],['functionPath',paths.functionPath,'path','functionPathTitle',null],['favorites','/favorites','star','myFavorites',state.favorites.size]];
     document.getElementById('sidebar').innerHTML = `<a class="brand" href="#/" aria-label="REGAM Academy"><span class="brand-mark" aria-hidden="true">∑</span><span><span class="brand-name">REGAM</span><span class="brand-sub">ACADEMY</span></span></a><nav aria-label="${t('mainNavigation')}"><div class="side-nav">${nav.map(([type,url,symbol,label,count])=>`<a class="side-link ${current.type===type?'active':''}" href="#${url}">${icon(symbol)}<span>${t(label)}</span>${count!=null?`<span class="count">${count}</span>`:''}</a>`).join('')}</div><div class="side-section-label">${t('chooseTrack')}</div>${DATA.tracks.map(track=>`<a class="side-track ${current.track===track.id?'active':''}" href="${routeLink(paths.track(track.id))}"><span class="track-monogram">${track.id==='sm'?'SM':'PC'}</span><span><strong>${esc(track.name)}</strong><small>${trackShort(track)}</small></span></a>`).join('')}<div class="side-section-label">${t('curriculum')}</div><a class="side-link ${current.type==='sources'?'active':''}" href="#/sources">${icon('sources')}<span>${t('curriculum')}</span></a></nav><div class="side-bottom"><div class="local-progress"><div class="local-progress-label"><span>${t('reviewedLessons')}</span><span class="mono">${done}/${DATA.lessons.length}</span></div><div class="progress-line" role="progressbar" aria-label="${t('reviewedLessons')}" aria-valuemin="0" aria-valuemax="${DATA.lessons.length}" aria-valuenow="${done}"><i style="width:${Math.round(done/DATA.lessons.length*100)}%"></i></div><p>${t(storageAvailable?'localSaved':'localUnavailable')}</p></div></div>`;
     updateDrawerAccessibility();
   }
@@ -150,11 +162,52 @@
     return `<div class="graph-card"><div class="graph-top"><span>${t('graphHeading')}</span><span class="tiny-chip">${esc(domainTitle("analyse"))}</span></div><svg class="function-graph" viewBox="0 0 390 305" role="img" aria-labelledby="curve-title curve-desc"><title id="curve-title">${t('graphTitle')}</title><desc id="curve-desc">${t('graphDescription')}</desc><g stroke="#a8c6c324" stroke-width="1"><path d="M20 80H355M20 140H355M20 200H355M170 35V280M270 35V280"/></g><g stroke="#bdd3d170" stroke-width="1.3"><path d="M20 260H360M70 285V28"/><path d="m354 256 6 4-6 4M66 34l4-6 4 6"/></g><g fill="#afcbca" font-family="Arial,sans-serif" font-size="11"><text x="58" y="278">0</text><text x="166" y="278">1</text><text x="267" y="278">2</text><text x="365" y="264" font-style="italic">x</text><text x="63" y="22" font-style="italic">y</text></g><path d="M20 125 Q170 395 320 125" fill="none" stroke="#85dac1" stroke-width="3.5" stroke-linecap="round"/><path d="M113 260H227" stroke="#e8c482" stroke-width="2" stroke-dasharray="5 5"/><circle cx="170" cy="260" r="5.5" fill="#e8c482" stroke="#123d44" stroke-width="3"/><g fill="#e8c482" font-family="Georgia,serif" font-size="16" font-style="italic"><text x="246" y="89">f(x) = (x − 1)²</text><text x="147" y="230">f′(1) = 0</text></g></svg><div class="graph-bottom"><strong>${t('graphMotto')}</strong><span>${t('graphFootnote')}</span></div></div>`;
   }
 
+  function functionPathProgress(stats) {
+    const label = t('functionPathProgress', { done: stats.done, total: stats.total });
+    return `<div class="function-progress" data-function-path-progress><div class="function-progress-label"><span>${t('functionPathProgressLabel')}</span><strong>${label}</strong></div><div class="function-progress-track" role="progressbar" aria-label="${t('functionPathProgressLabel')}" aria-valuemin="0" aria-valuemax="${stats.total}" aria-valuenow="${stats.done}" aria-valuetext="${label}"><span style="width:${stats.total ? Math.round(stats.done / stats.total * 100) : 0}%"></span></div></div>`;
+  }
+
+  function functionPathFeature(desiredTrack) {
+    const track = functionTrack(desiredTrack), stats = functionPathStats(track);
+    if (!stats.total) return '';
+    const url = routeLink(functionPathURL(track));
+    const action = stats.done === stats.total ? 'functionPathRevisit' : stats.done ? 'functionPathContinue' : 'functionPathOpen';
+    return `<section class="function-path-feature" data-function-path-feature aria-labelledby="function-feature-title"><div class="function-feature-symbol" aria-hidden="true">f<span>′</span></div><div class="function-feature-copy"><div class="overline">${t('functionPathEyebrow')}</div><h2 id="function-feature-title"><a href="${url}">${t('functionPathTitle')}</a></h2><p>${t('functionPathSummary')}</p><div class="function-feature-meta"><span>${t('functionPathStepCount', { n: stats.total })}</span><span>${t('videoCount', { n: stats.videos })}</span><span>${trackShort(trackById(track))}</span></div></div><div class="function-feature-action">${functionPathProgress(stats)}<a class="button" href="${url}" data-function-path-entry>${t(action)}${icon('arrow')}</a></div></section>`;
+  }
+
+  function workedFunctionVideoId(video) {
+    if (workedFunctionIds.includes(video.id)) return video.id;
+    const stem = String(video.src || '').split(/[?#]/)[0].split('/').pop().replace(/\.mp4$/i, '').replace(/-narrated$/, '');
+    return workedFunctionIds.includes(stem) ? stem : '';
+  }
+
+  function functionStep(lesson, track, index) {
+    const done = completed(track, lesson.id), videos = arr(lesson.videos).filter(video => video.src);
+    const course = routeLink(paths.lesson(track, lesson.id));
+    return `<li class="function-step ${done ? 'is-reviewed' : ''}" data-function-step="${esc(lesson.id)}"><article aria-labelledby="function-step-${esc(lesson.id)}"><div class="function-step-heading"><span class="function-step-number" aria-hidden="true" dir="ltr">${String(index + 1).padStart(2, '0')}</span><div><span class="function-step-eyebrow">${t('functionPathStep', { n: index + 1 })}</span><h3 id="function-step-${esc(lesson.id)}"><a href="${course}">${esc(lesson.title)}</a></h3></div></div>${arr(lesson.goals).length ? `<p class="function-step-goal">${rich(lesson.goals[0])}</p>` : ''}<div class="function-step-footer"><div class="function-step-links"><a href="${course}">${icon('book')}${t('courseTab')}</a><a href="${routeLink(paths.lesson(track, lesson.id, 'exercices'))}">${icon('pen')}${t('exercisesTab')}</a>${videos.length ? `<a href="${routeLink(paths.lesson(track, lesson.id, 'videos'))}" data-function-videos>${icon('video')}${t('videos')}<span class="count">${videos.length}</span></a>` : ''}</div><button class="function-step-review" type="button" data-complete="${esc(lesson.id)}" data-track="${track}" aria-pressed="${done}" aria-label="${t(done ? 'markRemaining' : 'markReviewed')}: ${esc(lesson.title)}">${icon(done ? 'circleCheck' : 'check')}<span>${t(done ? 'reviewed' : 'markReviewed')}</span></button></div></article></li>`;
+  }
+
+  function writtenFunctionStudies() {
+    const studies = workedFunctionIds.map(id => arr(DATA.functionStudies).find(study => study?.id === id && arr(study.segments).length)).filter(Boolean);
+    if (!studies.length) return '';
+    return `<section class="function-written-studies" aria-labelledby="function-studies-title"><div class="section-heading"><div><div class="overline">${t('functionStudiesEyebrow')}</div><h2 id="function-studies-title">${t('functionStudiesTitle')}</h2><p>${t('functionStudiesIntro')}</p></div></div><div class="function-studies-grid">${studies.map(study => `<article class="function-study-card" data-function-study="${esc(study.id)}" aria-labelledby="function-study-title-${esc(study.id)}"><div class="function-study-intro">${study.image ? `<a class="function-study-image" href="${esc(safeURL(study.image))}" target="_blank" rel="noopener" aria-label="${esc(t('functionStudyImageAlt', { title: study.title }))}"><img src="${esc(safeURL(study.image))}" alt="${esc(t('functionStudyImageAlt', { title: study.title }))}" width="1600" height="900" loading="lazy" decoding="async"><span>${icon('external')}${t('functionStudyExpandImage')}</span></a>` : ''}<div class="function-study-copy"><span class="function-study-kind">${icon('sheet')}${t('functionStudyWritten')}</span><h3 id="function-study-title-${esc(study.id)}">${esc(study.title)}</h3><p>${esc(study.summary)}</p></div></div><details class="function-study-details"><summary><span>${t('functionStudyReadSteps')}</span><span class="function-study-step-count">${t('functionPathStepCount', { n: study.segments.length })}</span>${icon('chevron')}</summary><ol class="function-study-steps" role="list">${study.segments.map((segment, index) => `<li><span class="function-study-step-number" aria-hidden="true" dir="ltr">${String(index + 1).padStart(2, '0')}</span><div class="function-study-step-copy"><h4>${esc(segment.note || t('functionPathStep', { n: index + 1 }))}</h4><p>${esc(segment.text)}</p>${segment.equation ? `<div class="math-block">${rich('\\[' + segment.equation + '\\]')}</div>` : ''}</div></li>`).join('')}</ol></details></article>`).join('')}</div></section>`;
+  }
+
+  function renderFunctionPath(route) {
+    const track = functionTrack(route.track), stats = functionPathStats(track);
+    if (!stats.total) return notFound();
+    const next = stats.lessons.find(lesson => !completed(track, lesson.id)) || stats.lessons[0];
+    const study = stats.lessons.find(lesson => lesson.id === 'etude-fonction');
+    const examples = workedFunctionIds.map(id => arr(study?.videos).find(video => video.src && workedFunctionVideoId(video) === id)).filter(Boolean);
+    document.title = `${t('functionPathTitle')} | REGAM Academy`;
+    return `${breadcrumb([{ label: t('functionPathTitle') }])}<header class="function-path-hero"><div><div class="page-eyebrow"><span class="dot"></span>${t('functionPathEyebrow')}</div><h1>${t('functionPathTitle')}</h1><p class="function-path-intro">${t('functionPathIntro')}</p><div class="function-path-start"><a class="button" href="${routeLink(paths.lesson(track, next.id))}" data-function-next>${icon('book')}${t(stats.done === stats.total ? 'functionPathReviewFirst' : stats.done ? 'functionPathResumeStep' : 'functionPathStartStep')}${icon('arrow')}</a><span>${esc(next.title)}</span></div></div><div class="function-path-overview"><div class="function-path-count"><strong>${stats.total}</strong><span>${t('functionPathStepsLabel')}</span></div>${functionPathProgress(stats)}<p>${t(storageAvailable ? 'functionPathProgressHelp' : 'localUnavailable')}</p></div></header><div class="function-path-toolbar"><label for="function-path-track">${t('chooseTrack')}</label><select id="function-path-track">${DATA.tracks.filter(item => functionLessons(item.id).length).map(item => `<option value="${esc(item.id)}" ${item.id === track ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select><p>${t('functionPathTrackHelp')}</p></div><div class="function-path-layout"><section aria-labelledby="function-steps-title"><div class="section-heading"><div><h2 id="function-steps-title">${t('functionPathOrderTitle')}</h2><p>${t('functionPathOrderHelp')}</p></div></div><ol class="function-steps">${stats.lessons.map((lesson, index) => functionStep(lesson, track, index)).join('')}</ol></section><aside class="function-method" aria-labelledby="function-method-title"><span class="function-method-icon" aria-hidden="true">${icon('pen')}</span><h2 id="function-method-title">${t('functionPathMethodTitle')}</h2><p>${t('functionPathMethodIntro')}</p><ol>${['Domain', 'Limits', 'Derivative', 'Variations', 'Graph', 'Check'].map((key, index) => `<li><span aria-hidden="true" dir="ltr">${String(index + 1).padStart(2, '0')}</span><div><strong>${t('functionMethod' + key)}</strong><p>${t('functionMethod' + key + 'Body')}</p></div></li>`).join('')}</ol><div class="function-method-note">${icon('info')}<p>${t('functionPathAudioHelp')}</p></div></aside></div>${writtenFunctionStudies()}${examples.length ? `<section class="function-path-examples" aria-labelledby="function-examples-title"><div class="section-heading"><div><div class="overline">${t('functionPathPracticeEyebrow')}</div><h2 id="function-examples-title">${t('functionPathExamplesTitle')}</h2><p>${t('functionPathExamplesIntro')}</p></div><span class="small-badge">${t('videoCount', { n: examples.length })}</span></div><div class="video-grid function-example-grid">${examples.map(video => videoCard(video, study)).join('')}</div></section>` : ''}`;
+  }
+
   function renderHome() {
     const lastLesson = state.last && lessonById(state.last.lesson);
     const resume = lastLesson && arr(lastLesson.tracks).includes(state.last.track) ? `<a class="continue-card" href="${routeLink(paths.lesson(state.last.track,lastLesson.id,state.last.tab||'cours'))}"><span class="icon-box">${icon('book')}</span><span><small>${t('resume')}</small><strong>${esc(lastLesson.title)}</strong></span>${icon('arrow')}</a>` : '';
     const featured = ['formes-indeterminees','limites','derivation'].map(id=>lessonById(id)).filter(Boolean);
-    return `${resume}<section class="hero"><div class="hero-copy"><div class="page-eyebrow"><span class="dot"></span>${t('moroccanBac')}</div><h1>${t('heroTitle')}<br><em>${t('heroEmphasis')}</em></h1><p>${t('heroIntro')}</p><div class="hero-actions"><a class="button" href="#/videos">${icon('play')}${t('browseVideos')}<span class="button-count">${countVideos(DATA.lessons)}</span></a><a class="button secondary" href="#/search">${t('browseCourses')}${icon('arrow')}</a></div><div class="hero-tags">${[['book','structuredLessons'],['sheet','reviewSheets'],['pen','correctedExercises'],['video','videoExplanations']].map(([symbol,key])=>`<span class="tag">${icon(symbol)}${t(key)}</span>`).join('')}</div></div>${graph()}</section><section aria-labelledby="tracks-title"><div class="section-heading"><div><h2 id="tracks-title">${t('tracksTitle')}</h2><p>${t('tracksIntro')}</p></div></div><div class="track-grid">${DATA.tracks.map(track=>{ const lessons=lessonsFor(track.id);return `<a class="track-card ${track.id}" href="${routeLink(paths.track(track.id))}"><div class="track-card-top"><span class="track-chip">${t('bacYear')} · ${trackShort(track)}</span><span class="track-card-symbol" aria-hidden="true">${track.id==='sm'?'∑':'∫'}</span></div><h3>${esc(track.name)}</h3><p class="track-ar">${esc(track.description)}</p><div class="track-card-bottom"><span class="counts">${t('lessonCount',{n:lessons.length})} · ${t('exerciseCount',{n:countExercises(lessons)})}</span><span class="arrow-button" aria-hidden="true">${icon('arrow')}</span></div></a>`;}).join('')}</div></section><section class="featured-videos" aria-labelledby="featured-videos-title"><div class="section-heading"><div><h2 id="featured-videos-title">${t('featuredVideos')}</h2><p>${t('videoPractice')}</p></div><a class="text-accent" href="#/videos">${t('videoLibrary')}${icon('chevron')}</a></div><div class="video-grid featured-grid">${featured.map(l=>videoCard(l.videos[0],l,true)).join('')}</div></section><section class="learning-path" aria-label="${t('learningMethod')}">${[['stepUnderstand','stepUnderstandBody'],['stepSummary','stepSummaryBody'],['stepPractice','stepPracticeBody'],['stepVideo','stepVideoBody']].map(([head,body],i)=>`<div class="path-step"><span class="step-no">0${i+1}</span><div><strong>${t(head)}</strong><span>${t(body)}</span></div></div>`).join('')}</section>`;
+    return `${resume}<section class="hero"><div class="hero-copy"><div class="page-eyebrow"><span class="dot"></span>${t('moroccanBac')}</div><h1>${t('heroTitle')}<br><em>${t('heroEmphasis')}</em></h1><p>${t('heroIntro')}</p><div class="hero-actions"><a class="button" href="#/videos">${icon('play')}${t('browseVideos')}<span class="button-count">${countVideos(DATA.lessons)}</span></a><a class="button secondary" href="#/search">${t('browseCourses')}${icon('arrow')}</a></div><div class="hero-tags">${[['book','structuredLessons'],['sheet','reviewSheets'],['pen','correctedExercises'],['video','videoExplanations']].map(([symbol,key])=>`<span class="tag">${icon(symbol)}${t(key)}</span>`).join('')}</div></div>${graph()}</section>${functionPathFeature()}<section aria-labelledby="tracks-title"><div class="section-heading"><div><h2 id="tracks-title">${t('tracksTitle')}</h2><p>${t('tracksIntro')}</p></div></div><div class="track-grid">${DATA.tracks.map(track=>{ const lessons=lessonsFor(track.id);return `<a class="track-card ${track.id}" href="${routeLink(paths.track(track.id))}"><div class="track-card-top"><span class="track-chip">${t('bacYear')} · ${trackShort(track)}</span><span class="track-card-symbol" aria-hidden="true">${track.id==='sm'?'∑':'∫'}</span></div><h3>${esc(track.name)}</h3><p class="track-ar">${esc(track.description)}</p><div class="track-card-bottom"><span class="counts">${t('lessonCount',{n:lessons.length})} · ${t('exerciseCount',{n:countExercises(lessons)})}</span><span class="arrow-button" aria-hidden="true">${icon('arrow')}</span></div></a>`;}).join('')}</div></section><section class="featured-videos" aria-labelledby="featured-videos-title"><div class="section-heading"><div><h2 id="featured-videos-title">${t('featuredVideos')}</h2><p>${t('videoPractice')}</p></div><a class="text-accent" href="#/videos">${t('videoLibrary')}${icon('chevron')}</a></div><div class="video-grid featured-grid">${featured.map(l=>videoCard(l.videos[0],l,true)).join('')}</div></section><section class="learning-path" aria-label="${t('learningMethod')}">${[['stepUnderstand','stepUnderstandBody'],['stepSummary','stepSummaryBody'],['stepPractice','stepPracticeBody'],['stepVideo','stepVideoBody']].map(([head,body],i)=>`<div class="path-step"><span class="step-no">0${i+1}</span><div><strong>${t(head)}</strong><span>${t(body)}</span></div></div>`).join('')}</section>`;
   }
 
   function renderDomainCards(track, selected) {
@@ -225,6 +278,13 @@
     return value ? String(value) : '';
   }
 
+  const hasVideoChapter = segment => typeof segment.startSeconds === 'number' && Number.isFinite(segment.startSeconds) && segment.startSeconds >= 0;
+  function videoTranscriptItem(segment, index) {
+    const time = hasVideoChapter(segment) ? videoDuration(Math.floor(segment.startSeconds)) : '';
+    const chapter = time ? `<button class="video-chapter-button" type="button" data-video-seek="${segment.startSeconds}" aria-label="${t('videoChapterJump', { n: index + 1, time })}">${icon('play')}<span class="mono">${time}</span><span>${t('functionPathStep', { n: index + 1 })}</span></button>` : '';
+    return `<li>${chapter}${segment.note ? `<strong>${esc(segment.note)}</strong>` : ''}<p>${esc(segment.text)}</p>${segment.equation ? `<div class="math-block">${rich('\\[' + segment.equation + '\\]')}</div>` : ''}</li>`;
+  }
+
   function videoCard(video, lesson, showCourse=false) {
     if(!video?.src)return '';
     const tracks=arr(video.tracks),target=routeLink(paths.lesson(availableTrack(lesson),lesson.id,'videos'));
@@ -233,7 +293,7 @@
     const audioLabel=video.silent?'silentLabel':({ar:'standardArabicAudio',fr:'frenchAudio',en:'englishAudio',ary:'darijaAudio'}[video.audioLanguage]||'narratedLabel');
     const multilingualCaptions=['ar','fr','en'].every(lang=>tracks.some(track=>track.language===lang));
     const note=video.silent?t('silentNote'):[video.narration==='synthetic'?t('syntheticNarrationNote'):'',tracks.length?t(multilingualCaptions?'captionNote':'captionsAvailable'):''].filter(Boolean).join(' ');
-    return `<article class="video-card" data-video-card><div class="video-stage ${landscape?'landscape':'portrait'}"><video controls playsinline preload="none" ${video.poster?`poster="${esc(safeURL(video.poster))}"`:''} aria-label="${esc(video.title)}"><source src="${esc(safeURL(video.src))}" type="video/mp4">${tracks.map(track=>`<track kind="subtitles" src="${esc(safeURL(track.src))}" srclang="${esc(track.language)}" label="${esc(track.label)}" ${track.language===LANG?'default':''}>`).join('')}${t('videoUnsupported')}</video></div><div class="video-card-info">${showCourse?`<a class="video-course-link" href="${target}">${esc(lesson.title)}${icon('chevron')}</a>`:''}<h2>${esc(video.title)}</h2><span class="video-format-label">${icon(video.silent?'sheet':'video')}${t(audioLabel)}</span>${note?`<p class="video-description">${note}</p>`:''}<p class="video-load-error" role="status" hidden>${t('videoError')}</p><div class="video-card-meta">${video.duration?`<span class="mono">${icon('clock')}${videoDuration(video.duration)}</span>`:''}<a href="${esc(safeURL(video.src))}" target="_blank" rel="noopener">${t('openVideo')}${icon('external')}</a><a href="${esc(safeURL(video.src))}" download>${t('downloadVideo')}${icon('download')}</a></div>${arr(video.transcript).length?`<details class="video-transcript"><summary>${t('transcript')}</summary><ol>${video.transcript.map(segment=>`<li>${segment.note?`<strong>${esc(segment.note)}</strong>`:''}<p>${esc(segment.text)}</p>${segment.equation?`<div class="math-block">${rich('\\['+segment.equation+'\\]')}</div>`:''}</li>`).join('')}</ol></details>`:''}</div></article>`;
+    return `<article class="video-card" data-video-card><div class="video-stage ${landscape?'landscape':'portrait'}"><video controls playsinline preload="none" ${video.poster?`poster="${esc(safeURL(video.poster))}"`:''} aria-label="${esc(video.title)}"><source src="${esc(safeURL(video.src))}" type="video/mp4">${tracks.map(track=>`<track kind="subtitles" src="${esc(safeURL(track.src))}" srclang="${esc(track.language)}" label="${esc(track.label)}" ${track.language===LANG?'default':''}>`).join('')}${t('videoUnsupported')}</video></div><div class="video-card-info">${showCourse?`<a class="video-course-link" href="${target}">${esc(lesson.title)}${icon('chevron')}</a>`:''}<h2>${esc(video.title)}</h2><span class="video-format-label">${icon(video.silent?'sheet':'video')}${t(audioLabel)}</span>${note?`<p class="video-description">${note}</p>`:''}<p class="video-load-error" role="status" hidden>${t('videoError')}</p><div class="video-card-meta">${video.duration?`<span class="mono">${icon('clock')}${videoDuration(video.duration)}</span>`:''}<a href="${esc(safeURL(video.src))}" target="_blank" rel="noopener">${t('openVideo')}${icon('external')}</a><a href="${esc(safeURL(video.src))}" download>${t('downloadVideo')}${icon('download')}</a></div>${arr(video.transcript).length?`<details class="video-transcript"><summary>${t(video.transcript.some(hasVideoChapter)?'videoChaptersTranscript':'transcript')}</summary><ol>${video.transcript.map(videoTranscriptItem).join('')}</ol></details>`:''}</div></article>`;
   }
 
   function videosHTML(lesson) {
@@ -262,7 +322,7 @@
     const entries=lessons.flatMap(lesson=>arr(lesson.videos).filter(video=>video.src).map(video=>({lesson,video})));
     const visible=entries.filter(({video})=>matchesVideoAudio(video,route.audio));
     const audioFilters=[['','allVideos'],['current','currentLanguageNarration'],['narrated','withNarration'],['silent','withoutNarration']];
-    return `${breadcrumb([{label:t('videoLibrary')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('videoExplanations')}</div><h1>${t('videoLibrary')}</h1><p>${t('videoLibraryIntro')}</p></div><span class="small-badge">${t('videoCount',{n:visible.length})}</span></div><div class="video-filters"><label for="video-track">${t('chooseTrack')}</label><select id="video-track"><option value="">${t('allTracks')}</option>${DATA.tracks.map(track=>`<option value="${track.id}" ${route.track===track.id?'selected':''}>${esc(track.name)}</option>`).join('')}</select><div class="filter-pills" role="group" aria-label="${t('videoAudioFilter')}">${audioFilters.map(([audio,key])=>`<button class="filter-pill ${route.audio===audio?'active':''}" type="button" data-video-audio="${audio}" aria-pressed="${route.audio===audio}">${t(key)} <span class="count">${entries.filter(({video})=>matchesVideoAudio(video,audio)).length}</span></button>`).join('')}</div></div><div class="video-grid">${visible.map(({lesson,video})=>videoCard(video,lesson,true)).join('')}</div>`;
+    return `${breadcrumb([{label:t('videoLibrary')}])}<div class="page-title-row"><div><div class="page-eyebrow"><span class="dot"></span>${t('videoExplanations')}</div><h1>${t('videoLibrary')}</h1><p>${t('videoLibraryIntro')}</p></div><span class="small-badge">${t('videoCount',{n:visible.length})}</span></div>${functionPathFeature(route.track)}<div class="video-filters"><label for="video-track">${t('chooseTrack')}</label><select id="video-track"><option value="">${t('allTracks')}</option>${DATA.tracks.map(track=>`<option value="${track.id}" ${route.track===track.id?'selected':''}>${esc(track.name)}</option>`).join('')}</select><div class="filter-pills" role="group" aria-label="${t('videoAudioFilter')}">${audioFilters.map(([audio,key])=>`<button class="filter-pill ${route.audio===audio?'active':''}" type="button" data-video-audio="${audio}" aria-pressed="${route.audio===audio}">${t(key)} <span class="count">${entries.filter(({video})=>matchesVideoAudio(video,audio)).length}</span></button>`).join('')}</div></div><div class="video-grid">${visible.map(({lesson,video})=>videoCard(video,lesson,true)).join('')}</div>`;
   }
 
   function lessonFooter(lesson, track) {
@@ -305,6 +365,9 @@
     const [path, query = ''] = raw.split('?');
     const parts = path.split('/').filter(Boolean).map(decode);
     if (!parts.length) return { type: 'home' };
+    if (parts.length === 2 && parts[0] === 'parcours' && parts[1] === 'etude-fonctions') {
+      return { type: 'functionPath', track: functionTrack(new URLSearchParams(query).get('track')) };
+    }
     if (parts[0] === 'track' && parts[1]) {
       if (parts[2] === 'lesson' && parts[3]) return { type: 'lesson', track: parts[1], lesson: parts[3], tab: parts[4] || 'cours' };
       if (parts[2] === 'domain' && parts[3]) return { type: 'track', track: parts[1], domain: parts[3] };
@@ -328,7 +391,7 @@
     if (state.filterRoute !== filterRoute) { state.filter = 'all'; state.filterRoute = filterRoute; }
     document.title = `REGAM Academy | ${t('pageTitle')}`;
     const main = document.getElementById('main-content');
-    const views = { home: renderHome, videos: renderVideos, track: renderTrack, lesson: renderLesson, search: renderSearch, favorites: renderFavorites, sources: renderSources, notfound: notFound };
+    const views = { home: renderHome, videos: renderVideos, functionPath: renderFunctionPath, track: renderTrack, lesson: renderLesson, search: renderSearch, favorites: renderFavorites, sources: renderSources, notfound: notFound };
     main.innerHTML = views[route.type](route) + footer();
     mathIn(main);
     renderSidebar();
@@ -421,7 +484,10 @@
     document.getElementById('search-dialog').close();
     refreshChrome();renderRoute({keepScroll:true});
   });
-  document.addEventListener('change',event=>{if(event.target.id==='video-track')location.hash=routeLink(videoLibraryPath(event.target.value,state.route?.audio||''));});
+  document.addEventListener('change',event=>{
+    if(event.target.id==='video-track')location.hash=routeLink(videoLibraryPath(event.target.value,state.route?.audio||''));
+    if(event.target.id==='function-path-track')location.hash=routeLink(functionPathURL(event.target.value));
+  });
   document.addEventListener('error',event=>{
     const target=event.target;
     if(target?.tagName==='VIDEO'||target?.tagName==='SOURCE'){
@@ -471,6 +537,24 @@
   document.addEventListener('click', event => {
     const skip = event.target.closest('.skip-link');
     if (skip) { event.preventDefault(); document.getElementById('main-content').focus(); return; }
+    const chapterTarget = event.target.closest('[data-video-seek]');
+    if (chapterTarget) {
+      const seconds = Number(chapterTarget.dataset.videoSeek);
+      const card = chapterTarget.closest('[data-video-card]'), video = card?.querySelector('video');
+      if (!video || !Number.isFinite(seconds) || seconds < 0) return;
+      const seek = () => {
+        const end = Number.isFinite(video.duration) && video.duration > 0 ? Math.max(0, video.duration - 0.01) : seconds;
+        video.currentTime = Math.min(seconds, end);
+      };
+      if (video.readyState > 0) seek();
+      else video.addEventListener('loadedmetadata', seek, { once: true });
+      const playback = video.play();
+      if (playback?.catch) playback.catch(() => {
+        const message = card.querySelector('.video-load-error');
+        if (message) { message.textContent = t('videoChapterPlayHelp'); message.hidden = false; }
+      });
+      return;
+    }
     const favoriteTarget = event.target.closest('[data-favorite]');
     if (favoriteTarget) {
       const id = favoriteTarget.dataset.favorite;

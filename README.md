@@ -1,98 +1,62 @@
-# REGAM Academy 1.2
+# REGAM Academy 1.3 RC1
 
-Une bibliothèque de mathématiques pour la deuxième année du baccalauréat marocain, disponible en **arabe standard, en français et en anglais**.
+Cette version de travail prépare le parcours **Étude des fonctions** en arabe classique, français et anglais. Elle est destinée à la revue. La branche stable `academy-maths-v1` conserve la version 1.2 tant que les nouvelles narrations ne sont pas terminées et vérifiées.
 
-Le site propose deux parcours, **Sciences Physiques / SVT** et **Sciences Mathématiques A/B**. Chaque parcours donne accès aux domaines, aux cours, aux exemples, aux fiches de révision, aux exercices corrigés et aux quiz.
+## Ce qui est terminé
 
-## Les trois langues
+- Un parcours de huit cours, dans l'ordre : limites, continuité, dérivation, fonctions réciproques, logarithme, exponentielle, étude de fonction et intégration.
+- Une navigation PC/SVT ou SM, avec une progression propre à chaque parcours, enregistrée dans le navigateur.
+- Trois études guidées, de seize étapes chacune, pour une fonction rationnelle, logarithmique et exponentielle.
+- Les trois langues complètes, les équations exactes, les courbes calculées et les tableaux de variations.
+- Trois nouveaux exercices corrigés et trois nouveaux quiz dans chaque langue.
+- Des chapitres cliquables lorsque la vidéo dispose de repères temporels réellement mesurés.
 
-Le sélecteur **العربية الفصحى / Français / English** traduit les menus et l'ensemble du contenu pédagogique. L'arabe standard est la langue initiale. Le choix de langue est conservé dans le navigateur, avec le cours ouvert, les favoris et la progression. La présentation passe automatiquement de droite à gauche ou de gauche à droite.
+Le parcours s'ouvre avec `?lang=fr#/parcours/etude-fonctions`, ou avec `lang=ar` et `lang=en`.
 
-Il est possible de partager un lien avec une langue précise, par exemple `?lang=fr#/videos` ou `?lang=en#/videos`. La recherche reconnaît les titres et les mots-clés des trois langues.
+## État réel des vidéos
 
-## Les cours
+Aucun nouveau MP4 de cette version n'est annoncé comme terminé. La version de revue conserve les médias de la version 1.2 : dans chaque langue, une vidéo des limites parlée dans la langue choisie, sept clips parlés en darija et vingt-trois explications visuelles sans voix.
 
-| Domaine | Exemples de contenu |
-| --- | --- |
-| Analyse | Limites, sept formes indéterminées, continuité, dérivation, fonctions réciproques, étude de fonction, suites, logarithme, exponentielle, intégrales, équations différentielles |
-| Approfondissements en Sciences Mathématiques | Rolle, théorème et inégalité des accroissements finis, arctangente, suites adjacentes, changement de variable, sommes de Riemann |
-| Algèbre | Nombres complexes, arithmétique, structures algébriques, espaces vectoriels |
-| Géométrie | Géométrie avec les nombres complexes, géométrie dans l'espace et sphères pour PC/SVT |
-| Probabilités | Dénombrement, probabilités conditionnelles, variables aléatoires, loi binomiale |
+Le lot prévu comprend trente nouveaux MP4 : sept exemples de cours existants et trois études complètes, chacun en arabe classique, français et anglais. Le cours des limites conserve ses trois MP4 déjà narrés.
 
-Chaque langue contient **25 cours, 133 sections, 75 exercices corrigés et 43 questions de quiz**. Le parcours PC/SVT comprend 18 cours et le parcours SM en comprend 23, avec des cours partagés. Ces nombres correspondent à l'organisation pédagogique du site, pas au découpage officiel du ministère.
+La génération des nouvelles voix est suspendue. Elle nécessiterait l'envoi des textes pédagogiques au service vocal en ligne de Microsoft, via le client open source `edge-tts`. La revue automatique d'autorisation a demandé un accord explicite sur ce transfert. Le moteur est donc désactivé par défaut. Ni clé API ni accès au VPS ne sont nécessaires pour préparer les fichiers. Les vidéos finales auront leur audio intégré et fonctionneront sans service vocal sur le serveur.
 
-## Des vidéos directement accessibles
+## Études préparées
 
-La rubrique **Vidéos**, le bouton de la page d'accueil et les lecteurs intégrés aux cours donnent accès à **31 explications vidéo dans chaque langue**. Chaque lecteur propose également l'ouverture directe du fichier et le téléchargement MP4.
+| Étude | Fonction | Éléments traités |
+| --- | --- | --- |
+| Rationnelle | f(x) = x + 1 + 4/(x − 1) | Domaine, limites de chaque côté de 1, asymptotes, dérivée, signes, extrema, tangente et nombre de solutions |
+| Logarithmique | g(x) = ln(x)/x | Domaine positif, croissance comparée, maximum, signe, tangente, existence et unicité, inflexion en approfondissement |
+| Exponentielle | h(x) = (x + 1) exp(−x) | Domaine, limites, produit, dérivée, maximum, signe, deux tangentes, nombre de solutions et inflexion |
 
-- **La vidéo des limites comporte maintenant une narration féminine synthétique** en arabe standard, en français et en anglais. La voix est intégrée au MP4 et fonctionne aussi dans le fichier téléchargé. Chaque étape de calcul est synchronisée avec sa phrase, suivie d'une courte pause de lecture.
-- **23 autres explications visuelles restent sans voix**, avec le texte à l'écran, les sous-titres et la transcription dans la langue sélectionnée. Le filtre audio permet de distinguer les formats.
-- **7 vidéos sur les formes indéterminées** conservent leur narration synthétique d'origine en darija. Elles proposent désormais des sous-titres en arabe standard, en français et en anglais. Le lecteur indique explicitement la langue de la voix.
+Les sources sont dans `content/function_study_lessons.json`. Les illustrations calculées sont dans `site/media/studies/`. Aucun dessin génératif n'est utilisé pour les informations mathématiques.
 
-Les trois voix de la vidéo des limites sont Ghizlane (arabe standard), Victoria (français) et Alice (anglais). La bibliothèque comprend donc, dans chaque langue, une vidéo parlée dans cette langue, sept vidéos parlées en darija et vingt-trois explications silencieuses. Les anciens fichiers restent disponibles pour préserver leurs liens. La version 1.2 n'annonce pas un doublage complet de toute la bibliothèque.
+## Vérification et prévisualisation locale
 
-## Installation ou mise à jour sur le VPS Hostinger
+Pour reconstruire la version de revue, exécuter `python3 scripts/build_content.py --draft`. La construction finale, sans `--draft`, refuse de réussir si les trente nouveaux médias et leur couverture audio ne sont pas prêts.
 
-Dans le terminal du VPS, avec le compte `root`, copier-coller le bloc suivant. L'installateur demande ensuite le domaine du site et l'adresse email du certificat HTTPS.
+Le site de revue contient 25 cours, 78 exercices et 46 quiz par langue. Les 31 vidéos référencées par langue sont celles déjà livrées dans la version 1.2.
 
-```bash
-REGAM_SRC="$(mktemp -d /tmp/regam-bac-source.XXXXXX)" && git clone --depth 1 --single-branch --branch academy-maths-v1 https://github.com/abouali50/regam-live.git "$REGAM_SRC" && bash "$REGAM_SRC/install.sh"
-```
+Les contrôles s'exécutent avec `npm test`, `bash install.sh --check` et `python3 -m unittest discover -s tests -p '*_test.py'`. Ils comprennent les routes, les langues, les exercices, les formules, la progression, les chapitres et les pistes audio des médias existants. Les tests DOM ne constituent pas une revue visuelle dans un navigateur ni une écoute humaine des voix.
 
-Pour mettre à jour une installation existante, utiliser **le même domaine Academy**. La commande récupère la nouvelle version, conserve une sauvegarde et vérifie le site en HTTPS avant d'afficher `DONE`. La branche de publication reste `academy-maths-v1`, y compris pour la version 1.2.
+Les résultats et les limites de ces contrôles sont consignés dans [le rapport de validation RC1](docs/VALIDATION_V1_3_RC1.md).
 
-Le DNS du domaine doit pointer directement vers le VPS. Le script prend en charge Ubuntu et Debian avec systemd et les configurations Caddy ou Nginx décrites dans le [guide d'installation](docs/INSTALL_FR.md). Il reconnaît aussi la disposition Docker précise de REGAM Live documentée dans ce guide. Il s'arrête si l'environnement ne correspond pas aux conditions prévues.
+Une prévisualisation locale peut être lancée avec `python3 -m http.server 8080 --directory site`, puis ouverte à `http://localhost:8080/?lang=fr#/parcours/etude-fonctions`.
 
-Le terminal `bos.hostingervps.com` sert à exécuter cette commande. L'adresse publique de l'Academy est le domaine transmis à l'installateur.
+## Installation
 
-## Utilisation locale ou hébergement statique
+Cette branche de travail ne constitue pas encore la livraison audio finale. Aucune action sur Hostinger n'a été effectuée. Une fois les voix autorisées, rendues et vérifiées, la livraison utilisera le même installateur Academy et deux blocs prêts à copier-coller par le propriétaire dans son terminal Hostinger.
 
-Le site contient ses propres vidéos, sous-titres, polices et moteur de formules. Son fonctionnement n'exige ni base de données, ni Node.js, ni clé API sur le serveur.
+L'installateur Academy conserve une version précédente et sa configuration. Le mode d'installation existant est documenté dans `docs/INSTALL_FR.md`. Le projet LIVE de la branche `main` reste indépendant.
 
-```bash
-python3 -m http.server 8080 --directory site
-```
+## Notes techniques de construction
 
-Ouvrir ensuite `http://localhost:8080`. On peut également ouvrir `site/index.html` directement, ou copier le contenu de `site/` dans le répertoire public d'un hébergement statique. Les favoris et la progression sont propres au navigateur utilisé et ne sont pas synchronisés entre appareils.
+- `scripts/voice_backend.py` prépare un audio par scène et vérifie qu'il est décodable et non silencieux. Le cache intermédiaire est sous `video_build/`, exclu du dépôt.
+- `scripts/narrated_media.py` synchronise les étapes sur les durées mesurées, normalise le niveau et produit un MP4 H.264/AAC.
+- `scripts/function_study_frames.py` calcule les graphiques et compose les images pédagogiques.
+- `scripts/render_study_module.py` orchestre le lot après autorisation de la voix en ligne.
+- `scripts/verify_published.py` vérifie les fichiers HTTPS à partir d'un manifeste dont l'empreinte exacte a été préalablement contrôlée.
 
-## Modifier le contenu
+Les voix prévues sont Zariyah (`ar-SA-ZariyahNeural`), Denise (`fr-FR-DeniseNeural`) et Sonia (`en-GB-SoniaNeural`). Il s'agit de voix synthétiques du service, sans clonage. La disponibilité du service en ligne n'est pas garantie. Une régénération peut différer de fichiers antérieurs. Les MP4 finaux sont les fichiers de diffusion à conserver.
 
-Les sources actuelles sont `content/locales/ar.json`, `content/locales/fr.json` et `content/locales/en.json`. Conserver les identifiants des cours, l'ordre des réponses et les index des solutions lorsqu'on modifie une traduction. Puis régénérer le contenu publié avec cette commande.
-
-```bash
-python3 scripts/build_content.py
-```
-
-`site/data/courses.js` est un fichier généré. Il contient les trois langues pour permettre aussi un usage local sans requête réseau supplémentaire. Les anciens fichiers `content/core_lessons.json`, `analysis_extra.json`, `other_lessons.json` et `sm_lessons.json` restent les sources historiques de la version 1.0. Le générateur 1.1 utilise les fichiers de `content/locales/`.
-
-Les scripts des 24 vidéos visuelles se trouvent dans `content/locales/video_scripts_ar.json`, `video_scripts_fr.json` et `video_scripts_en.json`. Pour régénérer une langue, avec Python, Pillow, NumPy, Matplotlib, FFmpeg et les polices locales disponibles, exécuter par exemple les deux commandes suivantes.
-
-```bash
-python3 scripts/render_localized_videos.py --lang fr --workers 4
-python3 scripts/build_content.py
-```
-
-Les MP4, affiches et sous-titres silencieux sont écrits dans `site/media/fr/`. Le catalogue correspondant est généré dans `content/locales/video_catalog_fr.json`. Les sous-titres des sept vidéos avec narration d'origine se trouvent dans `site/media/captions/ar/`, `fr/` et `en/`.
-
-Pour reconstruire la vidéo parlée des limites depuis les audios déjà générés, exécuter `python3 scripts/render_narrated_video.py --lang fr`, puis le générateur de contenu. Cette opération ne déclenche aucune nouvelle synthèse vocale. Les audios d'origine, les textes effectivement envoyés, les voix et les contrôles techniques sont conservés dans `content/narration/limites/`. Les catalogues `video_catalog_narrated_ar.json`, `video_catalog_narrated_fr.json` et `video_catalog_narrated_en.json` remplacent les entrées silencieuses correspondantes dans le contenu public. Les nouveaux fichiers portent le suffixe `-narrated` pour éviter de servir une ancienne vidéo silencieuse depuis le cache.
-
-Les libellés de navigation sont définis dans `site/assets/i18n.js`. Les sous-titres, la transcription et la mention de l'absence de voix doivent rester cohérents avec chaque fichier vidéo.
-
-## Vérification
-
-```bash
-bash install.sh --check
-npm ci --ignore-scripts
-npm test
-```
-
-Les tests vérifient les routes, les formules, les exercices, la recherche, la sélection des langues, les vidéos et les données locales. Ils utilisent jsdom et ne remplacent pas une vérification visuelle dans un navigateur. Les nouveaux lecteurs parlés font aussi l'objet d'un contrôle de la piste audio avec ffprobe. Les résultats précis de cette version, y compris les limites de vérification, figurent dans [VALIDATION_V1_2.md](docs/VALIDATION_V1_2.md).
-
-Pour régénérer l'archive et les empreintes des fichiers, exécuter `python3 scripts/package_release.py`. Le programme exclut les caches, les dépendances de développement et les fichiers intermédiaires de fabrication des vidéos.
-
-## Références pédagogiques
-
-Les explications et les exercices ont été rédigés pour ce site. La sélection des chapitres s'appuie sur les documents recensés dans [CURRICULUM_SOURCES.md](docs/CURRICULUM_SOURCES.md), en distinguant les documents ministériels des sites qui les hébergent. Cette bibliothèque ne constitue pas une édition officielle du programme et ne prétend pas vérifier tous les changements éventuels de l'examen 2027.
-
-KaTeX est distribué avec son fichier de licence dans `site/assets/vendor/KaTeX-LICENSE`. Les licences des polices utilisées pour produire les vidéos sont également conservées dans les sources.
+Références et licences existantes : `docs/CURRICULUM_SOURCES.md`, les licences KaTeX et les polices fournies dans le dépôt. Cette bibliothèque est une création pédagogique indépendante, sans revendication d'édition officielle du programme national.

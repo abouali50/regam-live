@@ -240,7 +240,7 @@ function assertPlayers(app, expectedVideos, container = app.d.getElementById('ma
         assert.equal(expected.audioLanguage, app.d.documentElement.lang, 'New narration matches the site language');
         assert.equal(expected.narration, 'synthetic');
         assert.equal(expected.aspectRatio, '16:9');
-        assert(expected.src.endsWith('/limites-narrated.mp4'), 'Narrated limits use a new URL that cannot reuse a cached silent file');
+        assert(expected.src.endsWith('-narrated.mp4'), 'Narrated lessons use a new URL that cannot reuse a cached silent file');
         assert.notEqual(card.querySelector('.video-format-label').textContent, app.messages().darijaAudio);
         assert(card.querySelector('.video-description').textContent.includes(app.messages().syntheticNarrationNote));
         assert(card.querySelector('.video-description').textContent.includes(app.messages().captionsAvailable));
@@ -296,12 +296,12 @@ function checkData(app) {
     assert.equal(data.meta.version, packageVersion, 'Bundled content matches the release version');
     assert.equal(data.lessons.length, 25);
     assert.equal(data.lessons.reduce((n, l) => n + l.sections.length, 0), 133);
-    assert.equal(data.lessons.reduce((n, l) => n + l.exercises.length, 0), 75);
-    assert.equal(data.lessons.reduce((n, l) => n + l.quiz.length, 0), 43);
-    assert.equal(data.lessons.reduce((n, l) => n + l.videos.length, 0), 31);
+    assert.equal(data.lessons.reduce((n, l) => n + l.exercises.length, 0), 78);
+    assert.equal(data.lessons.reduce((n, l) => n + l.quiz.length, 0), 46);
+    assert.equal(data.lessons.reduce((n, l) => n + l.videos.length, 0), data.meta.releaseStatus === 'draft' ? 31 : 34);
     const videos = data.lessons.flatMap(lesson => lesson.videos);
-    assert.equal(videos.filter(video => video.silent).length, 23);
-    assert.equal(videos.filter(video => !video.silent && video.audioLanguage === lang).length, 1);
+    assert.equal(videos.filter(video => video.silent).length, data.meta.releaseStatus === 'draft' ? 23 : 16);
+    assert.equal(videos.filter(video => !video.silent && video.audioLanguage === lang).length, data.meta.releaseStatus === 'draft' ? 1 : 11);
     assert.equal(videos.filter(video => !video.silent && video.audioLanguage === 'ary').length, 7);
     const voicedLimits = data.lessons.find(lesson => lesson.id === 'limites').videos[0];
     assert.equal(voicedLimits.silent, false);
@@ -312,8 +312,14 @@ function checkData(app) {
     assert.deepEqual(JSON.parse(JSON.stringify(data.lessons.map(l => [l.id, l.domain, l.tracks, l.quiz.map(q => q.correct)]))), JSON.parse(JSON.stringify(all[0].lessons.map(l => [l.id, l.domain, l.tracks, l.quiz.map(q => q.correct)]))), 'Identifiers, tracks and quiz answer indices agree across languages');
     assert.deepEqual(Object.keys(app.w.REGAM_I18N[lang]).sort(), Object.keys(app.w.REGAM_I18N.ar).sort());
     assert(Object.values(app.w.REGAM_I18N[lang]).every(message => typeof message === 'string' && message.trim()));
-    for (const match of scripts.find(([file]) => file === 'assets/app.js')[1].matchAll(/\bt\('([^']+)'/g)) {
+    for (const match of scripts.find(([file]) => file === 'assets/app.js')[1].matchAll(/\bt\('([^']+)'(?=\s*[,\)])/g)) {
       assert.equal(typeof app.w.REGAM_I18N[lang][match[1]], 'string', `Missing UI message ${lang}.${match[1]}`);
+    }
+    for (const method of ['Domain', 'Limits', 'Derivative', 'Variations', 'Graph', 'Check']) {
+      for (const suffix of ['', 'Body']) {
+        const key = `functionMethod${method}${suffix}`;
+        assert.equal(typeof app.w.REGAM_I18N[lang][key], 'string', `Missing function method message ${lang}.${key}`);
+      }
     }
     if (lang === 'ar') assert(!/(?:^|[^\u0600-\u06ff])(?:هاد|بغينا|كنلقاو|كيساوي|ماشي|دابا)(?=$|[^\u0600-\u06ff])/u.test(JSON.stringify(data)), 'Standard Arabic content must not fall back to Darija prose');
     if (lang !== 'ar') {
@@ -472,7 +478,7 @@ async function checkNarrationFilters() {
     visit(app, '/videos');
     const data = app.data(lang);
     const allVideos = data.lessons.flatMap(lesson => lesson.videos);
-    for (const [audio, count, key] of [['',31,'allVideos'],['current',1,'currentLanguageNarration'],['narrated',8,'withNarration'],['silent',23,'withoutNarration']]) {
+    for (const [audio, count, key] of [['',allVideos.length,'allVideos'],['current',allVideos.filter(v => !v.silent && v.audioLanguage === lang).length,'currentLanguageNarration'],['narrated',allVideos.filter(v => !v.silent).length,'withNarration'],['silent',allVideos.filter(v => v.silent).length,'withoutNarration']]) {
       const button = app.d.querySelector(`[data-video-audio="${audio}"]`);
       assert(button && !button.closest('details,[hidden]'), 'Audio filters are immediately visible');
       assert(button.textContent.startsWith(app.messages()[key]));
@@ -505,7 +511,7 @@ async function checkNarrationFilters() {
     assertPlayers(app, data.lessons.filter(lesson => lesson.tracks.includes('sm')).flatMap(lesson => lesson.videos));
   }
   visit(app, '/videos?audio=unknown');
-  assert.equal(app.d.querySelectorAll('video').length, 31, 'Unknown audio filter falls back to all videos');
+  assert.equal(app.d.querySelectorAll('video').length, app.data('ar').lessons.reduce((n, l) => n + l.videos.length, 0), 'Unknown audio filter falls back to all videos');
   assert.equal(app.d.querySelector('[data-video-audio=""]').getAttribute('aria-pressed'), 'true');
   assert.deepEqual(app.errors, []);
   app.close();

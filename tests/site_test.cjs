@@ -30,7 +30,7 @@ const data = window.REGAM_DATA;
 assert.equal(data.lessons.length, 25);
 assert.equal(data.lessons.filter(l => l.tracks.includes('pc')).length, 18);
 assert.equal(data.lessons.filter(l => l.tracks.includes('sm')).length, 23);
-assert.equal(data.lessons.reduce((n, l) => n + l.exercises.length, 0), 75);
+assert.equal(data.lessons.reduce((n, l) => n + l.exercises.length, 0), 78);
 
 let formulaCount = 0;
 function checkFormulae(value, location) {
@@ -122,5 +122,5 @@ assert.equal(document.getElementById('sidebar').getAttribute('aria-hidden'), 'fa
 document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 assert.equal(document.getElementById('sidebar').getAttribute('aria-hidden'), 'true');
 assert.deepEqual(errors, []);
-console.log(JSON.stringify({ status: 'passed', formulaCount, validRoutes: routeCount, lessons: data.lessons.length, exercises: 75, videos: data.lessons.reduce((n, l) => n + l.videos.length, 0), note: 'DOM checks only. No visual or audio review is claimed.' }));
+console.log(JSON.stringify({ status: 'passed', formulaCount, validRoutes: routeCount, lessons: data.lessons.length, exercises: 78, videos: data.lessons.reduce((n, l) => n + l.videos.length, 0), note: 'DOM checks only. No visual or audio review is claimed.' }));
 window.close();

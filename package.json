@@ -1,11 +1,11 @@
 {
   "name": "regam-bac-maths",
-  "version": "1.2.0",
+  "version": "1.3.0-rc1",
   "private": true,
   "description": "Static Moroccan bac mathematics library. Node is needed only for development checks.",
   "scripts": {
     "build": "python3 scripts/build_content.py",
-    "test": "node tests/site_test.cjs && node tests/multilingual_test.cjs"
+    "test": "node tests/site_test.cjs && node tests/multilingual_test.cjs && node tests/function_path_test.cjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

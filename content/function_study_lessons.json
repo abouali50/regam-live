@@ -1,0 +1,1496 @@
+{
+  "schemaVersion": 1,
+  "lessonId": "etude-fonction",
+  "languages": [
+    "ar",
+    "fr",
+    "en"
+  ],
+  "description": "Three authored worked studies. Curvature scenes are explicitly labelled as further study; this module does not claim to exhaust the national syllabus.",
+  "videos": [
+    {
+      "id": "etude-rationnelle",
+      "lessonId": "etude-fonction",
+      "topic": "rational",
+      "functionLatex": "f(x)=x+1+\\frac{4}{x-1}",
+      "plot": {
+        "kind": "rational",
+        "xRange": [
+          -7,
+          9
+        ],
+        "yRange": [
+          -12,
+          14
+        ],
+        "excludedX": [
+          1
+        ],
+        "verticalAsymptotes": [
+          1
+        ],
+        "obliqueAsymptote": {
+          "slope": 1,
+          "intercept": 1
+        },
+        "horizontalAsymptotes": [],
+        "points": [
+          {
+            "x": -1,
+            "y": -2,
+            "label": "A(-1, -2)",
+            "role": "maximum"
+          },
+          {
+            "x": 3,
+            "y": 6,
+            "label": "B(3, 6)",
+            "role": "minimum"
+          },
+          {
+            "x": 0,
+            "y": -3,
+            "label": "C(0, -3)",
+            "role": "intercept"
+          }
+        ],
+        "tangents": [
+          {
+            "at": 0,
+            "slope": -3,
+            "intercept": -3
+          }
+        ],
+        "variation": {
+          "breakpoints": [
+            "-infty",
+            "-1",
+            "1",
+            "3",
+            "+infty"
+          ],
+          "derivativeSigns": [
+            "+",
+            "-",
+            "-",
+            "+"
+          ],
+          "values": [
+            "-infty",
+            "-2",
+            null,
+            "6",
+            "+infty"
+          ],
+          "excluded": [
+            2
+          ],
+          "leftAtExcluded": "-infty",
+          "rightAtExcluded": "+infty"
+        }
+      },
+      "translations": {
+        "fr": {
+          "title": "Étude complète d’une fonction rationnelle",
+          "summary": "Domaine, continuité, limites, asymptotes, dérivée, variations, signe, tangente et courbe expliqués sur un même exemple.",
+          "segments": [
+            {
+              "text": "Étudions cette fonction rationnelle étape par étape. Le domaine, les limites et la dérivée vont expliquer la forme de ses deux branches, puis nous permettront de tracer une tangente.",
+              "equation": "f(x)=x+1+\\frac{4}{x-1}",
+              "note": "Une étude guidée, du domaine à la courbe",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "Le dénominateur ne doit pas être nul, donc on exclut un. La fonction est continue et dérivable sur chacun des deux intervalles de son domaine. On étudie ces intervalles séparément.",
+              "equation": "D_f=]-\\infty,1[\\ \\cup\\ ]1,+\\infty[",
+              "note": "Le dénominateur impose x ≠ 1",
+              "visual": "domain",
+              "focus": "excluded-point"
+            },
+            {
+              "text": "À gauche de un, x moins un est négatif et se rapproche de zéro. Quatre divisé par ce dénominateur tend vers moins l’infini. Le terme x plus un reste fini, donc la fonction tend vers moins l’infini.",
+              "equation": "\\lim_{x\\to1^-}f(x)=-\\infty",
+              "note": "Approcher 1 par la gauche",
+              "visual": "limits",
+              "focus": "vertical-left"
+            },
+            {
+              "text": "À droite de un, le dénominateur est positif et tend vers zéro. La fonction tend cette fois vers plus l’infini. La droite d’équation x égal à un est donc une asymptote verticale, avec deux comportements différents.",
+              "equation": "\\lim_{x\\to1^+}f(x)=+\\infty,\\qquad x=1",
+              "note": "La droite x = 1 est une asymptote",
+              "visual": "asymptotes",
+              "focus": "vertical"
+            },
+            {
+              "text": "Quand x devient très grand en valeur absolue, le terme quatre sur x moins un tend vers zéro. La fonction se comporte alors comme x plus un. Elle tend vers moins l’infini à gauche et vers plus l’infini à droite.",
+              "equation": "\\lim_{x\\to-\\infty}f(x)=-\\infty,\\quad\\lim_{x\\to+\\infty}f(x)=+\\infty",
+              "note": "Aux deux extrémités du domaine",
+              "visual": "limits",
+              "focus": "infinity"
+            },
+            {
+              "text": "La différence entre la fonction et x plus un tend vers zéro aux deux infinis. La droite y égal à x plus un est une asymptote oblique. Le signe de cette différence place la courbe au-dessous pour x inférieur à un, et au-dessus pour x supérieur à un.",
+              "equation": "f(x)-(x+1)=\\frac4{x-1}\\longrightarrow0",
+              "note": "Une asymptote oblique et une position relative",
+              "visual": "asymptotes",
+              "focus": "oblique-position"
+            },
+            {
+              "text": "La dérivée de x plus un est un. La dérivée de quatre sur x moins un est moins quatre sur le carré de x moins un. Le signe moins vient de la dérivation d’un inverse.",
+              "equation": "f^{\\prime}(x)=1-\\frac4{(x-1)^2}",
+              "note": "Dériver chaque terme",
+              "visual": "derivative",
+              "focus": "differentiate"
+            },
+            {
+              "text": "On met les deux termes au même dénominateur. Le numérateur devient le carré de x moins un, moins quatre, puis se factorise. La dérivée s’annule en moins un et en trois. Un reste une valeur interdite.",
+              "equation": "f^{\\prime}(x)=\\frac{(x-3)(x+1)}{(x-1)^2}",
+              "note": "Factoriser pour étudier le signe",
+              "visual": "derivative",
+              "focus": "factor"
+            },
+            {
+              "text": "Le dénominateur carré est strictement positif sur le domaine. Le signe vient donc des deux facteurs du numérateur. La dérivée est positive avant moins un et après trois, et négative entre ces valeurs, en excluant toujours un.",
+              "equation": "f^{\\prime}>0\\ (x<-1\\ \\mathrm{ou}\\ x>3),\\quad f^{\\prime}<0\\ (-1<x<3,\\ x\\ne1)",
+              "note": "Quatre intervalles à distinguer",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "Sur la branche de gauche, la fonction croît jusqu’à moins un, puis décroît jusqu’à la valeur interdite un. L’image de moins un vaut moins deux. C’est le maximum de cette branche et un maximum local de la fonction.",
+              "equation": "f(-1)=-2,\\qquad-\\infty\\nearrow-2\\searrow-\\infty",
+              "note": "La branche située à gauche de 1",
+              "visual": "variation",
+              "focus": "left-branch"
+            },
+            {
+              "text": "À droite de un, la fonction décroît jusqu’à trois, puis croît. L’image de trois vaut six. C’est le minimum de cette branche et un minimum local. Les deux branches restent séparées dans le tableau de variations.",
+              "equation": "f(3)=6,\\qquad+\\infty\\searrow6\\nearrow+\\infty",
+              "note": "La branche située à droite de 1",
+              "visual": "variation",
+              "focus": "right-branch"
+            },
+            {
+              "text": "Le numérateur x au carré plus trois est toujours positif. La fonction est donc négative à gauche de un et positive à droite. Elle ne coupe jamais l’axe horizontal. Elle coupe l’axe vertical au point de coordonnées zéro et moins trois.",
+              "equation": "f(x)=\\frac{x^2+3}{x-1},\\quad x^2+3>0,\\quad f(0)=-3",
+              "note": "Signe et intersections avec les axes",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "Au point d’abscisse zéro, la valeur et la pente sont toutes deux égales à moins trois. La formule de la tangente donne y égal à moins trois x moins trois. En zéro, cette droite passe bien par le point de la courbe.",
+              "equation": "f(0)=-3,\\quad f^{\\prime}(0)=-3,\\quad T_0:\\ y=-3x-3",
+              "note": "Une tangente au point d’abscisse 0",
+              "visual": "tangent",
+              "focus": "at-zero"
+            },
+            {
+              "text": "La hauteur huit est supérieure au minimum six de la branche droite. Elle rencontre donc cette branche deux fois. Le calcul donne quatre moins racine de cinq et quatre plus racine de cinq. Ces deux abscisses sont bien supérieures à un.",
+              "equation": "f(x)=8\\ \\Longleftrightarrow\\ x^2-8x+11=0\\ \\Longleftrightarrow\\ x=4\\pm\\sqrt{5}",
+              "note": "Deux points à la hauteur 8",
+              "visual": "check",
+              "focus": "horizontal-intersections"
+            },
+            {
+              "text": "Plaçons les deux asymptotes, les deux extrema et le point sur l’axe vertical. Relions ensuite ces informations en respectant les variations et la position par rapport à l’asymptote oblique. Aucune branche ne traverse la droite x égal à un.",
+              "equation": "A(-1,-2),\\quad B(3,6),\\quad C(0,-3)",
+              "note": "Construire une courbe cohérente",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "Les valeurs prises par la fonction sont au plus moins deux, ou au moins six. Ainsi, l’équation f de x égal à zéro n’a aucune solution, et f de x égal à six a la seule solution trois. Le tableau permet de contrôler ces conclusions avant le calcul.",
+              "equation": "f(D_f)=]-\\infty,-2]\\ \\cup\\ [6,+\\infty[",
+              "note": "Lire les images et vérifier le résultat",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "Résoudre \\(f(x)=6\\), puis expliquer pourquoi \\(f(x)=4\\) n’a aucune solution.",
+            "hint": "Conservez la condition \\(x\\ne1\\), puis utilisez la forme \\(f(x)=(x^2+3)/(x-1)\\). Le tableau de variations permet de vérifier les solutions.",
+            "steps": [
+              "Pour \\(x\\ne1\\), l’équation \\(f(x)=6\\) donne \\(x^2+3=6(x-1)\\).",
+              "On obtient \\(x^2-6x+9=(x-3)^2=0\\), donc \\(x=3\\), qui appartient au domaine.",
+              "Sur la branche gauche, \\(f(x)\\leq-2\\). Sur la branche droite, \\(f(x)\\geq6\\). Aucune branche n’atteint la valeur 4."
+            ],
+            "answer": "\\(f(x)=6\\) a l’unique solution \\(x=3\\). L’équation \\(f(x)=4\\) n’a aucune solution réelle."
+          },
+          "quiz": {
+            "question": "Combien de solutions réelles possède \\(f(x)=8\\) ?",
+            "options": [
+              "Aucune",
+              "Une",
+              "Deux",
+              "Quatre"
+            ],
+            "answerIndex": 2,
+            "explanation": "La branche gauche ne prend que des valeurs négatives. La branche droite descend de \\(+\\infty\\) à 6 puis remonte vers \\(+\\infty\\). La hauteur 8 est donc atteinte deux fois, pour \\(x=4\\pm\\sqrt{5}\\)."
+          }
+        },
+        "ar": {
+          "title": "دراسة كاملة لدالة كسرية",
+          "summary": "المجال والاتصال والنهايات والمقاربات والمشتقة والتغيرات والإشارة والمماس والمنحنى في مثال مترابط.",
+          "segments": [
+            {
+              "text": "ندرس هذه الدالة الكسرية خطوة خطوة. نحدد مجال التعريف والنهايات، ثم نحسب المشتقة لفهم فرعي المنحنى ورسم مماس له.",
+              "equation": "f(x)=x+1+\\frac{4}{x-1}",
+              "note": "دراسة موجهة من المجال إلى المنحنى",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "يجب ألا ينعدم المقام، لذلك نستثني العدد واحدًا. الدالة متصلة وقابلة للاشتقاق على كل من جزأي مجالها. ندرس كل مجال على حدة.",
+              "equation": "D_f=]-\\infty,1[\\ \\cup\\ ]1,+\\infty[",
+              "note": "يجب أن يكون المقام غير منعدم",
+              "visual": "domain",
+              "focus": "excluded-point"
+            },
+            {
+              "text": "عندما تقترب إكس من واحد من اليسار، يكون المقام سالبًا ويقترب من الصفر. لذلك يؤول الكسر إلى سالب ما لا نهاية. أما إكس زائد واحد فيبقى محدودًا، فتؤول الدالة إلى سالب ما لا نهاية.",
+              "equation": "\\lim_{x\\to1^-}f(x)=-\\infty",
+              "note": "الاقتراب من واحد من اليسار",
+              "visual": "limits",
+              "focus": "vertical-left"
+            },
+            {
+              "text": "عند الاقتراب من واحد من اليمين، يكون المقام موجبًا ويؤول إلى الصفر. فتؤول الدالة إلى موجب ما لا نهاية. إذن المستقيم إكس يساوي واحدًا مقارب عمودي، والسلوك مختلف على جانبيه.",
+              "equation": "\\lim_{x\\to1^+}f(x)=+\\infty,\\qquad x=1",
+              "note": "المستقيم إكس يساوي واحدًا مقارب عمودي",
+              "visual": "asymptotes",
+              "focus": "vertical"
+            },
+            {
+              "text": "عندما تكبر القيمة المطلقة لإكس، يؤول الكسر إلى الصفر. يصبح سلوك الدالة مماثلًا لسلوك إكس زائد واحد. لذلك نهايتها سالب ما لا نهاية يسارًا، وموجب ما لا نهاية يمينًا.",
+              "equation": "\\lim_{x\\to-\\infty}f(x)=-\\infty,\\quad\\lim_{x\\to+\\infty}f(x)=+\\infty",
+              "note": "النهايتان عند طرفي المجال",
+              "visual": "limits",
+              "focus": "infinity"
+            },
+            {
+              "text": "الفرق بين الدالة وإكس زائد واحد يؤول إلى الصفر عند طرفي المجال. إذن المستقيم واي يساوي إكس زائد واحد مقارب مائل. يقع المنحنى تحته عندما تكون إكس أصغر من واحد، وفوقه عندما تكون أكبر من واحد.",
+              "equation": "f(x)-(x+1)=\\frac4{x-1}\\longrightarrow0",
+              "note": "المقارب المائل وموضع المنحنى",
+              "visual": "asymptotes",
+              "focus": "oblique-position"
+            },
+            {
+              "text": "مشتقة إكس زائد واحد هي واحد. ومشتقة أربعة على إكس ناقص واحد هي سالب أربعة على مربع الفرق بين إكس وواحد. تظهر الإشارة السالبة عند اشتقاق المقلوب.",
+              "equation": "f^{\\prime}(x)=1-\\frac4{(x-1)^2}",
+              "note": "اشتقاق حدود التعبير",
+              "visual": "derivative",
+              "focus": "differentiate"
+            },
+            {
+              "text": "نوحد المقام ثم نحلل البسط باستعمال فرق مربعين. تنعدم المشتقة عند سالب واحد وعند ثلاثة. أما واحد فيبقى خارج مجال تعريف الدالة والمشتقة.",
+              "equation": "f^{\\prime}(x)=\\frac{(x-3)(x+1)}{(x-1)^2}",
+              "note": "التحليل من أجل دراسة الإشارة",
+              "visual": "derivative",
+              "focus": "factor"
+            },
+            {
+              "text": "مربع المقام موجب تمامًا على مجال التعريف. لذلك تحدد إشارة عاملي البسط إشارة المشتقة. تكون موجبة قبل سالب واحد وبعد ثلاثة، وسالبة بينهما، مع استثناء واحد دائمًا.",
+              "equation": "f^{\\prime}>0\\ (x<-1\\ \\vee\\ x>3),\\quad f^{\\prime}<0\\ (-1<x<3,\\ x\\ne1)",
+              "note": "تمييز أربعة مجالات",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "في الفرع الأيسر تتزايد الدالة إلى غاية سالب واحد، ثم تتناقص إلى حدود القيمة الممنوعة واحد. صورة سالب واحد هي سالب اثنين. إنها أكبر قيمة لهذا الفرع، وقيمة عظمى محلية للدالة.",
+              "equation": "f(-1)=-2,\\qquad-\\infty\\nearrow-2\\searrow-\\infty",
+              "note": "الفرع الواقع يسار واحد",
+              "visual": "variation",
+              "focus": "left-branch"
+            },
+            {
+              "text": "يمين واحد تتناقص الدالة إلى غاية ثلاثة، ثم تتزايد. صورة ثلاثة هي ستة. إنها أصغر قيمة لهذا الفرع، وقيمة صغرى محلية. نبقي الفرعين منفصلين في جدول التغيرات.",
+              "equation": "f(3)=6,\\qquad+\\infty\\searrow6\\nearrow+\\infty",
+              "note": "الفرع الواقع يمين واحد",
+              "visual": "variation",
+              "focus": "right-branch"
+            },
+            {
+              "text": "البسط، إكس تربيع زائد ثلاثة، موجب دائمًا. لذا تكون الدالة سالبة يسار واحد وموجبة يمينه. لا يقطع المنحنى محور الفواصل، ويقطع محور التراتيب عند النقطة ذات الإحداثيين صفر وسالب ثلاثة.",
+              "equation": "f(x)=\\frac{x^2+3}{x-1},\\quad x^2+3>0,\\quad f(0)=-3",
+              "note": "الإشارة والتقاطع مع المحورين",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "عند الفاصلة صفر، قيمة الدالة وميل المماس يساويان سالب ثلاثة. بتطبيق صيغة المماس نحصل على واي يساوي سالب ثلاثة إكس ناقص ثلاثة. يمر هذا المستقيم فعلًا بنقطة التماس.",
+              "equation": "f(0)=-3,\\quad f^{\\prime}(0)=-3,\\quad T_0:\\ y=-3x-3",
+              "note": "المماس عند الفاصلة صفر",
+              "visual": "tangent",
+              "focus": "at-zero"
+            },
+            {
+              "text": "الارتفاع ثمانية أكبر من القيمة الصغرى ستة للفرع الأيمن، لذلك يقطعه في نقطتين. يعطي الحل أربعة ناقص جذر خمسة وأربعة زائد جذر خمسة. وكلتا الفاصلتين أكبر من واحد.",
+              "equation": "f(x)=8\\ \\Longleftrightarrow\\ x^2-8x+11=0\\ \\Longleftrightarrow\\ x=4\\pm\\sqrt{5}",
+              "note": "نقطتان عند الارتفاع ثمانية",
+              "visual": "check",
+              "focus": "horizontal-intersections"
+            },
+            {
+              "text": "نضع المقاربين ونقطتي القيمتين المحليتين ونقطة التقاطع مع محور التراتيب. ثم نرسم الفرعين وفق التغيرات وموضعهما من المقارب المائل. لا نعبر المستقيم إكس يساوي واحدًا.",
+              "equation": "A(-1,-2),\\quad B(3,6),\\quad C(0,-3)",
+              "note": "إنشاء منحنى منسجم مع الحسابات",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "قيم الدالة إما أصغر من سالب اثنين أو مساوية له، وإما أكبر من ستة أو مساوية لها. لذلك لا حل للمعادلة التي تساوي فيها الدالة صفرًا. أما القيمة ستة فلها سابق وحيد هو ثلاثة.",
+              "equation": "f(D_f)=]-\\infty,-2]\\ \\cup\\ [6,+\\infty[",
+              "note": "قراءة مجموعة الصور والتحقق",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "حل المعادلة \\(f(x)=6\\)، ثم فسر لماذا لا يوجد حل للمعادلة \\(f(x)=4\\).",
+            "hint": "احتفظ بالشرط \\(x\\ne1\\)، واستعمل الصيغة \\(f(x)=(x^2+3)/(x-1)\\). يساعد جدول التغيرات على التحقق من النتائج.",
+            "steps": [
+              "إذا كان \\(x\\ne1\\)، فإن المعادلة \\(f(x)=6\\) تعطي \\(x^2+3=6(x-1)\\).",
+              "نحصل على \\(x^2-6x+9=(x-3)^2=0\\)، أي \\(x=3\\)، وهو عدد ينتمي إلى مجال التعريف.",
+              "على الفرع الأيسر لدينا \\(f(x)\\leq-2\\)، وعلى الفرع الأيمن لدينا \\(f(x)\\geq6\\). إذن لا تبلغ الدالة القيمة 4."
+            ],
+            "answer": "حل المعادلة \\(f(x)=6\\) الوحيد هو \\(x=3\\). ولا حل حقيقيًا للمعادلة \\(f(x)=4\\)."
+          },
+          "quiz": {
+            "question": "كم حلًا حقيقيًا للمعادلة \\(f(x)=8\\)؟",
+            "options": [
+              "لا يوجد حل",
+              "حل واحد",
+              "حلان",
+              "أربعة حلول"
+            ],
+            "answerIndex": 2,
+            "explanation": "قيم الفرع الأيسر سالبة. أما الفرع الأيمن فيتناقص من \\(+\\infty\\) إلى 6 ثم يتزايد نحو \\(+\\infty\\). لذلك يتحقق الارتفاع 8 مرتين، عند \\(x=4\\pm\\sqrt{5}\\)."
+          }
+        },
+        "en": {
+          "title": "Complete study of a rational function",
+          "summary": "Domain, continuity, limits, asymptotes, derivative, variations, sign, tangent and graph explained through one connected example.",
+          "segments": [
+            {
+              "text": "Let us study this rational function step by step. Its domain, limits and derivative will explain the two branches of its graph and help us construct a tangent.",
+              "equation": "f(x)=x+1+\\frac{4}{x-1}",
+              "note": "From the domain to a justified graph",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "The denominator must be nonzero, so one is excluded. The function is continuous and differentiable on each of the two intervals in its domain. We study the intervals separately.",
+              "equation": "D_f=]-\\infty,1[\\ \\cup\\ ]1,+\\infty[",
+              "note": "The denominator excludes x = 1",
+              "visual": "domain",
+              "focus": "excluded-point"
+            },
+            {
+              "text": "To the left of one, x minus one is negative and approaches zero. Four divided by this denominator tends to negative infinity. The term x plus one stays finite, so the function tends to negative infinity.",
+              "equation": "\\lim_{x\\to1^-}f(x)=-\\infty",
+              "note": "Approach one from the left",
+              "visual": "limits",
+              "focus": "vertical-left"
+            },
+            {
+              "text": "To the right of one, the denominator is positive and tends to zero. The function now tends to positive infinity. Thus the line x equals one is a vertical asymptote, with different behaviour on its two sides.",
+              "equation": "\\lim_{x\\to1^+}f(x)=+\\infty,\\qquad x=1",
+              "note": "The line x = 1 is a vertical asymptote",
+              "visual": "asymptotes",
+              "focus": "vertical"
+            },
+            {
+              "text": "As the absolute value of x grows, four over x minus one tends to zero. The function then behaves like x plus one. Its limit is negative infinity on the left and positive infinity on the right.",
+              "equation": "\\lim_{x\\to-\\infty}f(x)=-\\infty,\\quad\\lim_{x\\to+\\infty}f(x)=+\\infty",
+              "note": "Limits at both ends of the domain",
+              "visual": "limits",
+              "focus": "infinity"
+            },
+            {
+              "text": "The difference between the function and x plus one tends to zero at both infinities. Therefore y equals x plus one is a slant asymptote. The difference is negative for x below one and positive for x above one, placing the curve below or above the line.",
+              "equation": "f(x)-(x+1)=\\frac4{x-1}\\longrightarrow0",
+              "note": "A slant asymptote and the curve’s position",
+              "visual": "asymptotes",
+              "focus": "oblique-position"
+            },
+            {
+              "text": "The derivative of x plus one is one. The derivative of four over x minus one is negative four over the square of x minus one. The minus sign comes from differentiating a reciprocal.",
+              "equation": "f^{\\prime}(x)=1-\\frac4{(x-1)^2}",
+              "note": "Differentiate term by term",
+              "visual": "derivative",
+              "focus": "differentiate"
+            },
+            {
+              "text": "Putting the terms over a common denominator gives the square of x minus one, minus four, in the numerator. Factoring this difference of squares gives zeros at negative one and three. One remains excluded.",
+              "equation": "f^{\\prime}(x)=\\frac{(x-3)(x+1)}{(x-1)^2}",
+              "note": "Factor the derivative to study its sign",
+              "visual": "derivative",
+              "focus": "factor"
+            },
+            {
+              "text": "The squared denominator is strictly positive everywhere in the domain. The two factors in the numerator therefore determine the sign. The derivative is positive below negative one and above three, and negative between them, with one still excluded.",
+              "equation": "f^{\\prime}>0\\ (x<-1\\ \\mathrm{or}\\ x>3),\\quad f^{\\prime}<0\\ (-1<x<3,\\ x\\ne1)",
+              "note": "Keep the four intervals separate",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "On the left branch, the function increases up to negative one, then decreases towards the excluded point one. The value at negative one is negative two. This is the maximum on that branch and a local maximum of the function.",
+              "equation": "f(-1)=-2,\\qquad-\\infty\\nearrow-2\\searrow-\\infty",
+              "note": "The branch to the left of one",
+              "visual": "variation",
+              "focus": "left-branch"
+            },
+            {
+              "text": "To the right of one, the function decreases up to three, then increases. Its value at three is six. This is the minimum on that branch and a local minimum. The two branches must stay separate in the variation table.",
+              "equation": "f(3)=6,\\qquad+\\infty\\searrow6\\nearrow+\\infty",
+              "note": "The branch to the right of one",
+              "visual": "variation",
+              "focus": "right-branch"
+            },
+            {
+              "text": "The numerator, x squared plus three, is always positive. The function is therefore negative to the left of one and positive to the right. It has no horizontal-axis intercept. Its vertical-axis intercept is zero, negative three.",
+              "equation": "f(x)=\\frac{x^2+3}{x-1},\\quad x^2+3>0,\\quad f(0)=-3",
+              "note": "Sign and intercepts",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "At zero, both the function value and the tangent slope are negative three. The tangent equation is therefore y equals negative three x minus three. Substituting zero confirms that the line passes through the point of tangency.",
+              "equation": "f(0)=-3,\\quad f^{\\prime}(0)=-3,\\quad T_0:\\ y=-3x-3",
+              "note": "The tangent at x = 0",
+              "visual": "tangent",
+              "focus": "at-zero"
+            },
+            {
+              "text": "Eight is above the right branch’s minimum of six, so this horizontal level meets that branch twice. Solving the equation gives four minus the square root of five and four plus the square root of five. Both values are greater than one.",
+              "equation": "f(x)=8\\ \\Longleftrightarrow\\ x^2-8x+11=0\\ \\Longleftrightarrow\\ x=4\\pm\\sqrt{5}",
+              "note": "Two intersections at height eight",
+              "visual": "check",
+              "focus": "horizontal-intersections"
+            },
+            {
+              "text": "Plot the two asymptotes, both extrema and the vertical-axis intercept. Then draw each branch according to its variations and its position relative to the slant asymptote. Neither branch crosses the excluded line x equals one.",
+              "equation": "A(-1,-2),\\quad B(3,6),\\quad C(0,-3)",
+              "note": "Build a graph consistent with the calculations",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "The function’s values are at most negative two or at least six. Consequently, the equation f of x equals zero has no solution, while f of x equals six has the single solution three. The variation table lets us check these conclusions before solving algebraically.",
+              "equation": "f(D_f)=]-\\infty,-2]\\ \\cup\\ [6,+\\infty[",
+              "note": "Read the range and check your conclusions",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "Solve \\(f(x)=6\\), then explain why \\(f(x)=4\\) has no solution.",
+            "hint": "Keep the restriction \\(x\\ne1\\), then use \\(f(x)=(x^2+3)/(x-1)\\). Check your conclusions against the variation table.",
+            "steps": [
+              "For \\(x\\ne1\\), the equation \\(f(x)=6\\) gives \\(x^2+3=6(x-1)\\).",
+              "This becomes \\(x^2-6x+9=(x-3)^2=0\\), giving \\(x=3\\), which is in the domain.",
+              "The left branch satisfies \\(f(x)\\leq-2\\), and the right branch satisfies \\(f(x)\\geq6\\). Thus neither branch attains 4."
+            ],
+            "answer": "The only solution of \\(f(x)=6\\) is \\(x=3\\). The equation \\(f(x)=4\\) has no real solution."
+          },
+          "quiz": {
+            "question": "How many real solutions does \\(f(x)=8\\) have?",
+            "options": [
+              "None",
+              "One",
+              "Two",
+              "Four"
+            ],
+            "answerIndex": 2,
+            "explanation": "The left branch has only negative values. The right branch decreases from \\(+\\infty\\) to 6 and then increases towards \\(+\\infty\\). The level 8 is therefore attained twice, at \\(x=4\\pm\\sqrt{5}\\)."
+          }
+        }
+      }
+    },
+    {
+      "id": "etude-logarithmique",
+      "lessonId": "etude-fonction",
+      "topic": "logarithmic",
+      "functionLatex": "g(x)=\\frac{\\ln x}{x}",
+      "plot": {
+        "kind": "logarithmic",
+        "xRange": [
+          0,
+          18
+        ],
+        "yRange": [
+          -2.2,
+          0.65
+        ],
+        "excludedX": [
+          0
+        ],
+        "verticalAsymptotes": [
+          0
+        ],
+        "obliqueAsymptote": null,
+        "horizontalAsymptotes": [
+          0
+        ],
+        "points": [
+          {
+            "x": 1,
+            "y": 0,
+            "label": "A(1, 0)",
+            "role": "intercept"
+          },
+          {
+            "x": 2.718281828459045,
+            "y": 0.36787944117144233,
+            "label": "M(e, 1/e)",
+            "role": "maximum"
+          },
+          {
+            "x": 4.4816890703380645,
+            "y": 0.33469524022264474,
+            "label": "I",
+            "role": "inflection"
+          }
+        ],
+        "tangents": [
+          {
+            "at": 1,
+            "slope": 1,
+            "intercept": -1
+          }
+        ],
+        "variation": {
+          "breakpoints": [
+            "0",
+            "e",
+            "+infty"
+          ],
+          "derivativeSigns": [
+            "+",
+            "-"
+          ],
+          "values": [
+            "-infty",
+            "1/e",
+            "0"
+          ],
+          "excluded": [
+            0
+          ]
+        }
+      },
+      "translations": {
+        "fr": {
+          "title": "Étude complète de la fonction ln(x) / x",
+          "summary": "Une étude logarithmique avec maximum, tangente, valeurs intermédiaires et un approfondissement sur l’inflexion.",
+          "segments": [
+            {
+              "text": "Voici une étude qui combine logarithme et quotient. Nous allons justifier le domaine, les deux limites, le maximum et la forme de la courbe. Chaque calcul apporte une information précise au dessin.",
+              "equation": "g(x)=\\frac{\\ln x}{x}",
+              "note": "Étudier un quotient logarithmique",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "Le logarithme naturel n’est défini que pour un argument strictement positif. Sur cet intervalle, le dénominateur est aussi non nul. La fonction est donc continue et dérivable pour tout x strictement positif.",
+              "equation": "D_g=]0,+\\infty[",
+              "note": "Le logarithme exige x > 0",
+              "visual": "domain",
+              "focus": "positive"
+            },
+            {
+              "text": "Quand x tend vers zéro par valeurs positives, le logarithme tend vers moins l’infini. Diviser par un nombre positif qui tend vers zéro amplifie la valeur absolue. Le quotient tend donc vers moins l’infini.",
+              "equation": "\\lim_{x\\to0^+}\\frac{\\ln x}{x}=-\\infty",
+              "note": "La limite en 0 se calcule à droite",
+              "visual": "limits",
+              "focus": "zero-right"
+            },
+            {
+              "text": "À l’infini, x croît plus vite que son logarithme. La limite usuelle du quotient est donc zéro. Pour x supérieur à un, le quotient est positif : la courbe approche alors zéro par au-dessus.",
+              "equation": "\\lim_{x\\to+\\infty}\\frac{\\ln x}{x}=0^+",
+              "note": "Comparer les croissances",
+              "visual": "limits",
+              "focus": "positive-infinity"
+            },
+            {
+              "text": "La limite infinie en zéro donne l’asymptote verticale x égal à zéro. La limite nulle à plus l’infini donne l’asymptote horizontale y égal à zéro. La fonction n’existe que du côté droit de l’axe vertical.",
+              "equation": "x=0\\quad\\mathrm{et}\\quad y=0",
+              "note": "Deux asymptotes dans deux directions",
+              "visual": "asymptotes",
+              "focus": "both"
+            },
+            {
+              "text": "La dérivée du logarithme est un sur x, et celle de x est un. Dans la formule du quotient, on soustrait le logarithme au produit de un sur x par x. On obtient un moins logarithme de x, divisé par x au carré.",
+              "equation": "g^{\\prime}(x)=\\frac{(1/x)x-\\ln x}{x^2}=\\frac{1-\\ln x}{x^2}",
+              "note": "Appliquer la dérivation d’un quotient",
+              "visual": "derivative",
+              "focus": "quotient-rule"
+            },
+            {
+              "text": "Le dénominateur est strictement positif. La dérivée s’annule donc exactement lorsque le logarithme de x vaut un. Cela donne x égal à e. Ce nombre appartient bien au domaine.",
+              "equation": "g^{\\prime}(x)=0\\ \\Longleftrightarrow\\ \\ln x=1\\ \\Longleftrightarrow\\ x=e",
+              "note": "Trouver le point critique",
+              "visual": "derivative",
+              "focus": "critical-point"
+            },
+            {
+              "text": "Entre zéro et e, le logarithme est inférieur à un, donc la dérivée est positive. Au-delà de e, il est supérieur à un, donc la dérivée devient négative. C’est ce changement de signe qui produit le sommet de la courbe.",
+              "equation": "g^{\\prime}>0\\ (0<x<e),\\qquad g^{\\prime}<0\\ (x>e)",
+              "note": "Le logarithme est strictement croissant",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "La fonction croît jusqu’à e, puis décroît vers zéro. Sa valeur en e est un sur e. C’est le maximum global, atteint une seule fois. Il n’y a pas de minimum global, car la fonction descend sans borne près de zéro.",
+              "equation": "g(e)=\\frac1e,\\qquad-\\infty\\nearrow\\frac1e\\searrow0",
+              "note": "Un maximum sur tout le domaine",
+              "visual": "variation",
+              "focus": "maximum"
+            },
+            {
+              "text": "Le dénominateur est positif, donc le signe est celui du logarithme. La courbe est sous l’axe horizontal entre zéro et un, le coupe en un, puis reste au-dessus. Une asymptote horizontale peut donc être coupée à distance finie.",
+              "equation": "g(x)<0\\ (0<x<1),\\quad g(1)=0,\\quad g(x)>0\\ (x>1)",
+              "note": "Le signe de la fonction",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "En un, la fonction vaut zéro et sa dérivée vaut un. La tangente passe donc par le point de coordonnées un et zéro avec une pente de un. Son équation est y égal à x moins un.",
+              "equation": "g(1)=0,\\quad g^{\\prime}(1)=1,\\quad T_1:\\ y=x-1",
+              "note": "La tangente au point (1, 0)",
+              "visual": "tangent",
+              "focus": "at-one"
+            },
+            {
+              "text": "Pour préciser la courbure, on dérive une seconde fois. Après simplification, le numérateur devient deux logarithme de x moins trois. Le dénominateur reste positif, donc seul le numérateur détermine le signe.",
+              "equation": "g''(x)=\\frac{2\\ln x-3}{x^3}",
+              "note": "Pour approfondir : la courbure",
+              "visual": "derivative",
+              "focus": "second-derivative"
+            },
+            {
+              "text": "La dérivée seconde est négative avant e puissance trois demis, puis positive après. La courbe est donc concave puis convexe. Le changement de signe établit un point d’inflexion, dont l’ordonnée se calcule dans la fonction initiale.",
+              "equation": "x_I=e^{3/2},\\qquad I\\left(e^{3/2},\\frac3{2e^{3/2}}\\right)",
+              "note": "Un changement de courbure",
+              "visual": "curve",
+              "focus": "inflection"
+            },
+            {
+              "text": "La hauteur un sur deux e est entre zéro et le maximum. La continuité et la stricte croissance donnent une solution unique entre un et e. La continuité, la stricte décroissance et la limite zéro donnent une autre solution unique après e. Il y en a exactement deux.",
+              "equation": "0<\\frac1{2e}<\\frac1e,\\qquad g(x)=\\frac1{2e}",
+              "note": "Continuité, existence et unicité",
+              "visual": "check",
+              "focus": "intermediate-values"
+            },
+            {
+              "text": "Plaçons l’intersection avec l’axe, le maximum et les asymptotes. La branche part vers moins l’infini près de zéro, atteint son sommet, puis descend vers zéro en restant positive. La tangente et l’inflexion complètent ce tracé.",
+              "equation": "A(1,0),\\quad M(e,1/e),\\quad x=0,\\quad y=0",
+              "note": "Réunir les résultats dans le graphique",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "Toute valeur supérieure à un sur e est impossible. La valeur zéro est atteinte uniquement en un, même si la courbe s’en rapproche aussi à l’infini. Distinguez toujours une valeur effectivement atteinte d’une simple limite.",
+              "equation": "g(x)\\leq\\frac1e\\quad(x>0),\\qquad g(x)=0\\ \\Longleftrightarrow\\ x=1",
+              "note": "Deux contrôles faciles à retenir",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "Combien de solutions possède \\(g(x)=1/(2e)\\) ? Justifier leur existence et leur unicité sur les intervalles adaptés.",
+            "hint": "Séparez les intervalles \\([1,e]\\) et \\(]e,+\\infty[\\). La continuité donne l’existence, et la stricte monotonie donne l’unicité.",
+            "steps": [
+              "Sur \\([1,e]\\), la fonction est continue et strictement croissante, avec \\(g(1)=0<1/(2e)<g(e)=1/e\\). Il existe donc une unique solution dans \\(]1,e[\\).",
+              "Puisque \\(g(x)\\to0\\) quand \\(x\\to+\\infty\\), il existe un réel \\(R>e\\) tel que \\(g(R)<1/(2e)\\). Sur \\([e,R]\\), la continuité donne une solution.",
+              "La stricte décroissance sur \\(]e,+\\infty[\\) rend cette seconde solution unique. Pour \\(0<x\\leq1\\), on a \\(g(x)\\leq0\\), donc aucune solution supplémentaire."
+            ],
+            "answer": "Il y a exactement deux solutions : une dans \\(]1,e[\\), l’autre dans \\(]e,+\\infty[\\)."
+          },
+          "quiz": {
+            "question": "Quel est le maximum global de \\(g(x)=\\ln(x)/x\\) ?",
+            "options": [
+              "\\(e\\), atteint en 1",
+              "\\(1/e\\), atteint en \\(e\\)",
+              "0, atteint à l’infini",
+              "La fonction n’a pas de maximum"
+            ],
+            "answerIndex": 1,
+            "explanation": "La dérivée est positive sur \\(]0,e[\\), nulle en \\(e\\), puis négative. Le maximum est donc \\(g(e)=1/e\\). L’infini n’est pas un point du domaine."
+          }
+        },
+        "ar": {
+          "title": "دراسة كاملة لدالة لوغاريتم إكس على إكس",
+          "summary": "دراسة لوغاريتمية تتضمن القيمة العظمى والمماس والقيم الوسيطية وتعمقًا في نقطة الانعطاف.",
+          "segments": [
+            {
+              "text": "ندرس دالة تجمع بين اللوغاريتم الطبيعي والقسمة. نبرر مجالها ونهايتيها وقيمتها العظمى، ثم نبني منحناها. كل حساب يضيف معلومة محددة إلى الرسم.",
+              "equation": "g(x)=\\frac{\\ln x}{x}",
+              "note": "دراسة خارج يتضمن لوغاريتمًا",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "لا يعرف اللوغاريتم الطبيعي إلا عندما يكون مدخله موجبًا تمامًا. وفي هذا المجال يكون المقام أيضًا غير منعدم. لذلك تكون الدالة متصلة وقابلة للاشتقاق لكل إكس موجب تمامًا.",
+              "equation": "D_g=]0,+\\infty[",
+              "note": "اللوغاريتم يقتضي إكس موجبًا تمامًا",
+              "visual": "domain",
+              "focus": "positive"
+            },
+            {
+              "text": "عندما تؤول إكس إلى الصفر بقيم موجبة، يؤول لوغاريتمها إلى سالب ما لا نهاية. والقسمة على عدد موجب يقترب من الصفر تزيد القيمة المطلقة. لذلك يؤول الخارج إلى سالب ما لا نهاية.",
+              "equation": "\\lim_{x\\to0^+}\\frac{\\ln x}{x}=-\\infty",
+              "note": "نحسب النهاية عند الصفر من اليمين",
+              "visual": "limits",
+              "focus": "zero-right"
+            },
+            {
+              "text": "عند موجب ما لا نهاية، تنمو إكس أسرع من لوغاريتمها. لذلك نهاية الخارج هي الصفر. ولأن الخارج موجب عندما تكون إكس أكبر من واحد، يقترب المنحنى من الصفر من الأعلى.",
+              "equation": "\\lim_{x\\to+\\infty}\\frac{\\ln x}{x}=0^+",
+              "note": "مقارنة سرعتي النمو",
+              "visual": "limits",
+              "focus": "positive-infinity"
+            },
+            {
+              "text": "النهاية غير المنتهية عند الصفر تعطي المقارب العمودي إكس يساوي صفرًا. والنهاية المنعدمة عند موجب ما لا نهاية تعطي المقارب الأفقي واي يساوي صفرًا. المنحنى موجود فقط يمين محور التراتيب.",
+              "equation": "x=0\\quad\\qquad\\quad y=0",
+              "note": "مقاربان في اتجاهين مختلفين",
+              "visual": "asymptotes",
+              "focus": "both"
+            },
+            {
+              "text": "مشتقة اللوغاريتم هي واحد على إكس، ومشتقة إكس هي واحد. نطبق قاعدة اشتقاق الخارج مع الحفاظ على ترتيب الطرح. نحصل على واحد ناقص لوغاريتم إكس، مقسومًا على إكس تربيع.",
+              "equation": "g^{\\prime}(x)=\\frac{(1/x)x-\\ln x}{x^2}=\\frac{1-\\ln x}{x^2}",
+              "note": "تطبيق قاعدة اشتقاق الخارج",
+              "visual": "derivative",
+              "focus": "quotient-rule"
+            },
+            {
+              "text": "المقام موجب تمامًا. لذلك تنعدم المشتقة بالضبط عندما يساوي لوغاريتم إكس واحدًا. نحصل على إكس يساوي العدد إي، وهو عدد ينتمي إلى مجال التعريف.",
+              "equation": "g^{\\prime}(x)=0\\ \\Longleftrightarrow\\ \\ln x=1\\ \\Longleftrightarrow\\ x=e",
+              "note": "تحديد نقطة انعدام المشتقة",
+              "visual": "derivative",
+              "focus": "critical-point"
+            },
+            {
+              "text": "بين الصفر وإي يكون اللوغاريتم أصغر من واحد، فتكون المشتقة موجبة. وبعد إي يكون أكبر من واحد، فتصبح المشتقة سالبة. هذا التغير في الإشارة يفسر قمة المنحنى.",
+              "equation": "g^{\\prime}>0\\ (0<x<e),\\qquad g^{\\prime}<0\\ (x>e)",
+              "note": "اللوغاريتم متزايد تمامًا",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "تتزايد الدالة إلى غاية إي، ثم تتناقص نحو الصفر. قيمتها عند إي هي واحد على إي. هذه قيمة عظمى مطلقة تتحقق مرة واحدة. ولا توجد قيمة صغرى مطلقة، لأن الدالة غير محدودة من الأسفل قرب الصفر.",
+              "equation": "g(e)=\\frac1e,\\qquad-\\infty\\nearrow\\frac1e\\searrow0",
+              "note": "قيمة عظمى على المجال كله",
+              "visual": "variation",
+              "focus": "maximum"
+            },
+            {
+              "text": "المقام موجب، لذلك للدالة إشارة اللوغاريتم نفسه. يقع المنحنى تحت محور الفواصل بين الصفر وواحد، ويقطعه عند واحد، ثم يبقى فوقه. يمكن إذن أن يقطع المنحنى مقاربه الأفقي عند فاصلة منتهية.",
+              "equation": "g(x)<0\\ (0<x<1),\\quad g(1)=0,\\quad g(x)>0\\ (x>1)",
+              "note": "إشارة الدالة",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "عند واحد، قيمة الدالة صفر وقيمة مشتقتها واحد. لذلك يمر المماس بالنقطة ذات الإحداثيين واحد وصفر، وميله واحد. معادلته واي يساوي إكس ناقص واحد.",
+              "equation": "g(1)=0,\\quad g^{\\prime}(1)=1,\\quad T_1:\\ y=x-1",
+              "note": "المماس عند النقطة ذات الإحداثيين واحد وصفر",
+              "visual": "tangent",
+              "focus": "at-one"
+            },
+            {
+              "text": "لتحديد تقعر المنحنى نحسب المشتقة الثانية. بعد التبسيط نحصل في البسط على ضعفي لوغاريتم إكس ناقص ثلاثة. ويبقى المقام موجبًا، فتتحدد الإشارة بإشارة البسط وحده.",
+              "equation": "g''(x)=\\frac{2\\ln x-3}{x^3}",
+              "note": "للتعمق: دراسة التقعر",
+              "visual": "derivative",
+              "focus": "second-derivative"
+            },
+            {
+              "text": "تكون المشتقة الثانية سالبة قبل إي مرفوعًا إلى الأس ثلاثة أنصاف، وموجبة بعده. يتغير إذن تقعر المنحنى، وتوجد نقطة انعطاف عند هذه الفاصلة. نحسب ترتيبها بالتعويض في الدالة الأصلية.",
+              "equation": "x_I=e^{3/2},\\qquad I\\left(e^{3/2},\\frac3{2e^{3/2}}\\right)",
+              "note": "تغير التقعر ونقطة الانعطاف",
+              "visual": "curve",
+              "focus": "inflection"
+            },
+            {
+              "text": "الارتفاع واحد على ضعفي إي يقع بين الصفر والقيمة العظمى. يضمن الاتصال والتزايد التام حلًا وحيدًا بين واحد وإي. وبعد إي، يضمن الاتصال والتناقص التام والنهاية المنعدمة حلًا وحيدًا آخر. إذن يوجد حلان بالضبط.",
+              "equation": "0<\\frac1{2e}<\\frac1e,\\qquad g(x)=\\frac1{2e}",
+              "note": "الاتصال والوجود والوحدانية",
+              "visual": "check",
+              "focus": "intermediate-values"
+            },
+            {
+              "text": "نضع نقطة التقاطع مع المحور والقيمة العظمى والمقاربين. يبدأ المنحنى نحو سالب ما لا نهاية قرب الصفر، ثم يبلغ قمته، وبعدها يتناقص نحو الصفر مع بقائه موجبًا. ونضيف المماس ونقطة الانعطاف.",
+              "equation": "A(1,0),\\quad M(e,1/e),\\quad x=0,\\quad y=0",
+              "note": "جمع النتائج في الرسم",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "لا يمكن أن تأخذ الدالة قيمة أكبر من واحد على إي. وتتحقق القيمة صفر عند واحد فقط، رغم أن المنحنى يقترب منها أيضًا عند ما لا نهاية. ميز دائمًا بين قيمة تبلغها الدالة ونهاية تقترب منها.",
+              "equation": "g(x)\\leq\\frac1e\\quad(x>0),\\qquad g(x)=0\\ \\Longleftrightarrow\\ x=1",
+              "note": "تحققان مهمان",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "كم حلًا للمعادلة \\(g(x)=1/(2e)\\)؟ برر الوجود والوحدانية على المجالات المناسبة.",
+            "hint": "افصل المجالين \\([1,e]\\) و\\(]e,+\\infty[\\). الاتصال يضمن الوجود، والرتابة التامة تضمن الوحدانية.",
+            "steps": [
+              "الدالة متصلة ومتزايدة تمامًا على \\([1,e]\\)، ولدينا \\(g(1)=0<1/(2e)<g(e)=1/e\\). إذن يوجد حل وحيد في \\(]1,e[\\).",
+              "بما أن \\(g(x)\\to0\\) عندما \\(x\\to+\\infty\\)، يوجد عدد \\(R>e\\) يحقق \\(g(R)<1/(2e)\\). يضمن الاتصال على \\([e,R]\\) وجود حل آخر.",
+              "يضمن التناقص التام على \\(]e,+\\infty[\\) وحدانية الحل الثاني. وإذا كان \\(0<x\\leq1\\)، فإن \\(g(x)\\leq0\\)، فلا توجد حلول أخرى."
+            ],
+            "answer": "يوجد حلان بالضبط: أحدهما في \\(]1,e[\\)، والآخر في \\(]e,+\\infty[\\)."
+          },
+          "quiz": {
+            "question": "ما القيمة العظمى المطلقة للدالة \\(g(x)=\\ln(x)/x\\)؟",
+            "options": [
+              "\\(e\\)، وتتحقق عند 1",
+              "\\(1/e\\)، وتتحقق عند \\(e\\)",
+              "0، وتتحقق عند ما لا نهاية",
+              "لا توجد قيمة عظمى"
+            ],
+            "answerIndex": 1,
+            "explanation": "المشتقة موجبة على \\(]0,e[\\)، ومنعدمة عند \\(e\\)، ثم سالبة بعده. لذلك القيمة العظمى هي \\(g(e)=1/e\\). وما لا نهاية ليس نقطة من مجال التعريف."
+          }
+        },
+        "en": {
+          "title": "Complete study of the function ln(x) / x",
+          "summary": "A logarithmic study with a maximum, tangent, intermediate values and an optional look at the inflection point.",
+          "segments": [
+            {
+              "text": "This example combines a natural logarithm with a quotient. We will justify the domain, both endpoint limits, the maximum and the shape of the graph. Each calculation contributes a specific feature to the drawing.",
+              "equation": "g(x)=\\frac{\\ln x}{x}",
+              "note": "Study a logarithmic quotient",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "The natural logarithm requires a strictly positive argument. On this interval the denominator is also nonzero. The function is therefore continuous and differentiable for every positive x.",
+              "equation": "D_g=]0,+\\infty[",
+              "note": "The logarithm requires x > 0",
+              "visual": "domain",
+              "focus": "positive"
+            },
+            {
+              "text": "As x approaches zero through positive values, its logarithm tends to negative infinity. Dividing by a positive number that approaches zero increases the magnitude. The quotient therefore tends to negative infinity.",
+              "equation": "\\lim_{x\\to0^+}\\frac{\\ln x}{x}=-\\infty",
+              "note": "Approach zero from the right",
+              "visual": "limits",
+              "focus": "zero-right"
+            },
+            {
+              "text": "At positive infinity, x grows faster than its logarithm. The standard limit of the quotient is therefore zero. For x greater than one the quotient is positive, so the curve approaches zero from above.",
+              "equation": "\\lim_{x\\to+\\infty}\\frac{\\ln x}{x}=0^+",
+              "note": "Compare the growth rates",
+              "visual": "limits",
+              "focus": "positive-infinity"
+            },
+            {
+              "text": "The infinite limit at zero gives the vertical asymptote x equals zero. The zero limit at positive infinity gives the horizontal asymptote y equals zero. The graph exists only to the right of the vertical axis.",
+              "equation": "x=0\\quad\\mathrm{and}\\quad y=0",
+              "note": "Two asymptotes in different directions",
+              "visual": "asymptotes",
+              "focus": "both"
+            },
+            {
+              "text": "The derivative of the logarithm is one over x, and the derivative of x is one. Applying the quotient rule gives one minus the natural logarithm of x, divided by x squared. Keep the subtraction in the correct order.",
+              "equation": "g^{\\prime}(x)=\\frac{(1/x)x-\\ln x}{x^2}=\\frac{1-\\ln x}{x^2}",
+              "note": "Apply the quotient rule",
+              "visual": "derivative",
+              "focus": "quotient-rule"
+            },
+            {
+              "text": "The denominator is strictly positive. The derivative is zero precisely when the natural logarithm of x equals one. This gives x equals e, which lies in the domain.",
+              "equation": "g^{\\prime}(x)=0\\ \\Longleftrightarrow\\ \\ln x=1\\ \\Longleftrightarrow\\ x=e",
+              "note": "Find the critical point",
+              "visual": "derivative",
+              "focus": "critical-point"
+            },
+            {
+              "text": "Between zero and e, the logarithm is less than one, so the derivative is positive. Beyond e, the logarithm is greater than one, so the derivative is negative. This sign change produces the peak of the graph.",
+              "equation": "g^{\\prime}>0\\ (0<x<e),\\qquad g^{\\prime}<0\\ (x>e)",
+              "note": "Use the strict increase of the logarithm",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "The function increases up to e, then decreases towards zero. Its value at e is one over e. This is the global maximum, attained only once. There is no global minimum because the function is unbounded below near zero.",
+              "equation": "g(e)=\\frac1e,\\qquad-\\infty\\nearrow\\frac1e\\searrow0",
+              "note": "A maximum on the whole domain",
+              "visual": "variation",
+              "focus": "maximum"
+            },
+            {
+              "text": "The denominator is positive, so the sign is the sign of the logarithm. The curve is below the horizontal axis between zero and one, crosses at one, then stays above it. A horizontal asymptote can be crossed at a finite point.",
+              "equation": "g(x)<0\\ (0<x<1),\\quad g(1)=0,\\quad g(x)>0\\ (x>1)",
+              "note": "Determine the sign of the function",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "At one, the function value is zero and the derivative is one. The tangent therefore passes through the point one, zero, with slope one. Its equation is y equals x minus one.",
+              "equation": "g(1)=0,\\quad g^{\\prime}(1)=1,\\quad T_1:\\ y=x-1",
+              "note": "The tangent at the point (1, 0)",
+              "visual": "tangent",
+              "focus": "at-one"
+            },
+            {
+              "text": "To refine the curve’s shape, differentiate once more. Simplifying gives two times the natural logarithm of x minus three in the numerator. The denominator stays positive, so the numerator alone determines the sign.",
+              "equation": "g''(x)=\\frac{2\\ln x-3}{x^3}",
+              "note": "Go further: determine the curvature",
+              "visual": "derivative",
+              "focus": "second-derivative"
+            },
+            {
+              "text": "The second derivative is negative before e to the power three halves, and positive afterwards. The curve is therefore concave down and then concave up. This sign change gives an inflection point, with its height found from the original function.",
+              "equation": "x_I=e^{3/2},\\qquad I\\left(e^{3/2},\\frac3{2e^{3/2}}\\right)",
+              "note": "A change of curvature",
+              "visual": "curve",
+              "focus": "inflection"
+            },
+            {
+              "text": "The level one over two e lies between zero and the maximum. Continuity and strict increase give one unique solution between one and e. Beyond e, continuity, strict decrease and the zero limit give one more unique solution. There are exactly two.",
+              "equation": "0<\\frac1{2e}<\\frac1e,\\qquad g(x)=\\frac1{2e}",
+              "note": "Continuity, existence and uniqueness",
+              "visual": "check",
+              "focus": "intermediate-values"
+            },
+            {
+              "text": "Plot the axis intercept, maximum and asymptotes. The curve tends to negative infinity near zero, rises to its peak, then decreases towards zero while remaining positive. The tangent and inflection point refine the drawing.",
+              "equation": "A(1,0),\\quad M(e,1/e),\\quad x=0,\\quad y=0",
+              "note": "Bring the results together in the graph",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "A value above one over e is impossible. Zero is attained only at one, even though the curve also approaches zero at infinity. Always distinguish a value that is actually attained from a limit that the curve approaches.",
+              "equation": "g(x)\\leq\\frac1e\\quad(x>0),\\qquad g(x)=0\\ \\Longleftrightarrow\\ x=1",
+              "note": "Two useful checks",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "How many solutions does \\(g(x)=1/(2e)\\) have? Justify existence and uniqueness on suitable intervals.",
+            "hint": "Separate \\([1,e]\\) from \\(]e,+\\infty[\\). Continuity gives existence; strict monotonicity gives uniqueness.",
+            "steps": [
+              "On \\([1,e]\\), the function is continuous and strictly increasing, with \\(g(1)=0<1/(2e)<g(e)=1/e\\). Thus there is one unique solution in \\(]1,e[\\).",
+              "Since \\(g(x)\\to0\\) as \\(x\\to+\\infty\\), there is a real number \\(R>e\\) with \\(g(R)<1/(2e)\\). Continuity on \\([e,R]\\) gives another solution.",
+              "Strict decrease on \\(]e,+\\infty[\\) makes the second solution unique. For \\(0<x\\leq1\\), we have \\(g(x)\\leq0\\), so there are no other solutions."
+            ],
+            "answer": "There are exactly two solutions: one in \\(]1,e[\\) and one in \\(]e,+\\infty[\\)."
+          },
+          "quiz": {
+            "question": "What is the global maximum of \\(g(x)=\\ln(x)/x\\)?",
+            "options": [
+              "\\(e\\), attained at 1",
+              "\\(1/e\\), attained at \\(e\\)",
+              "0, attained at infinity",
+              "The function has no maximum"
+            ],
+            "answerIndex": 1,
+            "explanation": "The derivative is positive on \\(]0,e[\\), zero at \\(e\\), then negative. Thus the maximum is \\(g(e)=1/e\\). Infinity is not a point in the domain."
+          }
+        }
+      }
+    },
+    {
+      "id": "etude-exponentielle",
+      "lessonId": "etude-fonction",
+      "topic": "exponential",
+      "functionLatex": "h(x)=(x+1)e^{-x}",
+      "plot": {
+        "kind": "exponential",
+        "xRange": [
+          -2.4,
+          7
+        ],
+        "yRange": [
+          -5,
+          1.45
+        ],
+        "excludedX": [],
+        "verticalAsymptotes": [],
+        "obliqueAsymptote": null,
+        "horizontalAsymptotes": [
+          0
+        ],
+        "points": [
+          {
+            "x": -1,
+            "y": 0,
+            "label": "A(-1, 0)",
+            "role": "intercept"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "label": "M(0, 1)",
+            "role": "maximum"
+          },
+          {
+            "x": 1,
+            "y": 0.7357588823428847,
+            "label": "I(1, 2/e)",
+            "role": "inflection"
+          }
+        ],
+        "tangents": [
+          {
+            "at": 0,
+            "slope": 0,
+            "intercept": 1
+          },
+          {
+            "at": 1,
+            "slope": -0.36787944117144233,
+            "intercept": 1.103638323514327
+          }
+        ],
+        "variation": {
+          "breakpoints": [
+            "-infty",
+            "0",
+            "+infty"
+          ],
+          "derivativeSigns": [
+            "+",
+            "-"
+          ],
+          "values": [
+            "-infty",
+            "1",
+            "0"
+          ],
+          "excluded": []
+        }
+      },
+      "translations": {
+        "fr": {
+          "title": "Étude complète de (x + 1) exp(−x)",
+          "summary": "Limites d’un produit exponentiel, maximum, signe, deux tangentes et lecture complète de la courbe.",
+          "segments": [
+            {
+              "text": "Étudions le produit de x plus un par l’exponentielle de moins x. L’exponentielle reste positive, mais elle ne rend pas tout le produit positif. Le facteur x plus un et la dérivée vont déterminer le signe et les variations.",
+              "equation": "h(x)=(x+1)e^{-x}",
+              "note": "Étudier un produit avec une exponentielle",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "Le polynôme et l’exponentielle sont définis sur tous les réels. Leur produit est continu et dérivable partout. Aucun dénominateur ni logarithme n’impose ici une valeur interdite.",
+              "equation": "D_h=\\mathbb{R},\\qquad e^{-x}>0",
+              "note": "Le domaine est l’ensemble des réels",
+              "visual": "domain",
+              "focus": "all-real"
+            },
+            {
+              "text": "Le produit donne d’abord une forme indéterminée : un facteur devient grand et l’autre tend vers zéro. Réécrivons-le comme un quotient. L’exponentielle croît plus vite que x, donc les deux termes tendent vers zéro, avec une valeur positive pour x assez grand.",
+              "equation": "h(x)=\\frac{x}{e^x}+\\frac1{e^x}\\longrightarrow0^+\\quad(x\\to+\\infty)",
+              "note": "Lever la forme indéterminée à +∞",
+              "visual": "limits",
+              "focus": "positive-infinity"
+            },
+            {
+              "text": "Quand x tend vers moins l’infini, x plus un devient négatif sans borne. En même temps, l’exponentielle de moins x tend vers plus l’infini. Le produit tend donc vers moins l’infini.",
+              "equation": "\\lim_{x\\to-\\infty}(x+1)e^{-x}=-\\infty",
+              "note": "Le comportement à −∞ est différent",
+              "visual": "limits",
+              "focus": "negative-infinity"
+            },
+            {
+              "text": "La limite nulle à plus l’infini donne l’asymptote horizontale y égal à zéro. Il n’y a aucune asymptote verticale : la fonction est continue en chaque réel. À gauche, la limite n’est pas finie et ne donne pas d’asymptote horizontale.",
+              "equation": "y=0\\quad(x\\to+\\infty)",
+              "note": "Une asymptote horizontale à droite",
+              "visual": "asymptotes",
+              "focus": "horizontal"
+            },
+            {
+              "text": "La dérivée de x plus un vaut un. La dérivée de l’exponentielle de moins x est l’opposé de cette exponentielle, à cause de la dérivée de moins x. La formule du produit donne les deux termes affichés.",
+              "equation": "h^{\\prime}(x)=e^{-x}-(x+1)e^{-x}",
+              "note": "Dériver le produit avec soin",
+              "visual": "derivative",
+              "focus": "product-rule"
+            },
+            {
+              "text": "On met l’exponentielle en facteur. Il reste un moins x moins un, soit moins x. Comme une exponentielle ne s’annule jamais, la dérivée est nulle uniquement en zéro.",
+              "equation": "h^{\\prime}(x)=-xe^{-x}",
+              "note": "Factoriser avant de chercher le signe",
+              "visual": "derivative",
+              "focus": "factor"
+            },
+            {
+              "text": "L’exponentielle est toujours strictement positive. La dérivée a donc le signe de moins x : positif avant zéro et négatif après. La fonction est strictement croissante, puis strictement décroissante.",
+              "equation": "h^{\\prime}>0\\ (x<0),\\quad h^{\\prime}(0)=0,\\quad h^{\\prime}<0\\ (x>0)",
+              "note": "La dérivée a le signe de −x",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "En zéro, la fonction vaut un. Avec le signe de la dérivée et les limites, on obtient un maximum global égal à un, atteint seulement en zéro. La branche droite descend vers zéro sans l’atteindre sur cet intervalle.",
+              "equation": "h(0)=1,\\qquad-\\infty\\nearrow1\\searrow0",
+              "note": "Un maximum global égal à 1",
+              "visual": "variation",
+              "focus": "maximum"
+            },
+            {
+              "text": "Pour le signe de la fonction, on regarde maintenant x plus un, et non moins x. La fonction est négative avant moins un, nulle en moins un et positive après. Le signe de la fonction et celui de sa dérivée répondent à deux questions différentes.",
+              "equation": "h(x)<0\\ (x<-1),\\quad h(-1)=0,\\quad h(x)>0\\ (x>-1)",
+              "note": "Le signe dépend de x + 1",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "Au sommet, la pente est nulle. La tangente a donc pour équation y égal à un. Cette tangente touche la courbe en un point précis. Elle est différente de l’asymptote horizontale y égal à zéro.",
+              "equation": "h(0)=1,\\quad h^{\\prime}(0)=0,\\quad T_0:\\ y=1",
+              "note": "La tangente horizontale au sommet",
+              "visual": "tangent",
+              "focus": "at-zero"
+            },
+            {
+              "text": "En un, la valeur est deux sur e et la pente est moins un sur e. On remplace ces deux nombres dans la formule de la tangente. Après simplification, son équation est y égal à trois moins x, divisé par e.",
+              "equation": "h(1)=\\frac2e,\\quad h^{\\prime}(1)=-\\frac1e,\\quad T_1:\\ y=\\frac{3-x}{e}",
+              "note": "Une seconde tangente, en x = 1",
+              "visual": "tangent",
+              "focus": "at-one"
+            },
+            {
+              "text": "La dérivée seconde a le signe de x moins un. Elle est négative avant un et positive après. La courbe est concave puis convexe, avec un point d’inflexion de coordonnées un et deux sur e.",
+              "equation": "h''(x)=(x-1)e^{-x},\\qquad I(1,2/e)",
+              "note": "Pour approfondir : un point d’inflexion",
+              "visual": "curve",
+              "focus": "inflection"
+            },
+            {
+              "text": "Sur l’intervalle de moins un à zéro, la continuité donne une solution à la hauteur un demi, et la stricte croissance la rend unique. Après zéro, la stricte décroissance de un vers zéro donne une seconde solution unique. Il y a exactement deux solutions.",
+              "equation": "h(-1)=0<\\frac12<1=h(0),\\qquad\\lim_{x\\to+\\infty}h(x)=0",
+              "note": "Deux solutions à la hauteur 1/2",
+              "visual": "check",
+              "focus": "intermediate-values"
+            },
+            {
+              "text": "La courbe part de très bas à gauche, coupe l’axe en moins un et atteint son maximum en zéro. Elle redescend ensuite vers l’asymptote horizontale. Placez aussi l’inflexion et les tangentes, en respectant le changement de courbure.",
+              "equation": "A(-1,0),\\quad M(0,1),\\quad I(1,2/e),\\quad y=0",
+              "note": "Tracer en respectant toutes les informations",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "La fonction prend toutes les valeurs inférieures ou égales à un. La valeur un n’est atteinte qu’en zéro. Retenez l’ordre du travail : domaine, limites, dérivée, signes, variations, points remarquables et courbe justifiée.",
+              "equation": "h(\\mathbb{R})=]-\\infty,1],\\qquad h(x)=1\\ \\Longleftrightarrow\\ x=0",
+              "note": "Une méthode réutilisable",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "Donner les équations des tangentes en \\(x=0\\) et en \\(x=1\\), puis préciser laquelle est horizontale.",
+            "hint": "Utilisez \\(y=h(a)+h^{\\prime}(a)(x-a)\\). Calculez séparément la valeur de la fonction et sa dérivée à chaque abscisse.",
+            "steps": [
+              "En \\(a=0\\), on a \\(h(0)=1\\) et \\(h^{\\prime}(0)=0\\). La tangente est \\(T_0:y=1\\).",
+              "En \\(a=1\\), on a \\(h(1)=2/e\\) et \\(h^{\\prime}(1)=-1/e\\). La formule donne \\(y=2/e-(x-1)/e\\).",
+              "En regroupant les termes, on obtient \\(T_1:y=(3-x)/e\\). La tangente \\(T_0\\) est horizontale parce que sa pente est nulle."
+            ],
+            "answer": "\\(T_0:y=1\\) est horizontale. La seconde tangente est \\(T_1:y=(3-x)/e\\). L’asymptote horizontale est une autre droite, \\(y=0\\)."
+          },
+          "quiz": {
+            "question": "Que signifie \\(h^{\\prime}(0)=0\\) dans cette étude ?",
+            "options": [
+              "La fonction vaut 0 en 0",
+              "La droite \\(x=0\\) est une asymptote",
+              "La tangente en 0 est horizontale",
+              "La fonction est constante sur \\(\\mathbb{R}\\)"
+            ],
+            "answerIndex": 2,
+            "explanation": "La dérivée donne la pente de la tangente. Une pente nulle donne une tangente horizontale. Ici, \\(h(0)=1\\), donc son équation est \\(y=1\\)."
+          }
+        },
+        "ar": {
+          "title": "دراسة كاملة لجداء إكس زائد واحد في الأسية",
+          "summary": "نهايات جداء أسي وقيمته العظمى وإشارته ومماسان له وقراءة كاملة للمنحنى.",
+          "segments": [
+            {
+              "text": "ندرس جداء إكس زائد واحد في الدالة الأسية للأس سالب إكس. العامل الأسي موجب دائمًا، لكن هذا لا يجعل الجداء كله موجبًا. ندرس عامل إكس زائد واحد والمشتقة لتحديد الإشارة والتغيرات.",
+              "equation": "h(x)=(x+1)e^{-x}",
+              "note": "دراسة جداء يتضمن دالة أسية",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "كثير الحدود والدالة الأسية معرفان على مجموعة الأعداد الحقيقية. جداؤهما متصل وقابل للاشتقاق في كل نقطة. لا يوجد هنا مقام أو لوغاريتم يفرض قيمة ممنوعة.",
+              "equation": "D_h=\\mathbb{R},\\qquad e^{-x}>0",
+              "note": "مجال التعريف هو مجموعة الأعداد الحقيقية",
+              "visual": "domain",
+              "focus": "all-real"
+            },
+            {
+              "text": "يصبح أحد عاملي الجداء كبيرًا بينما يؤول الآخر إلى الصفر، فنحصل أولًا على حالة عدم تعيين. نعيد كتابة التعبير على شكل خارج. تنمو الدالة الأسية أسرع من إكس، فيؤول الحدان إلى الصفر من جهة القيم الموجبة.",
+              "equation": "h(x)=\\frac{x}{e^x}+\\frac1{e^x}\\longrightarrow0^+\\quad(x\\to+\\infty)",
+              "note": "رفع حالة عدم التعيين عند موجب ما لا نهاية",
+              "visual": "limits",
+              "focus": "positive-infinity"
+            },
+            {
+              "text": "عندما تؤول إكس إلى سالب ما لا نهاية، يصبح إكس زائد واحد سالبًا وغير محدود في القيمة المطلقة. وفي الوقت نفسه يؤول العامل الأسي إلى موجب ما لا نهاية. لذلك يؤول الجداء إلى سالب ما لا نهاية.",
+              "equation": "\\lim_{x\\to-\\infty}(x+1)e^{-x}=-\\infty",
+              "note": "سلوك مختلف عند سالب ما لا نهاية",
+              "visual": "limits",
+              "focus": "negative-infinity"
+            },
+            {
+              "text": "النهاية المنعدمة عند موجب ما لا نهاية تعطي المقارب الأفقي واي يساوي صفرًا. ولا يوجد مقارب عمودي، لأن الدالة متصلة عند كل عدد حقيقي. أما في اليسار فالنهاية غير منتهية، ولا تعطي مقاربًا أفقيًا.",
+              "equation": "y=0\\quad(x\\to+\\infty)",
+              "note": "مقارب أفقي في جهة اليمين",
+              "visual": "asymptotes",
+              "focus": "horizontal"
+            },
+            {
+              "text": "مشتقة إكس زائد واحد هي واحد. أما مشتقة الأسية للأس سالب إكس فهي سالب هذه الأسية، بسبب مشتقة سالب إكس. نطبق قاعدة اشتقاق الجداء فنحصل على الحدين المعروضين.",
+              "equation": "h^{\\prime}(x)=e^{-x}-(x+1)e^{-x}",
+              "note": "اشتقاق الجداء مع الانتباه للإشارة",
+              "visual": "derivative",
+              "focus": "product-rule"
+            },
+            {
+              "text": "نستخرج العامل الأسي المشترك. يبقى واحد ناقص إكس ناقص واحد، أي سالب إكس. ولأن الدالة الأسية لا تنعدم أبدًا، تنعدم المشتقة عند الصفر فقط.",
+              "equation": "h^{\\prime}(x)=-xe^{-x}",
+              "note": "التحليل قبل دراسة الإشارة",
+              "visual": "derivative",
+              "focus": "factor"
+            },
+            {
+              "text": "العامل الأسي موجب تمامًا دائمًا. لذلك للمشتقة إشارة سالب إكس: موجبة قبل الصفر، وسالبة بعده. تكون الدالة متزايدة تمامًا ثم متناقصة تمامًا.",
+              "equation": "h^{\\prime}>0\\ (x<0),\\quad h^{\\prime}(0)=0,\\quad h^{\\prime}<0\\ (x>0)",
+              "note": "للمشتقة إشارة سالب إكس",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "قيمة الدالة عند الصفر هي واحد. وبالاعتماد على إشارة المشتقة والنهايات، نحصل على قيمة عظمى مطلقة تساوي واحدًا وتتحقق عند الصفر وحده. يتناقص الفرع الأيمن نحو الصفر دون أن يبلغه على هذا المجال.",
+              "equation": "h(0)=1,\\qquad-\\infty\\nearrow1\\searrow0",
+              "note": "قيمة عظمى مطلقة تساوي واحدًا",
+              "visual": "variation",
+              "focus": "maximum"
+            },
+            {
+              "text": "لدراسة إشارة الدالة ننظر الآن إلى إكس زائد واحد، لا إلى سالب إكس. تكون الدالة سالبة قبل سالب واحد، ومنعدمة عنده، وموجبة بعده. إشارة الدالة وإشارة مشتقتها تجيبان عن سؤالين مختلفين.",
+              "equation": "h(x)<0\\ (x<-1),\\quad h(-1)=0,\\quad h(x)>0\\ (x>-1)",
+              "note": "إشارة الدالة تحددها إكس زائد واحد",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "عند القمة يكون الميل منعدمًا. لذلك معادلة المماس هي واي يساوي واحدًا. هذا المستقيم مماس عند نقطة محددة، ويختلف عن المقارب الأفقي الذي معادلته واي يساوي صفرًا.",
+              "equation": "h(0)=1,\\quad h^{\\prime}(0)=0,\\quad T_0:\\ y=1",
+              "note": "المماس الأفقي عند القمة",
+              "visual": "tangent",
+              "focus": "at-zero"
+            },
+            {
+              "text": "عند واحد، قيمة الدالة هي اثنان على إي، وميل المماس سالب واحد على إي. نعوض هاتين القيمتين في صيغة المماس. بعد التبسيط تصبح المعادلة واي يساوي ثلاثة ناقص إكس، مقسومًا على إي.",
+              "equation": "h(1)=\\frac2e,\\quad h^{\\prime}(1)=-\\frac1e,\\quad T_1:\\ y=\\frac{3-x}{e}",
+              "note": "مماس آخر عند الفاصلة واحد",
+              "visual": "tangent",
+              "focus": "at-one"
+            },
+            {
+              "text": "للمشتقة الثانية إشارة إكس ناقص واحد. تكون سالبة قبل واحد وموجبة بعده، فيتغير تقعر المنحنى. نقطة الانعطاف فاصلتها واحد وترتيبها اثنان على إي.",
+              "equation": "h''(x)=(x-1)e^{-x},\\qquad I(1,2/e)",
+              "note": "للتعمق: نقطة انعطاف",
+              "visual": "curve",
+              "focus": "inflection"
+            },
+            {
+              "text": "على المجال من سالب واحد إلى صفر، يضمن الاتصال وجود حل عند الارتفاع نصف، ويضمن التزايد التام وحدانيته. وبعد الصفر، يضمن التناقص التام من واحد نحو الصفر حلًا وحيدًا ثانيًا. إذن يوجد حلان بالضبط.",
+              "equation": "h(-1)=0<\\frac12<1=h(0),\\qquad\\lim_{x\\to+\\infty}h(x)=0",
+              "note": "حلان عند الارتفاع نصف",
+              "visual": "check",
+              "focus": "intermediate-values"
+            },
+            {
+              "text": "يبدأ المنحنى من قيم سالبة كبيرة في القيمة المطلقة يسارًا، ويقطع المحور عند سالب واحد، ثم يبلغ قيمته العظمى عند الصفر. بعدها يتناقص نحو المقارب الأفقي. نضيف نقطة الانعطاف والمماسين مع احترام تغير التقعر.",
+              "equation": "A(-1,0),\\quad M(0,1),\\quad I(1,2/e),\\quad y=0",
+              "note": "الرسم وفق جميع النتائج",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "تأخذ الدالة جميع القيم الأصغر من واحد أو المساوية له. ولا تبلغ القيمة واحدًا إلا عند الصفر. تذكر ترتيب الدراسة: المجال، ثم النهايات، فالمشتقة والإشارات والتغيرات، ثم النقط المميزة والرسم المبرر.",
+              "equation": "h(\\mathbb{R})=]-\\infty,1],\\qquad h(x)=1\\ \\Longleftrightarrow\\ x=0",
+              "note": "منهج يمكن استعماله من جديد",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "اكتب معادلتي المماسين عند \\(x=0\\) وعند \\(x=1\\)، وحدد أيهما أفقي.",
+            "hint": "استعمل الصيغة \\(y=h(a)+h^{\\prime}(a)(x-a)\\). احسب قيمة الدالة وقيمة مشتقتها عند كل فاصلة.",
+            "steps": [
+              "عند \\(a=0\\)، نجد \\(h(0)=1\\) و\\(h^{\\prime}(0)=0\\). إذن معادلة المماس هي \\(T_0:y=1\\).",
+              "عند \\(a=1\\)، نجد \\(h(1)=2/e\\) و\\(h^{\\prime}(1)=-1/e\\). تعطي الصيغة \\(y=2/e-(x-1)/e\\).",
+              "بتجميع الحدود نحصل على \\(T_1:y=(3-x)/e\\). المماس \\(T_0\\) أفقي لأن ميله منعدم."
+            ],
+            "answer": "المماس \\(T_0:y=1\\) أفقي. والمماس الثاني هو \\(T_1:y=(3-x)/e\\). أما المقارب الأفقي فهو مستقيم آخر معادلته \\(y=0\\)."
+          },
+          "quiz": {
+            "question": "ماذا تعني المساواة \\(h^{\\prime}(0)=0\\) في هذه الدراسة؟",
+            "options": [
+              "قيمة الدالة عند الصفر هي صفر",
+              "المستقيم \\(x=0\\) مقارب",
+              "المماس عند الصفر أفقي",
+              "الدالة ثابتة على \\(\\mathbb{R}\\)"
+            ],
+            "answerIndex": 2,
+            "explanation": "المشتقة تعطي ميل المماس. إذا كان الميل منعدمًا كان المماس أفقيًا. هنا \\(h(0)=1\\)، لذلك معادلة هذا المماس هي \\(y=1\\)."
+          }
+        },
+        "en": {
+          "title": "Complete study of (x + 1) exp(−x)",
+          "summary": "Limits of an exponential product, its maximum and sign, two tangents and a complete reading of the graph.",
+          "segments": [
+            {
+              "text": "Consider x plus one multiplied by the exponential of negative x. The exponential is always positive, but the whole product need not be positive. The factor x plus one and the derivative will determine the sign and variations.",
+              "equation": "h(x)=(x+1)e^{-x}",
+              "note": "Study a product involving an exponential",
+              "visual": "curve",
+              "focus": "introduction"
+            },
+            {
+              "text": "Both the polynomial and the exponential are defined for every real number. Their product is continuous and differentiable everywhere. There is no denominator or logarithm imposing an excluded value.",
+              "equation": "D_h=\\mathbb{R},\\qquad e^{-x}>0",
+              "note": "The domain is all real numbers",
+              "visual": "domain",
+              "focus": "all-real"
+            },
+            {
+              "text": "At first, one factor grows while the other tends to zero, giving an indeterminate product. Rewrite it as a quotient. The exponential grows faster than x, so both terms tend to zero, with a positive value for sufficiently large x.",
+              "equation": "h(x)=\\frac{x}{e^x}+\\frac1{e^x}\\longrightarrow0^+\\quad(x\\to+\\infty)",
+              "note": "Resolve the indeterminate product at +∞",
+              "visual": "limits",
+              "focus": "positive-infinity"
+            },
+            {
+              "text": "As x tends to negative infinity, x plus one becomes negative with unbounded magnitude. At the same time, the exponential of negative x tends to positive infinity. Their product therefore tends to negative infinity.",
+              "equation": "\\lim_{x\\to-\\infty}(x+1)e^{-x}=-\\infty",
+              "note": "The behaviour at −∞ is different",
+              "visual": "limits",
+              "focus": "negative-infinity"
+            },
+            {
+              "text": "The zero limit at positive infinity gives the horizontal asymptote y equals zero. There is no vertical asymptote because the function is continuous at every real number. On the left, the infinite limit does not give a horizontal asymptote.",
+              "equation": "y=0\\quad(x\\to+\\infty)",
+              "note": "A horizontal asymptote on the right",
+              "visual": "asymptotes",
+              "focus": "horizontal"
+            },
+            {
+              "text": "The derivative of x plus one is one. The derivative of the exponential of negative x is the negative of that exponential, because the derivative of negative x is negative one. Applying the product rule gives these two terms.",
+              "equation": "h^{\\prime}(x)=e^{-x}-(x+1)e^{-x}",
+              "note": "Differentiate the product carefully",
+              "visual": "derivative",
+              "focus": "product-rule"
+            },
+            {
+              "text": "Factor out the exponential. The remaining factor is one minus x minus one, which is negative x. Since an exponential is never zero, the derivative is zero only at zero.",
+              "equation": "h^{\\prime}(x)=-xe^{-x}",
+              "note": "Factor before studying the sign",
+              "visual": "derivative",
+              "focus": "factor"
+            },
+            {
+              "text": "The exponential is always strictly positive. The derivative therefore has the sign of negative x: positive before zero and negative afterwards. The function is strictly increasing, then strictly decreasing.",
+              "equation": "h^{\\prime}>0\\ (x<0),\\quad h^{\\prime}(0)=0,\\quad h^{\\prime}<0\\ (x>0)",
+              "note": "The derivative has the sign of −x",
+              "visual": "sign",
+              "focus": "derivative"
+            },
+            {
+              "text": "At zero, the function equals one. Combining the derivative signs and limits gives a global maximum of one, attained only at zero. The right branch decreases towards zero without reaching it on that interval.",
+              "equation": "h(0)=1,\\qquad-\\infty\\nearrow1\\searrow0",
+              "note": "A global maximum of one",
+              "visual": "variation",
+              "focus": "maximum"
+            },
+            {
+              "text": "For the sign of the function, look at x plus one, not negative x. The function is negative before negative one, zero at negative one and positive afterwards. The sign of the function and the sign of its derivative answer different questions.",
+              "equation": "h(x)<0\\ (x<-1),\\quad h(-1)=0,\\quad h(x)>0\\ (x>-1)",
+              "note": "The function’s sign comes from x + 1",
+              "visual": "sign",
+              "focus": "function"
+            },
+            {
+              "text": "At the peak, the slope is zero. The tangent therefore has equation y equals one. It touches the curve at a specific point and is different from the horizontal asymptote y equals zero.",
+              "equation": "h(0)=1,\\quad h^{\\prime}(0)=0,\\quad T_0:\\ y=1",
+              "note": "The horizontal tangent at the peak",
+              "visual": "tangent",
+              "focus": "at-zero"
+            },
+            {
+              "text": "At one, the function value is two over e and the slope is negative one over e. Substitute both values into the tangent formula. Simplifying gives y equals three minus x, divided by e.",
+              "equation": "h(1)=\\frac2e,\\quad h^{\\prime}(1)=-\\frac1e,\\quad T_1:\\ y=\\frac{3-x}{e}",
+              "note": "A second tangent, at x = 1",
+              "visual": "tangent",
+              "focus": "at-one"
+            },
+            {
+              "text": "The second derivative has the sign of x minus one. It is negative before one and positive afterwards. The curve is concave down then concave up, with an inflection point at one, two over e.",
+              "equation": "h''(x)=(x-1)e^{-x},\\qquad I(1,2/e)",
+              "note": "Go further: an inflection point",
+              "visual": "curve",
+              "focus": "inflection"
+            },
+            {
+              "text": "Between negative one and zero, continuity gives a solution at height one half, and strict increase makes it unique. Beyond zero, continuous strict decrease from one towards zero gives a second unique solution. There are exactly two solutions.",
+              "equation": "h(-1)=0<\\frac12<1=h(0),\\qquad\\lim_{x\\to+\\infty}h(x)=0",
+              "note": "Two solutions at height one half",
+              "visual": "check",
+              "focus": "intermediate-values"
+            },
+            {
+              "text": "The curve rises from very negative values on the left, crosses the axis at negative one and reaches its maximum at zero. It then decreases towards the horizontal asymptote. Add the inflection point and tangents, respecting the change of curvature.",
+              "equation": "A(-1,0),\\quad M(0,1),\\quad I(1,2/e),\\quad y=0",
+              "note": "Draw the graph using every result",
+              "visual": "curve",
+              "focus": "complete"
+            },
+            {
+              "text": "The function takes every value less than or equal to one. The value one is attained only at zero. Keep the study in order: domain, limits, derivative, signs, variations, important points and a graph supported by the calculations.",
+              "equation": "h(\\mathbb{R})=]-\\infty,1],\\qquad h(x)=1\\ \\Longleftrightarrow\\ x=0",
+              "note": "A method you can reuse",
+              "visual": "check",
+              "focus": "summary"
+            }
+          ],
+          "exercise": {
+            "prompt": "Find the tangent equations at \\(x=0\\) and \\(x=1\\), then identify the horizontal tangent.",
+            "hint": "Use \\(y=h(a)+h^{\\prime}(a)(x-a)\\). Calculate the function value and derivative separately at each x-coordinate.",
+            "steps": [
+              "At \\(a=0\\), we have \\(h(0)=1\\) and \\(h^{\\prime}(0)=0\\). The tangent is \\(T_0:y=1\\).",
+              "At \\(a=1\\), we have \\(h(1)=2/e\\) and \\(h^{\\prime}(1)=-1/e\\). Substitution gives \\(y=2/e-(x-1)/e\\).",
+              "Combining terms gives \\(T_1:y=(3-x)/e\\). The tangent \\(T_0\\) is horizontal because its slope is zero."
+            ],
+            "answer": "The tangent \\(T_0:y=1\\) is horizontal. The other tangent is \\(T_1:y=(3-x)/e\\). The horizontal asymptote is a different line, \\(y=0\\)."
+          },
+          "quiz": {
+            "question": "What does \\(h^{\\prime}(0)=0\\) mean in this study?",
+            "options": [
+              "The function value at zero is zero",
+              "The line \\(x=0\\) is an asymptote",
+              "The tangent at zero is horizontal",
+              "The function is constant on \\(\\mathbb{R}\\)"
+            ],
+            "answerIndex": 2,
+            "explanation": "The derivative gives the tangent slope. A zero slope gives a horizontal tangent. Here \\(h(0)=1\\), so the tangent equation is \\(y=1\\)."
+          }
+        }
+      }
+    }
+  ]
+}

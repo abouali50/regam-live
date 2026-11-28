@@ -38,7 +38,7 @@ services:
     environment:
       LT_LOAD_ONLY: ar,en,fr
       LT_DISABLE_WEB_UI: "true"
-      LT_UPDATE_MODELS: "true"
+      LT_UPDATE_MODELS: "false"      # the models are downloaded once and kept; not fetched again at each restart (that left the translation off for minutes)
     volumes:
       - lt_models:/home/libretranslate/.local
 

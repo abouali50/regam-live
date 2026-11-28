@@ -50,6 +50,26 @@ echo "e-mails not sent:   $(printf '%s' "$A" | grep -c 'e-mail failed')"
 echo "-- last errors:"
 printf '%s' "$A" | grep -iv 'listening on' | mask | cut -c1-220 | sort | uniq -c | sort -rn | head -15
 
+say "Translation and reading voice"
+for svc in translate tts; do
+  st=$(dc ps --format '{{.Service}} {{.Status}}' | awk -v s="$svc" '$1==s{ $1=""; print substr($0,2) }')
+  echo "$svc: ${st:-NOT RUNNING}"
+done
+dc exec -T app node -e '
+const T = process.env.TRANSLATE_URL, V = process.env.TTS_URL;
+(async () => {
+  if (!T) console.log("translation: no TRANSLATE_URL"); else try {
+    const r = await fetch(T + "/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: "Bonjour a tous, merci d etre la.", source: "fr", target: "ar", format: "text" }), signal: AbortSignal.timeout(20000) });
+    console.log("translation fr->ar:", r.status, (await r.text()).slice(0, 160));
+  } catch (e) { console.log("translation: FAILED", e.message); }
+  if (!V) console.log("voice: no TTS_URL"); else try {
+    const h = await fetch(V + "/health", { signal: AbortSignal.timeout(8000) });
+    console.log("voice health:", h.status, (await h.text()).slice(0, 160));
+  } catch (e) { console.log("voice: FAILED", e.message); }
+})();' 2>&1 | head -6
+echo "-- translation service, last lines:"; dc logs --since "${HOURS}h" --no-log-prefix translate 2>&1 | grep -iv "^$" | tail -n 4 | cut -c1-160
+echo "-- voice service, last lines:"; dc logs --since "${HOURS}h" --no-log-prefix tts 2>&1 | tail -n 4 | cut -c1-160
+
 say "Front (Caddy / nginx), last $HOURS h"
 if dc ps --services 2>/dev/null | grep -qx caddy && [ -n "$(dc ps -q caddy)" ]; then
   dc logs --since "${HOURS}h" --no-log-prefix caddy | grep -c '"level":"error"' | sed 's/^/caddy errors: /'

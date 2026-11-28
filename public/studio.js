@@ -55,10 +55,20 @@
     };
   }
 
-  // while the audience sees the flag and hears the anthem, the host is told, with the time left
+  // while the audience sees the flag and hears the anthem, the host sees and hears them too, standing with them; his
+  // microphone stays silent until the end (or until he skips), so the anthem is never sent twice nor his voice over it
+  let hostOpening = false;
   function openingNote() {
     fetch('/api/opening', { cache: 'no-store' }).then((r) => r.json()).then((o) => {
-      if (!o.on || document.querySelector('.opening-note')) return;
+      if (!o.on || hostOpening) return;
+      if (window.RegamOpening) {
+        hostOpening = true;
+        if (window.__studioMicHold) window.__studioMicHold(true);
+        const back = () => { hostOpening = false; if (window.__studioMicHold) window.__studioMicHold(false); };
+        RegamOpening.play().then(back, back);
+        return;
+      }
+      if (document.querySelector('.opening-note')) return;
       const n = el('div', { class: 'opening-note', role: 'status' });
       document.body.append(n);
       const audio = new Audio('/opening/hymne.mp3');
@@ -381,11 +391,13 @@
         return true;
       } catch (e) { status(T('ما قدرناش نحلو الميكرو. تأكد من الإذن فالمتصفح.') + why(e, 'mic')); return false; }
     }
+    let micHeld = false;           // during the anthem the host's microphone is silent, whatever the button says
     $('#micBtn').onclick = () => {
       micOn = !micOn;
-      if (micGain) micGain.gain.value = micOn ? 1 : 0;
+      if (micGain) micGain.gain.value = micOn && !micHeld ? 1 : 0;
       press($('#micBtn'), micOn);
     };
+    window.__studioMicHold = (hold) => { micHeld = !!hold; if (micGain) micGain.gain.value = micOn && !micHeld ? 1 : 0; };
 
     // When the connection is weak, drop frames rather than sharpness: the audience
     // gets a fixed picture size, and text on a shared screen must stay readable.
@@ -429,7 +441,7 @@
         if (!mixOut) {
           mixOut = audioCtx.createMediaStreamDestination();
           micGain = audioCtx.createGain();
-          micGain.gain.value = micOn ? 1 : 0;
+          micGain.gain.value = micOn && !micHeld ? 1 : 0;
           audioCtx.createMediaStreamSource(new MediaStream([micTrack])).connect(micGain).connect(mixOut);
         }
         wireMedia();                                 // a video or recording open on the board is heard in the live
